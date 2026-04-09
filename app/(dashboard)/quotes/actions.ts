@@ -178,6 +178,10 @@ export async function createInvoiceFromQuoteAction(
 
     redirect(`/invoices/${invoice.id}`);
   } catch (error) {
+    if (error instanceof InvoiceError && error.message === "Une facture existe deja pour ce devis.") {
+      return { error: error.message };
+    }
+
     if (error instanceof InvoiceError || error instanceof Error) {
       return { error: error.message };
     }

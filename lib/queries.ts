@@ -87,14 +87,18 @@ async function selectGeneratedDocumentsByForeignKey(
     .map((document) => extractQuoteIdFromMetadata(document.metadata))
     .filter((quoteId): quoteId is string => Boolean(quoteId));
   const quoteStatuses = await selectQuoteStatusesByIds(quoteIds);
+  const invoicesByQuoteId = await selectInvoicesByQuoteIds(quoteIds);
 
   return documents.map((document) => {
     const quoteId = extractQuoteIdFromMetadata(document.metadata);
+    const invoice = quoteId ? invoicesByQuoteId.get(quoteId) ?? null : null;
 
     return {
       ...document,
       quote_id: quoteId,
-      quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null
+      quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null,
+      invoice_id: invoice?.id ?? null,
+      invoice_number: invoice?.invoice_number ?? null
     };
   });
 }
@@ -212,6 +216,43 @@ async function selectQuoteStatusesByIds(quoteIds: string[]) {
   }
 
   return new Map((data ?? []).map((quote) => [quote.id, quote.status as QuoteStatus]));
+}
+
+async function selectInvoicesByQuoteIds(quoteIds: string[]) {
+  if (!quoteIds.length) {
+    return new Map<string, { id: string; invoice_number: string }>();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, quote_id, invoice_number")
+    .in("quote_id", Array.from(new Set(quoteIds)));
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoices",
+    query: 'select("id, quote_id, invoice_number").in("quote_id", quoteIds)',
+    error
+  });
+
+  if (isMissingColumnError(error)) {
+    return new Map<string, { id: string; invoice_number: string }>();
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map(
+    (data ?? []).map((invoice) => [
+      invoice.quote_id,
+      {
+        id: invoice.id,
+        invoice_number: invoice.invoice_number
+      }
+    ])
+  );
 }
 
 async function selectSessionsWithFallback() {
