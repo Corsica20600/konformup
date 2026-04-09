@@ -25,6 +25,7 @@ const initialStatusState: ActionState = {};
 
 function documentLabel(type: string) {
   if (type === "quote") return "Devis";
+  if (type === "invoice") return "Facture";
   if (type === "attestation") return "Attestation";
   if (type === "certificat") return "Certificat";
   if (type === "convocation") return "Convocation";
@@ -157,24 +158,20 @@ function DocumentRow({
                   </Button>
                 </form>
               ) : null}
+              {canCreateSession ? (
+                <form action={createSessionFormAction}>
+                  <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
+                  <Button type="submit" variant="secondary" disabled={createSessionPending}>
+                    {createSessionPending ? "Creation..." : "Creer la session"}
+                  </Button>
+                </form>
+              ) : null}
               {allowQuoteDuplication ? (
                 <details className="relative">
                   <summary className="list-none rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-ink hover:bg-white/60 cursor-pointer">
                     Plus
                   </summary>
                   <div className="absolute right-0 z-10 mt-2 min-w-36 rounded-2xl border border-ink/10 bg-white p-2 shadow-panel">
-                    {canCreateSession ? (
-                      <form action={createSessionFormAction}>
-                        <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
-                        <button
-                          type="submit"
-                          disabled={createSessionPending}
-                          className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
-                        >
-                          {createSessionPending ? "Creation..." : "Creer la session"}
-                        </button>
-                      </form>
-                    ) : null}
                     <form action={duplicateFormAction}>
                       <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
                       <button

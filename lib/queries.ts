@@ -88,8 +88,7 @@ async function selectGeneratedDocumentsByForeignKey(
     .filter((quoteId): quoteId is string => Boolean(quoteId));
   const quoteStatuses = await selectQuoteStatusesByIds(quoteIds);
   const invoicesByQuoteId = await selectInvoicesByQuoteIds(quoteIds);
-
-  return documents.map((document) => {
+  const enrichedDocuments = documents.map((document) => {
     const quoteId = extractQuoteIdFromMetadata(document.metadata);
     const invoice = quoteId ? invoicesByQuoteId.get(quoteId) ?? null : null;
 
@@ -101,6 +100,37 @@ async function selectGeneratedDocumentsByForeignKey(
       invoice_number: invoice?.invoice_number ?? null
     };
   });
+
+  if (field !== "company_id") {
+    return enrichedDocuments;
+  }
+
+  const companyInvoices = await selectInvoicesByCompanyId(value);
+  const syntheticInvoiceDocuments = companyInvoices.map((invoice) => ({
+    id: `invoice-${invoice.id}`,
+    session_id: null,
+    candidate_id: null,
+    company_id: value,
+    document_type: "invoice",
+    document_ref: invoice.invoice_number,
+    version: 1,
+    status: "generated" as const,
+    file_url: `/invoices/${invoice.id}`,
+    metadata: {
+      invoice_id: invoice.id,
+      quote_id: invoice.quote_id
+    },
+    quote_id: invoice.quote_id,
+    quote_status: null,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    created_at: invoice.created_at,
+    updated_at: invoice.updated_at
+  })) satisfies GeneratedDocumentItem[];
+
+  return [...syntheticInvoiceDocuments, ...enrichedDocuments].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at)
+  );
 }
 
 function logSupabaseQueryError({
@@ -253,6 +283,32 @@ async function selectInvoicesByQuoteIds(quoteIds: string[]) {
       }
     ])
   );
+}
+
+async function selectInvoicesByCompanyId(companyId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, quote_id, invoice_number, created_at, updated_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoices",
+    query: 'select("id, quote_id, invoice_number, created_at, updated_at").eq("company_id", companyId).order("created_at")',
+    error
+  });
+
+  if (isMissingColumnError(error)) {
+    return [];
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
 }
 
 async function selectSessionsWithFallback() {
