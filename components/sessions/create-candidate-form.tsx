@@ -10,10 +10,12 @@ const initialState: ActionState = {};
 
 export function CreateCandidateForm({
   sessionId,
-  companies
+  companies,
+  defaultCompanyId = ""
 }: {
   sessionId: string;
   companies: CompanyOption[];
+  defaultCompanyId?: string;
 }) {
   const [state, formAction, pending] = useActionState(createCandidateAction, initialState);
 
@@ -30,7 +32,7 @@ export function CreateCandidateForm({
         <span>Société cliente</span>
         <select
           name="companyId"
-          defaultValue=""
+          defaultValue={defaultCompanyId}
           className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
         >
           <option value="">Aucune société rattachée</option>

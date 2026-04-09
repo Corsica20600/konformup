@@ -273,7 +273,9 @@ export async function fetchExistingPdf(pathname: string) {
       statusText: response.statusText,
       responseText
     });
-    throw new DocumentGenerationError("La génération PDF a échoué.");
+    throw new DocumentGenerationError(
+      "Impossible de recuperer le PDF du devis. Verifie l'URL publique de l'application en production (APP_URL, NEXT_PUBLIC_APP_URL ou configuration Vercel)."
+    );
   }
 
   return {

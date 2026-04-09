@@ -8,7 +8,9 @@ import type {
   GeneratedDocumentItem,
   SessionCandidate,
   SessionItem,
-  SessionModule
+  SessionModule,
+  SessionSourceQuote,
+  TrainerOption
 } from "@/lib/types";
 
 type SessionModuleRow = {
@@ -44,6 +46,13 @@ export class SessionNotFoundError extends Error {
   constructor(sessionId: string) {
     super(`Session ${sessionId} not found`);
     this.name = "SessionNotFoundError";
+  }
+}
+
+export class RecoverableSessionQueryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RecoverableSessionQueryError";
   }
 }
 
@@ -110,7 +119,9 @@ function logSupabaseQueryError({
     return;
   }
 
-  console.error("[supabase-query-error]", {
+  const logLevel = isRecoverableSessionQueryError(error) ? console.warn : console.error;
+
+  logLevel("[supabase-query-error]", {
     file,
     table,
     query,
@@ -124,6 +135,45 @@ function logSupabaseQueryError({
 function isMissingColumnError(error: { message?: string; details?: string } | null) {
   const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
   return text.includes("column") && text.includes("does not exist");
+}
+
+function isRecoverableSessionQueryError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+
+  return (
+    isMissingColumnError(error) ||
+    error?.code === "42P01" ||
+    error?.code === "PGRST200" ||
+    error?.code === "PGRST116" ||
+    text.includes("relationship") ||
+    text.includes("schema cache") ||
+    text.includes("does not exist")
+  );
+}
+
+function logRecoverableSessionFallback({
+  scope,
+  error
+}: {
+  scope: "getSessions" | "getSessionById";
+  error: {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  } | null;
+}) {
+  console.warn("[recoverable-session-query-error]", {
+    scope,
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint
+  });
 }
 
 function extractQuoteIdFromMetadata(metadata: unknown) {
@@ -168,18 +218,40 @@ async function selectSessionsWithFallback() {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, trainer_user_id, trainer_name, duration_hours, created_at")
+    .select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
     .order("start_date", { ascending: false });
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, trainer_user_id, trainer_name, duration_hours, created_at").order("start_date")',
+    query: 'select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").order("start_date")',
     error: primary.error
   });
 
   if (!isMissingColumnError(primary.error)) {
     return primary;
+  }
+
+  const fallbackWithTrainer = await supabase
+    .from("training_sessions")
+    .select("id, title, start_date, end_date, location, status, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
+    .order("start_date", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "training_sessions",
+    query: 'fallback select("id, title, start_date, end_date, location, status, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").order("start_date")',
+    error: fallbackWithTrainer.error
+  });
+
+  if (!isMissingColumnError(fallbackWithTrainer.error)) {
+    return {
+      data: (fallbackWithTrainer.data ?? []).map((session) => ({
+        ...session,
+        source_quote_id: null
+      })),
+      error: fallbackWithTrainer.error
+    };
   }
 
   const fallback = await supabase
@@ -197,6 +269,8 @@ async function selectSessionsWithFallback() {
   return {
     data: (fallback.data ?? []).map((session) => ({
       ...session,
+      source_quote_id: null,
+      trainer_id: null,
       trainer_name: null,
       duration_hours: null
     })),
@@ -208,14 +282,14 @@ async function selectSessionByIdWithFallback(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, trainer_user_id, trainer_name, duration_hours, created_at")
+    .select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
     .eq("id", sessionId)
     .maybeSingle<SessionItem>();
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, trainer_user_id, trainer_name, duration_hours, created_at").eq("id", sessionId).maybeSingle()',
+    query: 'select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").eq("id", sessionId).maybeSingle()',
     error: primary.error
   });
 
@@ -223,11 +297,36 @@ async function selectSessionByIdWithFallback(sessionId: string) {
     return primary;
   }
 
+  const fallbackWithTrainer = await supabase
+    .from("training_sessions")
+    .select("id, title, start_date, end_date, location, status, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
+    .eq("id", sessionId)
+    .maybeSingle<Omit<SessionItem, "source_quote_id">>();
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "training_sessions",
+    query: 'fallback select("id, title, start_date, end_date, location, status, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").eq("id", sessionId).maybeSingle()',
+    error: fallbackWithTrainer.error
+  });
+
+  if (!isMissingColumnError(fallbackWithTrainer.error)) {
+    return {
+      data: fallbackWithTrainer.data
+        ? {
+            ...fallbackWithTrainer.data,
+            source_quote_id: null
+          }
+        : null,
+      error: fallbackWithTrainer.error
+    };
+  }
+
   const fallback = await supabase
     .from("training_sessions")
     .select("id, title, start_date, end_date, location, status, trainer_user_id, created_at")
     .eq("id", sessionId)
-    .maybeSingle<Omit<SessionItem, "trainer_name" | "duration_hours">>();
+    .maybeSingle<Omit<SessionItem, "source_quote_id" | "trainer_id" | "trainer_name" | "duration_hours">>();
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
@@ -240,12 +339,140 @@ async function selectSessionByIdWithFallback(sessionId: string) {
     data: fallback.data
       ? {
           ...fallback.data,
+          source_quote_id: null,
+          trainer_id: null,
           trainer_name: null,
           duration_hours: null
         }
       : null,
     error: fallback.error
   };
+}
+
+export async function getTrainerOptions() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select("id, first_name, last_name, email, phone")
+    .order("last_name", { ascending: true })
+    .order("first_name", { ascending: true });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "trainers",
+    query: 'select("id, first_name, last_name, email, phone").order("last_name").order("first_name")',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as TrainerOption[];
+}
+
+type SessionSourceQuoteRow = {
+  id: string;
+  quote_number: string;
+  status: QuoteStatus;
+  company_id: string;
+  title: string;
+  client_companies:
+    | {
+        company_name: string;
+      }
+    | {
+        company_name: string;
+      }[]
+    | null;
+};
+
+async function selectSessionSourceQuote(sourceQuoteId: string): Promise<SessionSourceQuote | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quotes")
+    .select(`
+      id,
+      quote_number,
+      status,
+      company_id,
+      title,
+      client_companies (
+        company_name
+      )
+    `)
+    .eq("id", sourceQuoteId)
+    .maybeSingle<SessionSourceQuoteRow>();
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "quotes -> client_companies",
+    query: 'select("id, quote_number, status, company_id, title, client_companies(company_name)").eq("id", sourceQuoteId).maybeSingle()',
+    error
+  });
+
+  if (error || !data) {
+    return null;
+  }
+
+  const companyName = Array.isArray(data.client_companies)
+    ? data.client_companies[0]?.company_name
+    : data.client_companies?.company_name;
+
+  if (!companyName) {
+    return null;
+  }
+
+  return {
+    id: data.id,
+    quote_number: data.quote_number,
+    status: data.status,
+    company_id: data.company_id,
+    company_name: companyName,
+    title: data.title
+  };
+}
+
+type CandidateSignatureParts = {
+  first_name: string;
+  last_name: string;
+  email: string | null;
+};
+
+function buildCandidateSignature({ first_name, last_name, email }: CandidateSignatureParts) {
+  return [first_name.trim().toLowerCase(), last_name.trim().toLowerCase(), (email ?? "").trim().toLowerCase()].join("::");
+}
+
+async function countAvailableCompanyCandidatesForSession(companyId: string, sessionCandidates: SessionCandidate[]) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("candidates")
+    .select("first_name, last_name, email")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'select("first_name, last_name, email").eq("company_id", companyId).order("created_at")',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const existingSignatures = new Set(
+    sessionCandidates.map((candidateSession) =>
+      buildCandidateSignature({
+        first_name: candidateSession.candidate.first_name,
+        last_name: candidateSession.candidate.last_name,
+        email: candidateSession.candidate.email
+      })
+    )
+  );
+
+  return (data ?? []).filter((candidate) => !existingSignatures.has(buildCandidateSignature(candidate))).length;
 }
 
 async function selectCandidatesBySessionIdWithFallback(sessionId: string) {
@@ -363,14 +590,34 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
 export async function getSessions() {
   const { data, error } = await selectSessionsWithFallback();
 
-  if (error) throw error;
+  if (error) {
+    if (isRecoverableSessionQueryError(error)) {
+      logRecoverableSessionFallback({
+        scope: "getSessions",
+        error
+      });
+      throw new RecoverableSessionQueryError("Impossible de charger les sessions.");
+    }
+
+    throw error;
+  }
   return (data ?? []) as SessionItem[];
 }
 
 export async function getSessionById(sessionId: string) {
   const { data: session, error: sessionError } = await selectSessionByIdWithFallback(sessionId);
 
-  if (sessionError) throw sessionError;
+  if (sessionError) {
+    if (isRecoverableSessionQueryError(sessionError)) {
+      logRecoverableSessionFallback({
+        scope: "getSessionById",
+        error: sessionError
+      });
+      throw new RecoverableSessionQueryError("Impossible de charger cette session.");
+    }
+
+    throw sessionError;
+  }
   if (!session) throw new SessionNotFoundError(sessionId);
 
   await initializeSessionModuleProgress(sessionId);
@@ -443,12 +690,18 @@ export async function getSessionById(sessionId: string) {
   const globalProgress = normalizedModules.length
     ? Math.round((completedModules / normalizedModules.length) * 100)
     : 0;
+  const sourceQuote = session.source_quote_id ? await selectSessionSourceQuote(session.source_quote_id) : null;
+  const availableCompanyCandidateCount = sourceQuote
+    ? await countAvailableCompanyCandidatesForSession(sourceQuote.company_id, normalizedCandidates)
+    : 0;
 
   return {
     session,
     candidates: normalizedCandidates,
     modules: normalizedModules,
-    globalProgress
+    globalProgress,
+    sourceQuote,
+    availableCompanyCandidateCount
   };
 }
 

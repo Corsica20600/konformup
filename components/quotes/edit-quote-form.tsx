@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
+  createSessionFromQuoteAction,
   regenerateQuotePdfAction,
   sendQuoteEmailAction,
   type QuoteEditorActionState,
@@ -16,8 +17,13 @@ const initialState: QuoteEditorActionState = {};
 
 export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
   const [saveState, saveAction, savePending] = useActionState(updateQuoteAction, initialState);
+  const [createSessionState, createSessionAction, createSessionPending] = useActionState(
+    createSessionFromQuoteAction,
+    initialState
+  );
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
+  const canCreateSession = quote.status === "accepted" && !quote.session_id;
 
   return (
     <div className="grid gap-4">
@@ -30,6 +36,22 @@ export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {quote.session_id ? (
+            <Link
+              href={`/sessions/${quote.session_id}`}
+              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            >
+              Ouvrir la session
+            </Link>
+          ) : null}
+          {canCreateSession ? (
+            <form action={createSessionAction}>
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <Button type="submit" variant="secondary" disabled={createSessionPending}>
+                {createSessionPending ? "Creation..." : "Creer la session"}
+              </Button>
+            </form>
+          ) : null}
           <form action={sendAction}>
             <input type="hidden" name="quoteId" value={quote.id} />
             <Button type="submit" variant="secondary" disabled={sendPending}>
@@ -143,6 +165,7 @@ export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
           ) : null}
         </div>
       ) : null}
+      {createSessionState.error ? <p className="text-sm text-accent">{createSessionState.error}</p> : null}
     </div>
   );
 }

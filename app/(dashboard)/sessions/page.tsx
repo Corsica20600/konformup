@@ -1,12 +1,24 @@
 import { Card } from "@/components/ui/card";
 import { CreateSessionForm } from "@/components/sessions/create-session-form";
 import { SessionList } from "@/components/sessions/session-list";
-import { getSessions } from "@/lib/queries";
+import { getSessions, RecoverableSessionQueryError } from "@/lib/queries";
+import type { SessionItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function SessionsPage() {
-  const sessions = await getSessions();
+  let sessions: SessionItem[] = [];
+  let hasRecoverableError = false;
+
+  try {
+    sessions = await getSessions();
+  } catch (error) {
+    if (error instanceof RecoverableSessionQueryError) {
+      hasRecoverableError = true;
+    } else {
+      throw error;
+    }
+  }
 
   return (
     <main className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
@@ -26,6 +38,14 @@ export default async function SessionsPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Sessions</p>
           <h2 className="mt-2 text-2xl font-bold">Liste des sessions</h2>
         </div>
+        {hasRecoverableError ? (
+          <Card>
+            <h3 className="text-lg font-bold">Sessions temporairement indisponibles</h3>
+            <p className="mt-2 text-sm text-ink/65">
+              Les sessions ne peuvent pas etre chargees pour le moment. Verifie le schema Supabase puis recharge la page.
+            </p>
+          </Card>
+        ) : null}
         <SessionList sessions={sessions} />
       </section>
     </main>

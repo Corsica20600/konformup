@@ -15,6 +15,22 @@ export const createSessionSchema = z.object({
   status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
 });
 
+export const updateSessionSchema = z
+  .object({
+    sessionId: z.string().uuid("La session est introuvable."),
+    title: z.string().min(3, "Le titre est requis."),
+    startDate: z.string().min(1, "La date de début est requise."),
+    endDate: z.string().min(1, "La date de fin est requise."),
+    location: z.string().min(2, "Le lieu est requis."),
+    durationHours: z.union([z.literal(""), z.coerce.number().positive("La durée doit être supérieure à 0.")]).optional(),
+    trainerId: z.string().uuid().or(z.literal("")).optional(),
+    status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
+  })
+  .refine((data) => data.endDate >= data.startDate, {
+    message: "La date de fin doit être postérieure ou égale à la date de début.",
+    path: ["endDate"]
+  });
+
 export const createCandidateSchema = z.object({
   sessionId: z.string().uuid().optional().or(z.literal("")),
   firstName: z.string().min(2, "Le prénom est requis."),
@@ -76,6 +92,13 @@ export const createCompanySchema = z.object({
 
 export const updateCompanySchema = createCompanySchema.extend({
   companyId: z.string().uuid()
+});
+
+export const createTrainerSchema = z.object({
+  firstName: z.string().min(2, "Le prenom est requis."),
+  lastName: z.string().min(2, "Le nom est requis."),
+  email: z.string().email("Email invalide.").or(z.literal("")),
+  phone: z.string().optional().default("")
 });
 
 export const createQuoteSchema = z.object({

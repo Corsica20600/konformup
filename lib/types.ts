@@ -15,6 +15,8 @@ export type SessionItem = {
   end_date: string;
   location: string;
   status: "draft" | "scheduled" | "in_progress" | "completed" | "cancelled";
+  source_quote_id: string | null;
+  trainer_id: string | null;
   trainer_user_id: string | null;
   trainer_name: string | null;
   duration_hours: number | null;
@@ -120,4 +122,21 @@ export type GeneratedDocumentItem = {
   quote_status?: QuoteStatus | null;
   created_at: string;
   updated_at: string;
+};
+
+export type SessionSourceQuote = {
+  id: string;
+  quote_number: string;
+  status: QuoteStatus;
+  company_id: string;
+  company_name: string;
+  title: string;
+};
+
+export type TrainerOption = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
 };

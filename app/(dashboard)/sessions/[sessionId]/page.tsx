@@ -3,12 +3,18 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CandidateCard } from "@/components/sessions/candidate-card";
 import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
-import { CreateQuoteForm } from "@/components/sessions/create-quote-form";
+import { PrefillCompanyCandidatesForm } from "@/components/sessions/prefill-company-candidates-form";
 import { DocumentList } from "@/components/documents/document-list";
 import { ModuleContent } from "@/components/sessions/module-content";
 import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
-import { getCompanyOptions, getDocumentsBySessionId, getSessionById, SessionNotFoundError } from "@/lib/queries";
+import {
+  getCompanyOptions,
+  getDocumentsBySessionId,
+  getSessionById,
+  RecoverableSessionQueryError,
+  SessionNotFoundError
+} from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -40,24 +46,23 @@ export default async function SessionDetailPage({
     if (error instanceof SessionNotFoundError) {
       notFound();
     }
+    if (error instanceof RecoverableSessionQueryError) {
+      return (
+        <main className="grid gap-4">
+          <Card>
+            <h2 className="text-2xl font-bold">Session temporairement indisponible</h2>
+            <p className="mt-2 text-sm text-ink/65">
+              Les donnees de cette session ne peuvent pas etre chargees pour le moment. Verifie le schema Supabase puis recharge la page.
+            </p>
+          </Card>
+        </main>
+      );
+    }
 
     throw error;
   }
 
-  const { session, candidates, modules, globalProgress } = data;
-  const quoteCompanies = companies
-    .map((company) => ({
-      id: company.id,
-      company_name: company.company_name,
-      candidateCount: candidates.filter((candidateSession) => candidateSession.candidate.company_id === company.id).length
-    }))
-    .sort((a, b) => {
-      if (b.candidateCount !== a.candidateCount) {
-        return b.candidateCount - a.candidateCount;
-      }
-
-      return a.company_name.localeCompare(b.company_name, "fr");
-    });
+  const { session, candidates, modules, globalProgress, sourceQuote, availableCompanyCandidateCount } = data;
   const selectedModule =
     modules.find((module) => module.id === selectedModuleParam) ??
     modules[0] ??
@@ -84,6 +89,12 @@ export default async function SessionDetailPage({
               >
                 Feuille de presence PDF
               </a>
+              <a
+                href={`/sessions/${session.id}/edit`}
+                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Modifier la session
+              </a>
             </div>
             <h2 className="mt-3 text-3xl font-bold">{session.title}</h2>
             <div className="mt-4 space-y-2 text-sm text-ink/65">
@@ -93,16 +104,6 @@ export default async function SessionDetailPage({
               <p>Lieu : {session.location}</p>
               <p>Formateur : {session.trainer_name || "Non renseigne"}</p>
               <p>Duree : {session.duration_hours ? `${session.duration_hours} h` : "Non renseignee"}</p>
-            </div>
-            <div className="mt-6">
-              <CreateQuoteForm
-                sessionId={session.id}
-                sessionTitle={session.title}
-                startDate={session.start_date}
-                endDate={session.end_date}
-                location={session.location}
-                companies={quoteCompanies}
-              />
             </div>
           </Card>
 
@@ -134,9 +135,46 @@ export default async function SessionDetailPage({
               Saisie simple pour rattacher un candidat à cette session.
             </p>
             <div className="mt-6">
-              <CreateCandidateForm sessionId={session.id} companies={companies} />
+              <CreateCandidateForm
+                sessionId={session.id}
+                companies={companies}
+                defaultCompanyId={sourceQuote?.company_id ?? ""}
+              />
             </div>
           </Card>
+
+          {sourceQuote ? (
+            <Card>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Origine commerciale</p>
+                  <h3 className="mt-2 text-2xl font-bold">Devis {sourceQuote.quote_number}</h3>
+                  <p className="mt-2 text-sm text-ink/65">
+                    {sourceQuote.title} • {sourceQuote.company_name}
+                  </p>
+                </div>
+                <a
+                  href={`/quotes/${sourceQuote.id}`}
+                  className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                >
+                  Ouvrir le devis
+                </a>
+              </div>
+              <div className="mt-6">
+                {availableCompanyCandidateCount > 0 ? (
+                  <PrefillCompanyCandidatesForm
+                    sessionId={session.id}
+                    candidateCount={availableCompanyCandidateCount}
+                    companyName={sourceQuote.company_name}
+                  />
+                ) : (
+                  <p className="text-sm text-ink/65">
+                    Aucun candidat supplementaire de cette societe n'est a pre-remplir pour le moment.
+                  </p>
+                )}
+              </div>
+            </Card>
+          ) : null}
 
           <Card>
             <DocumentList

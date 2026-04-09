@@ -1,6 +1,7 @@
 import type { QuoteStatus } from "@/lib/database.types";
 
 export const QUOTE_STATUS_OPTIONS: QuoteStatus[] = ["draft", "sent", "accepted", "rejected", "archived"];
+export const QUOTE_STATUS_MANAGEMENT_OPTIONS: QuoteStatus[] = ["draft", "sent", "accepted", "rejected"];
 
 export const QUOTE_STATUS_LABELS: Record<QuoteStatus, string> = {
   draft: "Brouillon",

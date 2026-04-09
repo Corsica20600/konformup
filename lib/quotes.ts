@@ -11,6 +11,7 @@ import {
   computeQuoteTotalTtc,
   computeQuoteVatAmount
 } from "@/lib/quote-utils";
+import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { createClient } from "@/lib/supabase/server";
 
 export type QuoteRow = Database["public"]["Tables"]["quotes"]["Row"];
@@ -62,6 +63,8 @@ export type QuotePdfData = QuoteBaseRow & {
 export type QuoteEditData = QuoteBaseRow & {
   company: QuoteCompanyRow;
 };
+
+type TrainingSessionInsertRow = Database["public"]["Tables"]["training_sessions"]["Insert"];
 
 type QuoteCompanyResolutionInput = {
   companyId?: string | null;
@@ -730,4 +733,84 @@ export async function updateQuoteStatus(quoteId: string, status: QuoteRow["statu
   }
 
   return data;
+}
+
+export async function createSessionFromQuote(quoteId: string, trainerUserId: string) {
+  const quote = await selectQuoteById(quoteId);
+
+  if (!quote) {
+    throw new QuoteError("Devis introuvable.");
+  }
+
+  if (quote.status !== "accepted") {
+    throw new QuoteError("Seul un devis accepte peut etre transforme en session.");
+  }
+
+  if (quote.session_id) {
+    throw new QuoteError("Une session est deja liee a ce devis.");
+  }
+
+  if (!quote.session_start_date || !quote.session_end_date || !quote.location) {
+    throw new QuoteError("Renseigne les dates et le lieu du devis avant de creer la session.");
+  }
+
+  const supabase = await createClient();
+  const sessionPayload: TrainingSessionInsertRow = {
+    title: quote.title,
+    start_date: quote.session_start_date,
+    end_date: quote.session_end_date,
+    location: quote.location,
+    status: "draft",
+    source_quote_id: quote.id,
+    trainer_user_id: trainerUserId,
+    trainer_name: null,
+    duration_hours: null
+  };
+
+  const { data: session, error: sessionError } = await supabase
+    .from("training_sessions")
+    .insert(sessionPayload)
+    .select("id, title")
+    .single<{ id: string; title: string }>();
+
+  if (sessionError || !session) {
+    throw new QuoteError("Impossible de creer la session a partir du devis.");
+  }
+
+  try {
+    await initializeSessionModuleProgress(session.id);
+  } catch {
+    throw new QuoteError("Session creee, mais la progression des modules n'a pas pu etre initialisee.");
+  }
+
+  const now = new Date().toISOString();
+  const { error: quoteUpdateError } = await supabase
+    .from("quotes")
+    .update({
+      session_id: session.id,
+      updated_at: now
+    })
+    .eq("id", quote.id);
+
+  if (quoteUpdateError) {
+    throw new QuoteError("Session creee, mais le devis n'a pas pu etre lie.");
+  }
+
+  const { error: documentUpdateError } = await supabase
+    .from("generated_documents")
+    .update({
+      session_id: session.id,
+      updated_at: now
+    })
+    .eq("document_type", "quote")
+    .contains("metadata", { quote_id: quote.id });
+
+  if (documentUpdateError) {
+    throw new QuoteError("Session creee, mais la trace documentaire du devis n'a pas pu etre mise a jour.");
+  }
+
+  return {
+    quote,
+    session
+  };
 }

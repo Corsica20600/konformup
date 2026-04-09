@@ -22,6 +22,8 @@ export type Database = {
           end_date: string;
           location: string;
           status: TrainingSessionStatus;
+          source_quote_id: string | null;
+          trainer_id: string | null;
           trainer_user_id: string | null;
           trainer_name: string | null;
           duration_hours: number | null;
@@ -34,6 +36,8 @@ export type Database = {
           end_date: string;
           location: string;
           status?: TrainingSessionStatus;
+          source_quote_id?: string | null;
+          trainer_id?: string | null;
           trainer_user_id?: string | null;
           trainer_name?: string | null;
           duration_hours?: number | null;
@@ -46,10 +50,55 @@ export type Database = {
           end_date?: string;
           location?: string;
           status?: TrainingSessionStatus;
+          source_quote_id?: string | null;
+          trainer_id?: string | null;
           trainer_user_id?: string | null;
           trainer_name?: string | null;
           duration_hours?: number | null;
           created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "training_sessions_trainer_id_fkey";
+            columns: ["trainer_id"];
+            referencedRelation: "trainers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "training_sessions_source_quote_id_fkey";
+            columns: ["source_quote_id"];
+            referencedRelation: "quotes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      trainers: {
+        Row: {
+          id: string;
+          first_name: string;
+          last_name: string;
+          email: string | null;
+          phone: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          first_name: string;
+          last_name: string;
+          email?: string | null;
+          phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          first_name?: string;
+          last_name?: string;
+          email?: string | null;
+          phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

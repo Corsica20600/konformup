@@ -47,6 +47,9 @@ alter table public.training_sessions
 alter table public.training_sessions
   add column if not exists duration_hours numeric(5,2);
 
+alter table public.training_sessions
+  add column if not exists source_quote_id uuid references public.quotes(id) on delete set null;
+
 create table if not exists public.client_companies (
   id uuid primary key default gen_random_uuid(),
   company_name text not null,
@@ -63,6 +66,21 @@ create table if not exists public.client_companies (
   updated_at timestamptz not null default timezone('utc', now()),
   constraint client_companies_name_not_blank check (btrim(company_name) <> '')
 );
+
+create table if not exists public.trainers (
+  id uuid primary key default gen_random_uuid(),
+  first_name text not null,
+  last_name text not null,
+  email text,
+  phone text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint trainers_first_name_not_blank check (btrim(first_name) <> ''),
+  constraint trainers_last_name_not_blank check (btrim(last_name) <> '')
+);
+
+alter table public.training_sessions
+  add column if not exists trainer_id uuid references public.trainers(id) on delete set null;
 
 create table if not exists public.candidates (
   id uuid primary key default gen_random_uuid(),
@@ -215,12 +233,15 @@ create table if not exists public.organization_settings (
 create index if not exists idx_candidates_session_id on public.candidates(session_id);
 create index if not exists idx_candidates_company_id on public.candidates(company_id);
 create index if not exists idx_client_companies_name on public.client_companies(company_name);
+create index if not exists idx_trainers_name on public.trainers(last_name, first_name);
 create index if not exists idx_training_modules_session_id on public.training_modules(session_id);
 create index if not exists idx_session_module_progress_session_id on public.session_module_progress(session_id);
 create index if not exists idx_session_module_progress_module_id on public.session_module_progress(module_id);
 create index if not exists idx_generated_documents_session_id on public.generated_documents(session_id);
 create index if not exists idx_generated_documents_candidate_id on public.generated_documents(candidate_id);
 create index if not exists idx_generated_documents_company_id on public.generated_documents(company_id);
+create index if not exists idx_training_sessions_trainer_id on public.training_sessions(trainer_id);
 create index if not exists idx_quotes_session_id on public.quotes(session_id);
 create index if not exists idx_quotes_company_id on public.quotes(company_id);
 create index if not exists idx_quotes_created_at on public.quotes(created_at desc);
+create index if not exists idx_training_sessions_source_quote_id on public.training_sessions(source_quote_id);

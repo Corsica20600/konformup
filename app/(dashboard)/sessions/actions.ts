@@ -12,13 +12,25 @@ import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
-import { createCandidateSchema, createQuoteSchema, createSessionSchema, updateCandidateSchema } from "@/lib/validation";
+import { createCandidateSchema, createQuoteSchema, createSessionSchema, updateCandidateSchema, updateSessionSchema } from "@/lib/validation";
 
 export type ActionState = {
   error?: string;
   success?: string;
   fileUrl?: string;
 };
+
+function buildCandidateSignature({
+  first_name,
+  last_name,
+  email
+}: {
+  first_name: string;
+  last_name: string;
+  email: string | null;
+}) {
+  return [first_name.trim().toLowerCase(), last_name.trim().toLowerCase(), (email ?? "").trim().toLowerCase()].join("::");
+}
 
 async function resolveCandidateCompanyLabel(companyId: string | null, fallbackLabel: string | null) {
   if (!companyId) {
@@ -37,6 +49,25 @@ async function resolveCandidateCompanyLabel(companyId: string | null, fallbackLa
   }
 
   return data?.company_name ?? fallbackLabel;
+}
+
+async function resolveTrainerDisplayName(trainerId: string | null) {
+  if (!trainerId) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select("first_name, last_name")
+    .eq("id", trainerId)
+    .maybeSingle<{ first_name: string; last_name: string }>();
+
+  if (error || !data) {
+    throw new Error("Formateur introuvable.");
+  }
+
+  return `${data.first_name} ${data.last_name}`.trim();
 }
 
 export async function createSessionAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -85,6 +116,64 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
   revalidatePath("/dashboard");
   revalidatePath("/sessions");
   return { success: "Session créée." };
+}
+
+export async function updateSessionAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = updateSessionSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    title: formData.get("title"),
+    startDate: formData.get("startDate"),
+    endDate: formData.get("endDate"),
+    location: formData.get("location"),
+    durationHours: formData.get("durationHours"),
+    trainerId: formData.get("trainerId"),
+    status: formData.get("status")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  try {
+    const trainerId = parsed.data.trainerId?.trim() || null;
+    const trainerName = await resolveTrainerDisplayName(trainerId);
+    const supabase = await createClient();
+    const { data: session, error } = await supabase
+      .from("training_sessions")
+      .update({
+        title: parsed.data.title,
+        start_date: parsed.data.startDate,
+        end_date: parsed.data.endDate,
+        location: parsed.data.location,
+        duration_hours:
+          parsed.data.durationHours === "" || typeof parsed.data.durationHours === "undefined"
+            ? null
+            : parsed.data.durationHours,
+        trainer_id: trainerId,
+        trainer_name: trainerName,
+        status: parsed.data.status
+      })
+      .eq("id", parsed.data.sessionId)
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    if (error || !session) {
+      return { error: "Impossible de mettre à jour la session." };
+    }
+
+    revalidatePath(`/sessions/${session.id}`);
+    revalidatePath(`/sessions/${session.id}/edit`);
+    revalidatePath("/sessions");
+    revalidatePath("/dashboard");
+
+    return { success: "Session mise a jour." };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de mettre à jour la session." };
+  }
 }
 
 export async function createCandidateAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -407,4 +496,109 @@ export async function duplicateQuoteAction(_: ActionState, formData: FormData): 
 
     return { error: "Impossible de dupliquer le devis." };
   }
+}
+
+export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!sessionId) {
+    return { error: "Session manquante." };
+  }
+
+  const supabase = await createClient();
+  const { data: session, error: sessionError } = await supabase
+    .from("training_sessions")
+    .select("id, title, source_quote_id")
+    .eq("id", sessionId)
+    .maybeSingle<{ id: string; title: string; source_quote_id: string | null }>();
+
+  if (sessionError || !session) {
+    return { error: "Session introuvable." };
+  }
+
+  if (!session.source_quote_id) {
+    return { error: "Aucun devis source n'est lie a cette session." };
+  }
+
+  const { data: quote, error: quoteError } = await supabase
+    .from("quotes")
+    .select("id, company_id")
+    .eq("id", session.source_quote_id)
+    .maybeSingle<{ id: string; company_id: string }>();
+
+  if (quoteError || !quote) {
+    return { error: "Impossible de retrouver le devis source." };
+  }
+
+  const { data: company, error: companyError } = await supabase
+    .from("client_companies")
+    .select("id, company_name")
+    .eq("id", quote.company_id)
+    .maybeSingle<{ id: string; company_name: string }>();
+
+  if (companyError || !company) {
+    return { error: "Impossible de retrouver la societe du devis." };
+  }
+
+  const { data: companyCandidates, error: companyCandidatesError } = await supabase
+    .from("candidates")
+    .select("first_name, last_name, email, phone, job_title, address, postal_code, city, validation_status")
+    .eq("company_id", company.id)
+    .order("created_at", { ascending: true });
+
+  if (companyCandidatesError) {
+    return { error: "Impossible de charger les candidats de la societe." };
+  }
+
+  const { data: existingSessionCandidates, error: existingSessionCandidatesError } = await supabase
+    .from("candidates")
+    .select("first_name, last_name, email")
+    .eq("session_id", session.id);
+
+  if (existingSessionCandidatesError) {
+    return { error: "Impossible de charger les candidats deja rattaches a la session." };
+  }
+
+  const existingSignatures = new Set(
+    (existingSessionCandidates ?? []).map((candidate) => buildCandidateSignature(candidate))
+  );
+
+  const candidatesToInsert = (companyCandidates ?? [])
+    .filter((candidate) => !existingSignatures.has(buildCandidateSignature(candidate)))
+    .map((candidate) => ({
+      session_id: session.id,
+      company_id: company.id,
+      first_name: candidate.first_name,
+      last_name: candidate.last_name,
+      email: candidate.email,
+      company: company.company_name,
+      phone: candidate.phone,
+      job_title: candidate.job_title,
+      address: candidate.address,
+      postal_code: candidate.postal_code,
+      city: candidate.city,
+      validation_status: candidate.validation_status,
+      validated_at: candidate.validation_status === "validated" ? new Date().toISOString() : null
+    }));
+
+  if (!candidatesToInsert.length) {
+    return { success: "Tous les candidats de la societe sont deja rattaches a cette session." };
+  }
+
+  const { error: insertError } = await supabase.from("candidates").insert(candidatesToInsert);
+
+  if (insertError) {
+    return { error: "Impossible de pre-remplir les candidats de la societe." };
+  }
+
+  revalidatePath(`/sessions/${session.id}`);
+  revalidatePath(`/quotes/${quote.id}`);
+  revalidatePath(`/companies/${company.id}`);
+  revalidatePath("/sessions");
+  revalidatePath("/companies");
+  revalidatePath("/dashboard");
+
+  return {
+    success: `${candidatesToInsert.length} candidat(s) ajoute(s) a la session.`
+  };
 }

@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
 import { sendQuoteEmail } from "@/lib/quote-email";
 import { getQuoteStatusAfterSend } from "@/lib/quote-status";
-import { getQuoteForEdit, regenerateQuotePdf, updateQuote, updateQuoteStatus } from "@/lib/quotes";
+import { createSessionFromQuote, getQuoteForEdit, regenerateQuotePdf, updateQuote, updateQuoteStatus } from "@/lib/quotes";
 import { updateQuoteSchema } from "@/lib/validation";
 
 export type QuoteEditorActionState = {
@@ -121,5 +123,36 @@ export async function sendQuoteEmailAction(
     }
 
     return { error: "Impossible de preparer l'envoi du devis." };
+  }
+}
+
+export async function createSessionFromQuoteAction(
+  _: QuoteEditorActionState,
+  formData: FormData
+): Promise<QuoteEditorActionState> {
+  const quoteId = formData.get("quoteId")?.toString().trim();
+
+  if (!quoteId) {
+    return { error: "Devis manquant." };
+  }
+
+  try {
+    const { profile } = await requireUser();
+    const { quote, session } = await createSessionFromQuote(quoteId, profile.id);
+
+    revalidatePath(`/quotes/${quote.id}`);
+    revalidatePath(`/sessions/${session.id}`);
+    revalidatePath("/sessions");
+    revalidatePath("/dashboard");
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${quote.company_id}`);
+
+    redirect(`/sessions/${session.id}`);
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de creer la session depuis le devis." };
   }
 }
