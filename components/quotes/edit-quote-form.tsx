@@ -51,14 +51,6 @@ export function EditQuoteForm({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {quote.session_id ? (
-            <Link
-              href={`/sessions/${quote.session_id}`}
-              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-            >
-              Ouvrir la session
-            </Link>
-          ) : null}
           {canCreateSession ? (
             <form action={createSessionAction}>
               <input type="hidden" name="quoteId" value={quote.id} />
@@ -89,12 +81,6 @@ export function EditQuoteForm({
               {sendPending ? "Envoi..." : "Envoyer"}
             </Button>
           </form>
-          <form action={pdfAction}>
-            <input type="hidden" name="quoteId" value={quote.id} />
-            <Button type="submit" variant="secondary" disabled={pdfPending}>
-              {pdfPending ? "Regeneration..." : "Regenerer PDF"}
-            </Button>
-          </form>
           <Link
             href={`/api/pdf/quote/${quote.id}`}
             target="_blank"
@@ -103,6 +89,31 @@ export function EditQuoteForm({
           >
             Ouvrir le PDF
           </Link>
+          <details className="relative">
+            <summary className="list-none rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-ink hover:bg-white/60 cursor-pointer">
+              Plus
+            </summary>
+            <div className="absolute right-0 z-10 mt-2 min-w-44 rounded-2xl border border-ink/10 bg-white p-2 shadow-panel">
+              {quote.session_id ? (
+                <Link
+                  href={`/sessions/${quote.session_id}`}
+                  className="block rounded-xl px-3 py-2 text-sm font-medium text-ink transition hover:bg-sand"
+                >
+                  Ouvrir la session
+                </Link>
+              ) : null}
+              <form action={pdfAction}>
+                <input type="hidden" name="quoteId" value={quote.id} />
+                <button
+                  type="submit"
+                  disabled={pdfPending}
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
+                >
+                  {pdfPending ? "Regeneration..." : "Regenerer PDF"}
+                </button>
+              </form>
+            </div>
+          </details>
         </div>
       </div>
 

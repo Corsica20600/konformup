@@ -120,6 +120,8 @@ export type GeneratedDocumentItem = {
   metadata: unknown;
   quote_id?: string | null;
   quote_status?: QuoteStatus | null;
+  invoice_id?: string | null;
+  invoice_number?: string | null;
   created_at: string;
   updated_at: string;
 };

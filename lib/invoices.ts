@@ -116,6 +116,10 @@ export async function createInvoiceFromQuote(quoteId: string) {
     .select("*")
     .single<InvoiceRow>();
 
+  if (insertError?.code === "23505") {
+    throw new InvoiceError("Une facture existe deja pour ce devis.");
+  }
+
   if (insertError || !invoice) {
     throw new InvoiceError("Impossible de creer la facture depuis ce devis.");
   }

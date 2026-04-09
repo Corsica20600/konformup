@@ -87,16 +87,50 @@ async function selectGeneratedDocumentsByForeignKey(
     .map((document) => extractQuoteIdFromMetadata(document.metadata))
     .filter((quoteId): quoteId is string => Boolean(quoteId));
   const quoteStatuses = await selectQuoteStatusesByIds(quoteIds);
-
-  return documents.map((document) => {
+  const invoicesByQuoteId = await selectInvoicesByQuoteIds(quoteIds);
+  const enrichedDocuments = documents.map((document) => {
     const quoteId = extractQuoteIdFromMetadata(document.metadata);
+    const invoice = quoteId ? invoicesByQuoteId.get(quoteId) ?? null : null;
 
     return {
       ...document,
       quote_id: quoteId,
-      quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null
+      quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null,
+      invoice_id: invoice?.id ?? null,
+      invoice_number: invoice?.invoice_number ?? null
     };
   });
+
+  if (field !== "company_id") {
+    return enrichedDocuments;
+  }
+
+  const companyInvoices = await selectInvoicesByCompanyId(value);
+  const syntheticInvoiceDocuments = companyInvoices.map((invoice) => ({
+    id: `invoice-${invoice.id}`,
+    session_id: null,
+    candidate_id: null,
+    company_id: value,
+    document_type: "invoice",
+    document_ref: invoice.invoice_number,
+    version: 1,
+    status: "generated" as const,
+    file_url: `/invoices/${invoice.id}`,
+    metadata: {
+      invoice_id: invoice.id,
+      quote_id: invoice.quote_id
+    },
+    quote_id: invoice.quote_id,
+    quote_status: null,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    created_at: invoice.created_at,
+    updated_at: invoice.updated_at
+  })) satisfies GeneratedDocumentItem[];
+
+  return [...syntheticInvoiceDocuments, ...enrichedDocuments].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at)
+  );
 }
 
 function logSupabaseQueryError({
@@ -212,6 +246,69 @@ async function selectQuoteStatusesByIds(quoteIds: string[]) {
   }
 
   return new Map((data ?? []).map((quote) => [quote.id, quote.status as QuoteStatus]));
+}
+
+async function selectInvoicesByQuoteIds(quoteIds: string[]) {
+  if (!quoteIds.length) {
+    return new Map<string, { id: string; invoice_number: string }>();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, quote_id, invoice_number")
+    .in("quote_id", Array.from(new Set(quoteIds)));
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoices",
+    query: 'select("id, quote_id, invoice_number").in("quote_id", quoteIds)',
+    error
+  });
+
+  if (isMissingColumnError(error)) {
+    return new Map<string, { id: string; invoice_number: string }>();
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map(
+    (data ?? []).map((invoice) => [
+      invoice.quote_id,
+      {
+        id: invoice.id,
+        invoice_number: invoice.invoice_number
+      }
+    ])
+  );
+}
+
+async function selectInvoicesByCompanyId(companyId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("id, quote_id, invoice_number, created_at, updated_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoices",
+    query: 'select("id, quote_id, invoice_number, created_at, updated_at").eq("company_id", companyId).order("created_at")',
+    error
+  });
+
+  if (isMissingColumnError(error)) {
+    return [];
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
 }
 
 async function selectSessionsWithFallback() {

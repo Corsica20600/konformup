@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
+  createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
   sendQuoteEmailAction,
   type QuoteEditorActionState
@@ -24,6 +25,7 @@ const initialStatusState: ActionState = {};
 
 function documentLabel(type: string) {
   if (type === "quote") return "Devis";
+  if (type === "invoice") return "Facture";
   if (type === "attestation") return "Attestation";
   if (type === "certificat") return "Certificat";
   if (type === "convocation") return "Convocation";
@@ -86,10 +88,15 @@ function DocumentRow({
     createSessionFromQuoteAction,
     initialQuoteMailState
   );
+  const [createInvoiceState, createInvoiceFormAction, createInvoicePending] = useActionState(
+    createInvoiceFromQuoteAction,
+    initialQuoteMailState
+  );
   const [sendState, sendFormAction, sendPending] = useActionState(sendQuoteEmailAction, initialQuoteMailState);
   const [quoteStatusState, quoteStatusFormAction, quoteStatusPending] = useActionState(updateQuoteStatusAction, initialStatusState);
   const isQuote = document.document_type === "quote" && !!document.quote_id && !!document.quote_status;
   const canCreateSession = isQuote && document.quote_status === "accepted" && !document.session_id;
+  const canCreateInvoice = isQuote && document.quote_status === "accepted" && !document.invoice_id;
 
   return (
     <div className="rounded-2xl border border-ink/10 bg-canvas/60 px-4 py-3">
@@ -136,24 +143,35 @@ function DocumentRow({
                   {sendPending ? "Envoi..." : "Envoyer"}
                 </Button>
               </form>
+              {document.invoice_id ? (
+                <Link
+                  href={`/invoices/${document.invoice_id}`}
+                  className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                >
+                  Voir la facture
+                </Link>
+              ) : canCreateInvoice ? (
+                <form action={createInvoiceFormAction}>
+                  <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
+                  <Button type="submit" variant="secondary" disabled={createInvoicePending}>
+                    {createInvoicePending ? "Creation..." : "Creer la facture"}
+                  </Button>
+                </form>
+              ) : null}
+              {canCreateSession ? (
+                <form action={createSessionFormAction}>
+                  <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
+                  <Button type="submit" variant="secondary" disabled={createSessionPending}>
+                    {createSessionPending ? "Creation..." : "Creer la session"}
+                  </Button>
+                </form>
+              ) : null}
               {allowQuoteDuplication ? (
                 <details className="relative">
                   <summary className="list-none rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-ink hover:bg-white/60 cursor-pointer">
                     Plus
                   </summary>
                   <div className="absolute right-0 z-10 mt-2 min-w-36 rounded-2xl border border-ink/10 bg-white p-2 shadow-panel">
-                    {canCreateSession ? (
-                      <form action={createSessionFormAction}>
-                        <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
-                        <button
-                          type="submit"
-                          disabled={createSessionPending}
-                          className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
-                        >
-                          {createSessionPending ? "Creation..." : "Creer la session"}
-                        </button>
-                      </form>
-                    ) : null}
                     <form action={duplicateFormAction}>
                       <input type="hidden" name="quoteId" value={document.quote_id ?? ""} />
                       <button
@@ -194,6 +212,7 @@ function DocumentRow({
       ) : null}
       {quoteStatusState.error ? <p className="mt-2 text-sm text-accent">{quoteStatusState.error}</p> : null}
       {quoteStatusState.success ? <p className="mt-2 text-sm text-pine">{quoteStatusState.success}</p> : null}
+      {createInvoiceState.error ? <p className="mt-2 text-sm text-accent">{createInvoiceState.error}</p> : null}
       {createSessionState.error ? <p className="mt-2 text-sm text-accent">{createSessionState.error}</p> : null}
       {duplicateState.error ? <p className="mt-2 text-sm text-accent">{duplicateState.error}</p> : null}
       {duplicateState.success ? (
