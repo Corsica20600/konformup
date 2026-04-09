@@ -1,0 +1,189 @@
+import { notFound } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CandidateCard } from "@/components/sessions/candidate-card";
+import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
+import { CreateQuoteForm } from "@/components/sessions/create-quote-form";
+import { DocumentList } from "@/components/documents/document-list";
+import { ModuleContent } from "@/components/sessions/module-content";
+import { SessionModuleList } from "@/components/sessions/session-module-list";
+import { SessionProgressCard } from "@/components/sessions/session-progress-card";
+import { getCompanyOptions, getDocumentsBySessionId, getSessionById, SessionNotFoundError } from "@/lib/queries";
+import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+const statusLabel = {
+  draft: "Brouillon",
+  scheduled: "Planifiée",
+  in_progress: "En cours",
+  completed: "Terminée",
+  cancelled: "Annulée"
+} as const;
+
+export default async function SessionDetailPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ sessionId: string }>;
+  searchParams: Promise<{ module?: string }>;
+}) {
+  const { sessionId } = await params;
+  const { module: selectedModuleParam } = await searchParams;
+  let data;
+  const companies = await getCompanyOptions();
+  const sessionDocuments = await getDocumentsBySessionId(sessionId);
+
+  try {
+    data = await getSessionById(sessionId);
+  } catch (error) {
+    if (error instanceof SessionNotFoundError) {
+      notFound();
+    }
+
+    throw error;
+  }
+
+  const { session, candidates, modules, globalProgress } = data;
+  const quoteCompanies = companies
+    .map((company) => ({
+      id: company.id,
+      company_name: company.company_name,
+      candidateCount: candidates.filter((candidateSession) => candidateSession.candidate.company_id === company.id).length
+    }))
+    .sort((a, b) => {
+      if (b.candidateCount !== a.candidateCount) {
+        return b.candidateCount - a.candidateCount;
+      }
+
+      return a.company_name.localeCompare(b.company_name, "fr");
+    });
+  const selectedModule =
+    modules.find((module) => module.id === selectedModuleParam) ??
+    modules[0] ??
+    null;
+  const completedModules = modules.filter((module) => module.is_completed).length;
+
+  return (
+    <main className="grid gap-4">
+      <section className="grid gap-4 xl:grid-cols-[0.72fr_1.28fr]">
+        <section className="grid gap-4">
+          <Card>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Session</p>
+                <Badge tone={session.status === "completed" ? "success" : session.status === "in_progress" ? "warning" : "neutral"}>
+                  {statusLabel[session.status]}
+                </Badge>
+              </div>
+              <a
+                href={`/api/pdf/attendance/${session.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Feuille de presence PDF
+              </a>
+            </div>
+            <h2 className="mt-3 text-3xl font-bold">{session.title}</h2>
+            <div className="mt-4 space-y-2 text-sm text-ink/65">
+              <p>
+                Dates : {formatDate(session.start_date)} au {formatDate(session.end_date)}
+              </p>
+              <p>Lieu : {session.location}</p>
+              <p>Formateur : {session.trainer_name || "Non renseigne"}</p>
+              <p>Duree : {session.duration_hours ? `${session.duration_hours} h` : "Non renseignee"}</p>
+            </div>
+            <div className="mt-6">
+              <CreateQuoteForm
+                sessionId={session.id}
+                sessionTitle={session.title}
+                startDate={session.start_date}
+                endDate={session.end_date}
+                location={session.location}
+                companies={quoteCompanies}
+              />
+            </div>
+          </Card>
+
+          <SessionProgressCard
+            value={globalProgress}
+            completedCount={completedModules}
+            totalCount={modules.length}
+          />
+
+          <Card>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
+            <h3 className="mt-2 text-2xl font-bold">Modules SST</h3>
+            <p className="mt-2 text-sm text-ink/65">
+              Sélectionne un module pour afficher son contenu et piloter l’avancement de la session.
+            </p>
+            <div className="mt-6">
+              <SessionModuleList
+                sessionId={session.id}
+                modules={modules}
+                selectedModuleId={selectedModule?.id ?? ""}
+              />
+            </div>
+          </Card>
+
+          <Card>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Ajout manuel</p>
+            <h3 className="mt-2 text-2xl font-bold">Ajouter un candidat</h3>
+            <p className="mt-2 text-sm text-ink/65">
+              Saisie simple pour rattacher un candidat à cette session.
+            </p>
+            <div className="mt-6">
+              <CreateCandidateForm sessionId={session.id} companies={companies} />
+            </div>
+          </Card>
+
+          <Card>
+            <DocumentList
+              title="Documents de la session"
+              documents={sessionDocuments}
+              emptyMessage="Aucun document n’est encore enregistré pour cette session."
+            />
+          </Card>
+        </section>
+
+        <section className="grid gap-4">
+          {selectedModule ? (
+            <ModuleContent sessionId={session.id} module={selectedModule} />
+          ) : (
+            <Card>
+              <h3 className="text-lg font-bold">Aucun module</h3>
+              <p className="mt-2 text-sm text-ink/65">
+                Aucun module n’est encore associé à cette session.
+              </p>
+            </Card>
+          )}
+        </section>
+      </section>
+
+      <section className="grid gap-4">
+        <div className="px-1">
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Candidats</p>
+          <h2 className="mt-2 text-2xl font-bold">{candidates.length} candidat(s)</h2>
+        </div>
+        {candidates.length ? (
+          candidates.map((candidateSession) => (
+            <CandidateCard
+              key={candidateSession.id}
+              candidateSession={candidateSession}
+              companies={companies}
+              documents={sessionDocuments.filter((document) => document.candidate_id === candidateSession.candidate.id)}
+            />
+          ))
+        ) : (
+          <Card>
+            <h3 className="text-lg font-bold">Aucun candidat</h3>
+            <p className="mt-2 text-sm text-ink/65">
+              Ajoute un premier candidat pour constituer la liste de session.
+            </p>
+          </Card>
+        )}
+      </section>
+    </main>
+  );
+}
