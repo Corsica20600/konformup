@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getOrganizationSettings } from "@/lib/organization";
 import type { QuoteEditData } from "@/lib/quotes";
@@ -13,24 +12,6 @@ function requireEnv(name: string) {
   return value;
 }
 
-function createMailerTransport() {
-  const host = requireEnv("SMTP_HOST");
-  const port = Number(process.env.SMTP_PORT ?? "587");
-  const secure = process.env.SMTP_SECURE === "true";
-  const user = requireEnv("SMTP_USER");
-  const pass = requireEnv("SMTP_PASS");
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user,
-      pass
-    }
-  });
-}
-
 function buildQuoteEmailSubject(quoteNumber: string) {
   return `Envoi de votre devis ${quoteNumber}`;
 }
@@ -38,7 +19,7 @@ function buildQuoteEmailSubject(quoteNumber: string) {
 async function buildQuoteEmailBody(quote: QuoteEditData) {
   const organization = await getOrganizationSettings();
   const signatoryName = organization.certificate_signatory_name || organization.organization_name;
-  const organizationEmail = process.env.ORGANIZATION_EMAIL?.trim() || process.env.SMTP_FROM_EMAIL?.trim() || "";
+  const organizationEmail = process.env.ORGANIZATION_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || "";
   const organizationPhone = process.env.ORGANIZATION_PHONE?.trim() || "";
 
   return [
@@ -63,26 +44,45 @@ export async function sendQuoteEmail(quote: QuoteEditData) {
     throw new Error("Aucune adresse email de contact n'est renseignee pour cette societe.");
   }
 
-  const transport = createMailerTransport();
-  const fromEmail = requireEnv("SMTP_FROM_EMAIL");
-  const fromName = process.env.SMTP_FROM_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  const apiKey = requireEnv("BREVO_API_KEY");
+  const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
+  const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
   const pdfPath = `/api/pdf/quote/${quote.id}`;
   const pdf = await fetchExistingPdf(pdfPath);
   const body = await buildQuoteEmailBody(quote);
-
-  await transport.sendMail({
-    from: `"${fromName.replace(/"/g, "")}" <${fromEmail}>`,
-    to: quote.company.contact_email,
-    subject: buildQuoteEmailSubject(quote.quote_number),
-    text: body,
-    attachments: [
-      {
-        filename: `devis-${quote.quote_number}.pdf`,
-        content: Buffer.from(pdf.buffer),
-        contentType: "application/pdf"
-      }
-    ]
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      sender: {
+        email: fromEmail,
+        name: fromName
+      },
+      to: [
+        {
+          email: quote.company.contact_email,
+          name: quote.company.contact_name || quote.company.company_name
+        }
+      ],
+      subject: buildQuoteEmailSubject(quote.quote_number),
+      textContent: body,
+      attachment: [
+        {
+          name: `devis-${quote.quote_number}.pdf`,
+          content: Buffer.from(pdf.buffer).toString("base64")
+        }
+      ]
+    })
   });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Brevo a refuse l'envoi du devis. ${errorText}`.trim());
+  }
 
   return {
     fileUrl: pdfPath
