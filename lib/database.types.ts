@@ -354,6 +354,55 @@ export type Database = {
           }
         ];
       };
+      invoices: {
+        Row: {
+          id: string;
+          invoice_number: string;
+          quote_id: string;
+          company_id: string;
+          price_ht: number;
+          vat_rate: number;
+          total_ttc: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_number: string;
+          quote_id: string;
+          company_id: string;
+          price_ht: number;
+          vat_rate?: number;
+          total_ttc?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_number?: string;
+          quote_id?: string;
+          company_id?: string;
+          price_ht?: number;
+          vat_rate?: number;
+          total_ttc?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invoices_quote_id_fkey";
+            columns: ["quote_id"];
+            referencedRelation: "quotes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoices_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "client_companies";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       organization_settings: {
         Row: {
           id: string;

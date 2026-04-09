@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import {
+  createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
   regenerateQuotePdfAction,
   sendQuoteEmailAction,
@@ -12,18 +13,32 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { QuoteEditData } from "@/lib/quotes";
+import type { Database } from "@/lib/database.types";
 
 const initialState: QuoteEditorActionState = {};
 
-export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
+type InvoiceSummary = Pick<Database["public"]["Tables"]["invoices"]["Row"], "id" | "invoice_number"> | null;
+
+export function EditQuoteForm({
+  quote,
+  invoice
+}: {
+  quote: QuoteEditData;
+  invoice: InvoiceSummary;
+}) {
   const [saveState, saveAction, savePending] = useActionState(updateQuoteAction, initialState);
   const [createSessionState, createSessionAction, createSessionPending] = useActionState(
     createSessionFromQuoteAction,
     initialState
   );
+  const [createInvoiceState, createInvoiceAction, createInvoicePending] = useActionState(
+    createInvoiceFromQuoteAction,
+    initialState
+  );
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
   const canCreateSession = quote.status === "accepted" && !quote.session_id;
+  const canCreateInvoice = quote.status === "accepted" && !invoice;
 
   return (
     <div className="grid gap-4">
@@ -49,6 +64,22 @@ export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
               <input type="hidden" name="quoteId" value={quote.id} />
               <Button type="submit" variant="secondary" disabled={createSessionPending}>
                 {createSessionPending ? "Creation..." : "Creer la session"}
+              </Button>
+            </form>
+          ) : null}
+          {invoice ? (
+            <Link
+              href={`/invoices/${invoice.id}`}
+              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            >
+              Voir la facture
+            </Link>
+          ) : null}
+          {canCreateInvoice ? (
+            <form action={createInvoiceAction}>
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <Button type="submit" variant="secondary" disabled={createInvoicePending}>
+                {createInvoicePending ? "Creation..." : "Creer la facture"}
               </Button>
             </form>
           ) : null}
@@ -166,6 +197,7 @@ export function EditQuoteForm({ quote }: { quote: QuoteEditData }) {
         </div>
       ) : null}
       {createSessionState.error ? <p className="text-sm text-accent">{createSessionState.error}</p> : null}
+      {createInvoiceState.error ? <p className="text-sm text-accent">{createInvoiceState.error}</p> : null}
     </div>
   );
 }

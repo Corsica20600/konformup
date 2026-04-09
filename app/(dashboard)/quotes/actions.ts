@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { createInvoiceFromQuote, InvoiceError } from "@/lib/invoices";
 import { sendQuoteEmail } from "@/lib/quote-email";
 import { getQuoteStatusAfterSend } from "@/lib/quote-status";
 import { createSessionFromQuote, getQuoteForEdit, regenerateQuotePdf, updateQuote, updateQuoteStatus } from "@/lib/quotes";
@@ -154,5 +155,33 @@ export async function createSessionFromQuoteAction(
     }
 
     return { error: "Impossible de creer la session depuis le devis." };
+  }
+}
+
+export async function createInvoiceFromQuoteAction(
+  _: QuoteEditorActionState,
+  formData: FormData
+): Promise<QuoteEditorActionState> {
+  const quoteId = formData.get("quoteId")?.toString().trim();
+
+  if (!quoteId) {
+    return { error: "Devis manquant." };
+  }
+
+  try {
+    const invoice = await createInvoiceFromQuote(quoteId);
+
+    revalidatePath(`/quotes/${quoteId}`);
+    revalidatePath(`/invoices/${invoice.id}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/companies");
+
+    redirect(`/invoices/${invoice.id}`);
+  } catch (error) {
+    if (error instanceof InvoiceError || error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de creer la facture depuis ce devis." };
   }
 }
