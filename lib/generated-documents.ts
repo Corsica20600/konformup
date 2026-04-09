@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { Database, Json } from "@/lib/database.types";
 import { getOrganizationSettings } from "@/lib/organization";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
@@ -142,8 +142,31 @@ export async function insertGeneratedDocumentRecord({
   return data;
 }
 
-function resolveAppOrigin() {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+async function resolveAppOrigin() {
+  const forwardedHeaders = await headers();
+  const forwardedProto = forwardedHeaders.get("x-forwarded-proto");
+  const forwardedHost = forwardedHeaders.get("x-forwarded-host") || forwardedHeaders.get("host");
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  if (forwardedHost) {
+    return `https://${forwardedHost}`;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    return vercelUrl.startsWith("http://") || vercelUrl.startsWith("https://")
+      ? vercelUrl
+      : `https://${vercelUrl}`;
+  }
+
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.APP_URL ||
+    "http://localhost:3000";
 
   try {
     return new URL(origin).origin;
@@ -226,7 +249,7 @@ export async function callExistingPdfGeneration(pathname: string) {
 }
 
 export async function fetchExistingPdf(pathname: string) {
-  const origin = resolveAppOrigin();
+  const origin = await resolveAppOrigin();
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
