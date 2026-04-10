@@ -28,9 +28,10 @@ type InvoiceCompanyRow = {
   id: string;
   company_name: string;
   contact_email: string | null;
-  billing_address: string | null;
+  address: string | null;
   postal_code: string | null;
   city: string | null;
+  country: string | null;
 };
 
 type InvoiceQuoteRow = {
@@ -385,9 +386,10 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         id,
         company_name,
         contact_email,
-        billing_address,
+        address,
         postal_code,
-        city
+        city,
+        country
       ),
       quotes (
         id,
@@ -434,9 +436,10 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
           id,
           company_name,
           contact_email,
-          billing_address,
+          address,
           postal_code,
-          city
+          city,
+          country
         ),
         quotes (
           id,
@@ -556,7 +559,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
 
   const companySelect = await supabase
     .from("client_companies")
-    .select("id, company_name, contact_email, billing_address, postal_code, city")
+    .select("id, company_name, contact_email, address, postal_code, city, country")
     .eq("id", invoice.company_id)
     .maybeSingle<InvoiceCompanyRow>();
 

@@ -735,7 +735,7 @@ export function InvoiceDocument({
   invoice: InvoiceDetail;
   organizationSettings: OrganizationBranding;
 }) {
-  const companyAddress = [invoice.company.billing_address, invoice.company.postal_code, invoice.company.city]
+  const companyAddress = [invoice.company.address, invoice.company.postal_code, invoice.company.city, invoice.company.country]
     .filter(Boolean)
     .join(" ");
   const issueDate = invoice.issue_date || invoice.created_at;
