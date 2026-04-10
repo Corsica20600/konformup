@@ -90,14 +90,18 @@ async function selectGeneratedDocumentsByForeignKey(
   const invoicesByQuoteId = await selectInvoicesByQuoteIds(quoteIds);
   const enrichedDocuments = documents.map((document) => {
     const quoteId = extractQuoteIdFromMetadata(document.metadata);
+    const invoiceIdFromMetadata = extractInvoiceIdFromMetadata(document.metadata);
     const invoice = quoteId ? invoicesByQuoteId.get(quoteId) ?? null : null;
 
     return {
       ...document,
       quote_id: quoteId,
       quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null,
-      invoice_id: invoice?.id ?? null,
-      invoice_number: invoice?.invoice_number ?? null
+      invoice_id: invoiceIdFromMetadata ?? invoice?.id ?? null,
+      invoice_number:
+        document.document_type === "invoice"
+          ? document.document_ref
+          : (invoice?.invoice_number ?? null)
     };
   });
 
@@ -106,6 +110,11 @@ async function selectGeneratedDocumentsByForeignKey(
   }
 
   const companyInvoices = await selectInvoicesByCompanyId(value);
+  const existingInvoiceIds = new Set(
+    enrichedDocuments
+      .map((document) => document.invoice_id)
+      .filter((invoiceId): invoiceId is string => typeof invoiceId === "string" && invoiceId.length > 0)
+  );
   const syntheticInvoiceDocuments = companyInvoices.map((invoice) => ({
     id: `invoice-${invoice.id}`,
     session_id: null,
@@ -115,7 +124,7 @@ async function selectGeneratedDocumentsByForeignKey(
     document_ref: invoice.invoice_number,
     version: 1,
     status: "generated" as const,
-    file_url: `/invoices/${invoice.id}`,
+    file_url: `/api/pdf/invoice/${invoice.id}`,
     metadata: {
       invoice_id: invoice.id,
       quote_id: invoice.quote_id
@@ -126,7 +135,7 @@ async function selectGeneratedDocumentsByForeignKey(
     invoice_number: invoice.invoice_number,
     created_at: invoice.created_at,
     updated_at: invoice.updated_at
-  })) satisfies GeneratedDocumentItem[];
+  })).filter((document) => !existingInvoiceIds.has(document.invoice_id)) satisfies GeneratedDocumentItem[];
 
   return [...syntheticInvoiceDocuments, ...enrichedDocuments].sort((a, b) =>
     b.created_at.localeCompare(a.created_at)
@@ -217,6 +226,15 @@ function extractQuoteIdFromMetadata(metadata: unknown) {
 
   const quoteId = (metadata as { quote_id?: unknown }).quote_id;
   return typeof quoteId === "string" && quoteId.length > 0 ? quoteId : null;
+}
+
+function extractInvoiceIdFromMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const invoiceId = (metadata as { invoice_id?: unknown }).invoice_id;
+  return typeof invoiceId === "string" && invoiceId.length > 0 ? invoiceId : null;
 }
 
 async function selectQuoteStatusesByIds(quoteIds: string[]) {

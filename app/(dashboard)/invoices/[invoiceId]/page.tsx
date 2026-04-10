@@ -27,12 +27,22 @@ export default async function InvoiceDetailPage({
                 Societe : {invoice.company.company_name} • Creee le {formatDate(invoice.created_at)}
               </p>
             </div>
-            <Link
-              href={`/quotes/${invoice.quote.id}`}
-              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-            >
-              Ouvrir le devis
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/api/pdf/invoice/${invoiceId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Ouvrir le PDF
+              </Link>
+              <Link
+                href={`/quotes/${invoice.quote.id}`}
+                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Ouvrir le devis
+              </Link>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-3 text-sm text-ink/75 md:grid-cols-2">

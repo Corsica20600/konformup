@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/database.types";
+import { insertGeneratedDocumentRecord } from "@/lib/generated-documents";
 import { createClient } from "@/lib/supabase/server";
 
 type InvoiceRow = Database["public"]["Tables"]["invoices"]["Row"];
@@ -27,6 +28,9 @@ type InvoiceCompanyRow = {
   id: string;
   company_name: string;
   contact_email: string | null;
+  billing_address: string | null;
+  postal_code: string | null;
+  city: string | null;
 };
 
 type InvoiceQuoteRow = {
@@ -140,6 +144,57 @@ async function generateInvoiceNumber() {
   }
 
   return `FAC-${year}-${String((count ?? 0) + 1).padStart(4, "0")}`;
+}
+
+async function upsertGeneratedDocumentForInvoice(invoice: InvoiceRow | LegacyInvoiceRow) {
+  const supabase = await createClient();
+  const fileUrl = `/api/pdf/invoice/${invoice.id}`;
+  const metadata = {
+    invoice_id: invoice.id,
+    quote_id: invoice.quote_id
+  };
+
+  const { data: existingDocument, error: existingError } = await supabase
+    .from("generated_documents")
+    .select("id")
+    .eq("document_type", "invoice")
+    .contains("metadata", { invoice_id: invoice.id })
+    .maybeSingle();
+
+  if (existingError) {
+    throw new InvoiceError("Impossible de synchroniser le document de facture.");
+  }
+
+  if (!existingDocument) {
+    await insertGeneratedDocumentRecord({
+      sessionId: null,
+      candidateId: null,
+      companyId: invoice.company_id,
+      documentType: "invoice",
+      documentRef: invoice.invoice_number ?? `FACT-${invoice.id}`,
+      status: "generated",
+      fileUrl,
+      metadata
+    });
+
+    return;
+  }
+
+  const { error: updateError } = await supabase
+    .from("generated_documents")
+    .update({
+      company_id: invoice.company_id,
+      document_ref: invoice.invoice_number ?? `FACT-${invoice.id}`,
+      status: "generated",
+      file_url: fileUrl,
+      metadata,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", existingDocument.id);
+
+  if (updateError) {
+    throw new InvoiceError("Impossible de synchroniser le document de facture.");
+  }
 }
 
 export async function createInvoiceFromQuote(quoteId: string) {
@@ -288,6 +343,8 @@ if (!invoice) {
     invoiceNumber: invoice.invoice_number
   });
 
+  await upsertGeneratedDocumentForInvoice(invoice);
+
   return normalizeInvoiceRow(invoice as InvoiceRow);
 }
 
@@ -317,7 +374,10 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
       client_companies (
         id,
         company_name,
-        contact_email
+        contact_email,
+        billing_address,
+        postal_code,
+        city
       ),
       quotes (
         id,
@@ -353,7 +413,10 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         client_companies (
           id,
           company_name,
-          contact_email
+          contact_email,
+          billing_address,
+          postal_code,
+          city
         ),
         quotes (
           id,

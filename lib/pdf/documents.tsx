@@ -1,5 +1,6 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import { formatCurrency, formatDate, formatDateRange, formatDurationHours, formatPercent } from "@/lib/utils";
@@ -337,6 +338,47 @@ const quoteStyles = StyleSheet.create({
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
     padding: 16
+  }
+});
+
+const invoiceStyles = StyleSheet.create({
+  page: {
+    backgroundColor: "#fffdf8"
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 24
+  },
+  headerLeft: {
+    maxWidth: 320
+  },
+  headerRight: {
+    maxWidth: 220,
+    alignItems: "flex-end"
+  },
+  logo: {
+    width: 90,
+    height: 56,
+    objectFit: "contain",
+    marginBottom: 12
+  },
+  overline: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    color: "#5b655f",
+    letterSpacing: 1.2,
+    marginBottom: 8
+  },
+  invoiceTitle: {
+    fontSize: 24,
+    fontWeight: 700,
+    marginBottom: 6
+  },
+  invoiceMeta: {
+    fontSize: 10,
+    color: "#4e5f57",
+    marginBottom: 3
   }
 });
 
@@ -679,6 +721,88 @@ export function QuoteDocument({
           <View style={quoteStyles.notesCard}>
             <Text style={quoteStyles.infoTitle}>Notes</Text>
             <Text style={quoteStyles.descriptionText}>{quote.notes}</Text>
+          </View>
+        ) : null}
+      </Page>
+    </Document>
+  );
+}
+
+export function InvoiceDocument({
+  invoice,
+  organizationSettings
+}: {
+  invoice: InvoiceDetail;
+  organizationSettings: OrganizationBranding;
+}) {
+  const companyAddress = [invoice.company.billing_address, invoice.company.postal_code, invoice.company.city]
+    .filter(Boolean)
+    .join(" ");
+  const issueDate = invoice.issue_date || invoice.created_at;
+
+  return (
+    <Document>
+      <Page size="A4" style={[shared.page, invoiceStyles.page]}>
+        <View style={invoiceStyles.header}>
+          <View style={invoiceStyles.headerLeft}>
+            {organizationSettings.resolved_logo_url ? (
+              <Image src={organizationSettings.resolved_logo_url} style={invoiceStyles.logo} />
+            ) : null}
+            <Text style={invoiceStyles.overline}>Facture</Text>
+            <Text style={invoiceStyles.invoiceTitle}>{invoice.invoice_number}</Text>
+            <Text style={invoiceStyles.invoiceMeta}>Date d&apos;emission : {formatDate(issueDate)}</Text>
+            <Text style={invoiceStyles.invoiceMeta}>Reference devis : {invoice.quote.quote_number}</Text>
+          </View>
+
+          <View style={invoiceStyles.headerRight}>
+            <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
+            <Text style={certificateStyles.organizationLine}>{organizationSettings.address}</Text>
+            {organizationSettings.siret ? (
+              <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
+            ) : null}
+            {organizationSettings.training_declaration_number ? (
+              <Text style={certificateStyles.organizationLine}>
+                Declaration d&apos;activite : {organizationSettings.training_declaration_number}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={quoteStyles.twoCols}>
+          <View style={quoteStyles.infoCard}>
+            <Text style={quoteStyles.infoTitle}>Client</Text>
+            <QuoteInfoLine value={invoice.company.company_name} />
+            <QuoteInfoLine value={companyAddress} />
+            <QuoteInfoLine value={invoice.company.contact_email} />
+          </View>
+
+          <View style={quoteStyles.infoCard}>
+            <Text style={quoteStyles.infoTitle}>Facturation</Text>
+            <QuoteInfoLine value={`Statut : ${invoice.status}`} />
+            <QuoteInfoLine value={`Objet : ${invoice.quote.title}`} />
+            <QuoteInfoLine value={invoice.due_date ? `Echeance : ${formatDate(invoice.due_date)}` : null} />
+          </View>
+        </View>
+
+        <View style={quoteStyles.priceTable}>
+          <View style={quoteStyles.priceRow}>
+            <Text style={quoteStyles.priceLabel}>Montant HT</Text>
+            <Text style={quoteStyles.priceValue}>{formatCurrency(invoice.subtotal)}</Text>
+          </View>
+          <View style={quoteStyles.priceRow}>
+            <Text style={quoteStyles.priceLabel}>TVA ({formatPercent(invoice.tax_rate)})</Text>
+            <Text style={quoteStyles.priceValue}>{formatCurrency(invoice.tax_amount)}</Text>
+          </View>
+          <View style={[quoteStyles.priceRow, quoteStyles.priceRowLast]}>
+            <Text style={quoteStyles.priceLabel}>Total TTC</Text>
+            <Text style={quoteStyles.totalValue}>{formatCurrency(invoice.total_ttc)}</Text>
+          </View>
+        </View>
+
+        {invoice.notes ? (
+          <View style={quoteStyles.notesCard}>
+            <Text style={quoteStyles.infoTitle}>Notes</Text>
+            <Text style={quoteStyles.descriptionText}>{invoice.notes}</Text>
           </View>
         ) : null}
       </Page>

@@ -10,6 +10,7 @@ export type SupportedGeneratedDocumentType =
   | "certificat"
   | "convocation"
   | "feuille_presence"
+  | "invoice"
   | "quote";
 export type GeneratedDocumentRow = Database["public"]["Tables"]["generated_documents"]["Row"];
 
@@ -57,6 +58,10 @@ const DOCUMENT_CONFIG: Record<
   feuille_presence: {
     prefix: "PRES",
     buildPath: ({ sessionId }) => `/api/pdf/attendance/${sessionId}`,
+    requiresCandidate: false
+  },
+  invoice: {
+    prefix: "FACT",
     requiresCandidate: false
   },
   quote: {
