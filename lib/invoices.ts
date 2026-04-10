@@ -58,6 +58,14 @@ export class InvoiceError extends Error {
   }
 }
 
+export function getInvoiceStatusAfterSend(status: string) {
+  if (status === "draft") {
+    return "sent";
+  }
+
+  return status;
+}
+
 function logInvoiceRead(step: string, details: Record<string, unknown>) {
   const logger = step.includes("error") ? console.error : console.info;
   logger("[invoice-read]", {
@@ -612,4 +620,37 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
     company: companySelect.data,
     quote: quoteSelect.data
   };
+}
+
+export async function updateInvoiceStatus(invoiceId: string, status: string) {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("invoices")
+    .update({
+      status,
+      updated_at: now
+    })
+    .eq("id", invoiceId)
+    .select("id, status, company_id, quote_id")
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new InvoiceError("Impossible de mettre a jour le statut de la facture.");
+  }
+
+  const { error: documentError } = await supabase
+    .from("generated_documents")
+    .update({
+      status: status === "sent" ? "sent" : "generated",
+      updated_at: now
+    })
+    .eq("document_type", "invoice")
+    .contains("metadata", { invoice_id: invoiceId });
+
+  if (documentError) {
+    throw new InvoiceError("La facture a ete envoyee mais le document associe n'a pas pu etre mis a jour.");
+  }
+
+  return data;
 }
