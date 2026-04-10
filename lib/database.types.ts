@@ -357,34 +357,49 @@ export type Database = {
       invoices: {
         Row: {
           id: string;
-          invoice_number: string;
+          invoice_number: string | null;
           quote_id: string;
           company_id: string;
-          price_ht: number;
-          vat_rate: number;
+          status: string;
+          issue_date: string | null;
+          due_date: string | null;
+          subtotal: number;
+          tax_rate: number;
+          tax_amount: number;
           total_ttc: number;
+          notes: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          invoice_number: string;
+          invoice_number?: string | null;
           quote_id: string;
           company_id: string;
-          price_ht: number;
-          vat_rate?: number;
+          status?: string;
+          issue_date?: string | null;
+          due_date?: string | null;
+          subtotal?: number;
+          tax_rate?: number;
+          tax_amount?: number;
           total_ttc?: number;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          invoice_number?: string;
+          invoice_number?: string | null;
           quote_id?: string;
           company_id?: string;
-          price_ht?: number;
-          vat_rate?: number;
+          status?: string;
+          issue_date?: string | null;
+          due_date?: string | null;
+          subtotal?: number;
+          tax_rate?: number;
+          tax_amount?: number;
           total_ttc?: number;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };

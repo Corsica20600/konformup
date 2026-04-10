@@ -38,8 +38,9 @@ export default async function InvoiceDetailPage({
           <div className="mt-6 grid gap-3 text-sm text-ink/75 md:grid-cols-2">
             <p>Reference devis : {invoice.quote.quote_number}</p>
             <p>Objet : {invoice.quote.title}</p>
-            <p>Montant HT : {invoice.price_ht.toFixed(2)} EUR</p>
-            <p>TVA : {invoice.vat_rate.toFixed(2)} %</p>
+            <p>Montant HT : {invoice.subtotal.toFixed(2)} EUR</p>
+            <p>TVA : {invoice.tax_rate.toFixed(2)} %</p>
+            <p>Montant TVA : {invoice.tax_amount.toFixed(2)} EUR</p>
             <p className="md:col-span-2">Montant TTC : {invoice.total_ttc.toFixed(2)} EUR</p>
           </div>
         </Card>

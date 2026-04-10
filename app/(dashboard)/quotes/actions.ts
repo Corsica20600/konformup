@@ -164,28 +164,45 @@ export async function createInvoiceFromQuoteAction(
 ): Promise<QuoteEditorActionState> {
   const quoteId = formData.get("quoteId")?.toString().trim();
 
+  console.info("[create-invoice-action]", {
+    step: "received",
+    quoteId: quoteId ?? null
+  });
+
   if (!quoteId) {
     return { error: "Devis manquant." };
   }
 
+  let invoiceId: string | null = null;
+
   try {
     const invoice = await createInvoiceFromQuote(quoteId);
+    invoiceId = invoice.id;
 
     revalidatePath(`/quotes/${quoteId}`);
     revalidatePath(`/invoices/${invoice.id}`);
     revalidatePath("/dashboard");
     revalidatePath("/companies");
-
-    redirect(`/invoices/${invoice.id}`);
   } catch (error) {
-    if (error instanceof InvoiceError && error.message === "Une facture existe deja pour ce devis.") {
-      return { error: error.message };
-    }
+    console.error("[create-invoice-action]", {
+      step: "error",
+      quoteId,
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : String(error)
+    });
 
     if (error instanceof InvoiceError || error instanceof Error) {
       return { error: error.message };
     }
 
-    return { error: "Impossible de creer la facture depuis ce devis." };
+    return { error: String(error) };
   }
+
+  console.info("[create-invoice-action]", {
+    step: "success",
+    quoteId,
+    invoiceId
+  });
+
+  redirect(`/invoices/${invoiceId}`);
 }
