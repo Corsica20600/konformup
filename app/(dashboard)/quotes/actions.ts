@@ -176,8 +176,20 @@ export async function createInvoiceFromQuoteAction(
   let invoiceId: string | null = null;
 
   try {
+    console.info("[create-invoice-action]", {
+      step: "before-createInvoiceFromQuote",
+      quoteId
+    });
+
     const invoice = await createInvoiceFromQuote(quoteId);
     invoiceId = invoice.id;
+
+    console.info("[create-invoice-action]", {
+      step: "after-createInvoiceFromQuote",
+      quoteId,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoice_number ?? null
+    });
 
     revalidatePath(`/quotes/${quoteId}`);
     revalidatePath(`/invoices/${invoice.id}`);
@@ -188,14 +200,15 @@ export async function createInvoiceFromQuoteAction(
       step: "error",
       quoteId,
       name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
     });
 
-    if (error instanceof InvoiceError || error instanceof Error) {
+    if (error instanceof InvoiceError) {
       return { error: error.message };
     }
 
-    return { error: String(error) };
+    return { error: "Impossible de creer la facture depuis ce devis." };
   }
 
   console.info("[create-invoice-action]", {

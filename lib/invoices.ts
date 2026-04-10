@@ -61,6 +61,18 @@ function logInvoiceCreate(step: string, details: Record<string, unknown>) {
   });
 }
 
+function formatInsertErrorMessage(error: {
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+}) {
+  const parts = [error.message, error.details, error.hint].filter(
+    (value): value is string => Boolean(value && value.trim())
+  );
+
+  return `Erreur creation facture: ${parts.join(" | ")}`;
+}
+
 function normalizeInvoiceRow(row: InvoiceRow): InvoiceBaseRow {
   const legacyRow = row as unknown as Partial<LegacyInvoiceRow>;
   const subtotal = "subtotal" in row && row.subtotal != null ? Number(row.subtotal) : Number(legacyRow.price_ht ?? 0);
@@ -213,16 +225,13 @@ export async function createInvoiceFromQuote(quoteId: string) {
   insertError = modernInsert.error;
 
   if (insertError) {
-    console.error("[invoice-create]", {
-      step: "insert-error",
+    logInvoiceCreate("insert-error", {
       quoteId: quote.id,
       payload,
-      insertError: {
-        code: insertError.code,
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint
-      }
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint
     });
   }
 
@@ -248,16 +257,13 @@ export async function createInvoiceFromQuote(quoteId: string) {
     insertError = legacyInsert.error;
 
     if (insertError) {
-      console.error("[invoice-create]", {
-        step: "insert-error-legacy",
+      logInvoiceCreate("insert-error-legacy", {
         quoteId: quote.id,
         payload: legacyPayload,
-        insertError: {
-          code: insertError.code,
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint
-        }
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint
       });
     }
   }
@@ -266,9 +272,15 @@ export async function createInvoiceFromQuote(quoteId: string) {
     throw new InvoiceError("Une facture existe deja pour ce devis.");
   }
 
-  if (insertError || !invoice) {
-    throw new InvoiceError(insertError?.message || "Impossible de creer la facture depuis ce devis.");
-  }
+  if (insertError) {
+  throw new InvoiceError(formatInsertErrorMessage(insertError));
+}
+
+if (!invoice) {
+  throw new InvoiceError(
+    "Erreur creation facture | Aucun enregistrement retourne apres insertion."
+  );
+}
 
   logInvoiceCreate("insert-success", {
     invoiceId: invoice.id,
