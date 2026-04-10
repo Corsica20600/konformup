@@ -24,7 +24,10 @@ export async function GET(request: Request, context: { params: Promise<{ invoice
     });
   } catch (error) {
     if (error instanceof InvoiceError) {
-      return NextResponse.json({ message: error.message }, { status: 404 });
+      return NextResponse.json(
+        { message: error.message },
+        { status: error.message === "Facture introuvable." ? 404 : 500 }
+      );
     }
 
     throw error;

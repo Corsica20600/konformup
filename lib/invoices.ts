@@ -57,6 +57,14 @@ export class InvoiceError extends Error {
   }
 }
 
+function logInvoiceRead(step: string, details: Record<string, unknown>) {
+  const logger = step.includes("error") ? console.error : console.info;
+  logger("[invoice-read]", {
+    step,
+    ...details
+  });
+}
+
 function logInvoiceCreate(step: string, details: Record<string, unknown>) {
   const logger = step.includes("error") ? console.error : console.info;
   logger("[invoice-create]", {
@@ -354,6 +362,8 @@ export async function getInvoiceByQuoteId(quoteId: string) {
 
 export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> {
   const supabase = await createClient();
+  logInvoiceRead("received", { invoiceId });
+
   const modernSelect = await supabase
     .from("invoices")
     .select(`
@@ -397,6 +407,16 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
   let data = modernSelect.data as (InvoiceRow & InvoiceRelations) | null;
   let error = modernSelect.error;
 
+  if (error) {
+    logInvoiceRead("join-query-error", {
+      invoiceId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+  }
+
   if (error && isLegacySchemaInsertError(error)) {
     const legacySelect = await supabase
       .from("invoices")
@@ -430,22 +450,163 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
 
     data = legacySelect.data as unknown as (InvoiceRow & InvoiceRelations) | null;
     error = legacySelect.error;
+
+    if (error) {
+      logInvoiceRead("join-query-legacy-error", {
+        invoiceId,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+    }
   }
 
-  if (error || !data) {
+  if (!error && data) {
+    const company = Array.isArray(data.client_companies) ? data.client_companies[0] : data.client_companies;
+    const quote = Array.isArray(data.quotes) ? data.quotes[0] : data.quotes;
+
+    if (!company || !quote) {
+      logInvoiceRead("join-query-incomplete", {
+        invoiceId,
+        companyFound: Boolean(company),
+        quoteFound: Boolean(quote)
+      });
+    } else {
+      return {
+        ...normalizeInvoiceRow(data),
+        company,
+        quote
+      };
+    }
+  }
+
+  const invoiceSelect = await supabase
+    .from("invoices")
+    .select(`
+      id,
+      invoice_number,
+      quote_id,
+      company_id,
+      status,
+      issue_date,
+      due_date,
+      subtotal,
+      tax_rate,
+      tax_amount,
+      total_ttc,
+      notes,
+      created_at,
+      updated_at
+    `)
+    .eq("id", invoiceId)
+    .maybeSingle<InvoiceRow>();
+
+  let invoice = invoiceSelect.data as (InvoiceRow | LegacyInvoiceRow) | null;
+  let invoiceError = invoiceSelect.error;
+
+  if (invoiceError) {
+    logInvoiceRead("invoice-select-error", {
+      invoiceId,
+      code: invoiceError.code,
+      message: invoiceError.message,
+      details: invoiceError.details,
+      hint: invoiceError.hint
+    });
+  }
+
+  if (invoiceError && isLegacySchemaInsertError(invoiceError)) {
+    const legacyInvoiceSelect = await supabase
+      .from("invoices")
+      .select(`
+        id,
+        invoice_number,
+        quote_id,
+        company_id,
+        price_ht,
+        vat_rate,
+        total_ttc,
+        created_at,
+        updated_at
+      `)
+      .eq("id", invoiceId)
+      .maybeSingle<LegacyInvoiceRow>();
+
+    invoice = legacyInvoiceSelect.data;
+    invoiceError = legacyInvoiceSelect.error;
+
+    if (invoiceError) {
+      logInvoiceRead("invoice-select-legacy-error", {
+        invoiceId,
+        code: invoiceError.code,
+        message: invoiceError.message,
+        details: invoiceError.details,
+        hint: invoiceError.hint
+      });
+    }
+  }
+
+  if (invoiceError) {
+    throw new InvoiceError(`Impossible de charger la facture: ${invoiceError.message}`);
+  }
+
+  if (!invoice) {
     throw new InvoiceError("Facture introuvable.");
   }
 
-  const company = Array.isArray(data.client_companies) ? data.client_companies[0] : data.client_companies;
-  const quote = Array.isArray(data.quotes) ? data.quotes[0] : data.quotes;
+  const companySelect = await supabase
+    .from("client_companies")
+    .select("id, company_name, contact_email, billing_address, postal_code, city")
+    .eq("id", invoice.company_id)
+    .maybeSingle<InvoiceCompanyRow>();
 
-  if (!company || !quote) {
-    throw new InvoiceError("Facture incomplete.");
+  if (companySelect.error) {
+    logInvoiceRead("company-select-error", {
+      invoiceId,
+      companyId: invoice.company_id,
+      code: companySelect.error.code,
+      message: companySelect.error.message,
+      details: companySelect.error.details,
+      hint: companySelect.error.hint
+    });
+    throw new InvoiceError(`Impossible de charger la societe de la facture: ${companySelect.error.message}`);
   }
 
+  if (!companySelect.data) {
+    throw new InvoiceError("Facture chargee mais societe introuvable.");
+  }
+
+  const quoteSelect = await supabase
+    .from("quotes")
+    .select("id, quote_number, title, status")
+    .eq("id", invoice.quote_id)
+    .maybeSingle<InvoiceQuoteRow>();
+
+  if (quoteSelect.error) {
+    logInvoiceRead("quote-select-error", {
+      invoiceId,
+      quoteId: invoice.quote_id,
+      code: quoteSelect.error.code,
+      message: quoteSelect.error.message,
+      details: quoteSelect.error.details,
+      hint: quoteSelect.error.hint
+    });
+    throw new InvoiceError(`Impossible de charger le devis de la facture: ${quoteSelect.error.message}`);
+  }
+
+  if (!quoteSelect.data) {
+    throw new InvoiceError("Facture chargee mais devis introuvable.");
+  }
+
+  logInvoiceRead("fallback-success", {
+    invoiceId,
+    companyId: invoice.company_id,
+    quoteId: invoice.quote_id
+  });
+
   return {
-    ...normalizeInvoiceRow(data),
-    company,
-    quote
+    ...normalizeInvoiceRow(invoice as InvoiceRow),
+    company: companySelect.data,
+    quote: quoteSelect.data
   };
 }
