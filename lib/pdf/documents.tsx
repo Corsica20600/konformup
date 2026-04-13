@@ -834,6 +834,9 @@ const programmeStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start"
   },
+  heroMain: {
+    width: "60%"
+  },
   heroBrand: {
     flexDirection: "row",
     alignItems: "center",
@@ -852,21 +855,21 @@ const programmeStyles = StyleSheet.create({
     letterSpacing: 0.6
   },
   heroTitle: {
-    maxWidth: 345,
-    fontSize: 22,
-    lineHeight: 1.18,
+    maxWidth: 320,
+    fontSize: 19.8,
+    lineHeight: 1.14,
     fontWeight: 700,
     color: "#ffffff"
   },
   heroSubtitle: {
     marginTop: 8,
-    maxWidth: 350,
-    fontSize: 10.5,
-    lineHeight: 1.45,
+    maxWidth: 325,
+    fontSize: 10.1,
+    lineHeight: 1.42,
     color: "#d8e6dd"
   },
   heroAside: {
-    width: 190,
+    width: "34%",
     alignItems: "flex-end"
   },
   logo: {
@@ -883,7 +886,7 @@ const programmeStyles = StyleSheet.create({
     justifyContent: "space-between"
   },
   metaChip: {
-    width: "31%",
+    width: "31.5%",
     minHeight: 64,
     paddingTop: 8,
     paddingRight: 8,
@@ -901,7 +904,7 @@ const programmeStyles = StyleSheet.create({
     marginBottom: 6
   },
   metaChipValue: {
-    fontSize: 12.4,
+    fontSize: 11.7,
     lineHeight: 1.2,
     fontWeight: 700,
     color: "#ffffff"
@@ -1056,9 +1059,10 @@ const programmeStyles = StyleSheet.create({
     marginBottom: 4
   },
   sectionBandTitle: {
-    fontSize: 17,
+    fontSize: 15.4,
     fontWeight: 700,
-    color: "#ffffff"
+    color: "#ffffff",
+    lineHeight: 1.16
   },
   splitShell: {
     borderWidth: 1,
@@ -1188,6 +1192,21 @@ export function ProgrammeDocument({
   quote: QuotePdfData;
   organizationSettings: OrganizationBranding;
 }) {
+  const cleanFooterItem = (value: string | null | undefined, prefix?: string) => {
+    const trimmed = value?.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (!prefix) {
+      return trimmed;
+    }
+
+    const normalized = trimmed.toLowerCase();
+    const prefixNormalized = prefix.toLowerCase();
+
+    return normalized.startsWith(prefixNormalized) ? trimmed : `${prefix} ${trimmed}`;
+  };
   const trainerLabel = quote.session?.trainer_name || "Formateur SST Konformup";
   const dateLabel =
     quote.session_start_date || quote.session_end_date
@@ -1202,10 +1221,8 @@ export function ProgrammeDocument({
     organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
       ? organizationSettings.address
       : null,
-    organizationSettings.siret ? `SIRET ${organizationSettings.siret}` : null,
-    organizationSettings.training_declaration_number
-      ? `NDA ${organizationSettings.training_declaration_number}`
-      : null
+    cleanFooterItem(organizationSettings.siret, "SIRET"),
+    cleanFooterItem(organizationSettings.training_declaration_number, "NDA")
   ].filter(Boolean);
 
 return (
@@ -1213,11 +1230,11 @@ return (
     <Page size="A4" style={[shared.page, programmeStyles.page]}>
       <View style={programmeStyles.heroShell}>
         <View style={programmeStyles.heroBand}>
-          <View style={programmeStyles.heroHeader}>
-            <View>
-              <View style={programmeStyles.heroBrand}>
-                <View style={programmeStyles.heroSquare} />
-                <Text style={programmeStyles.heroKicker}>Programme de formation</Text>
+            <View style={programmeStyles.heroHeader}>
+              <View style={programmeStyles.heroMain}>
+                <View style={programmeStyles.heroBrand}>
+                  <View style={programmeStyles.heroSquare} />
+                  <Text style={programmeStyles.heroKicker}>Programme de formation</Text>
               </View>
               <Text style={programmeStyles.heroTitle}>
                 Programme SST {"\n"}Sauveteur Secouriste du Travail
