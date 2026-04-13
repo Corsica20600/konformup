@@ -1,6 +1,6 @@
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getOrganizationSettings } from "@/lib/organization";
-import type { QuoteEditData } from "@/lib/quotes";
+import { createProgrammeDocumentForQuote, getProgrammeDocumentByQuoteId, type QuoteEditData } from "@/lib/quotes";
 
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -49,6 +49,9 @@ export async function sendQuoteEmail(quote: QuoteEditData) {
   const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
   const pdfPath = `/api/pdf/quote/${quote.id}`;
   const pdf = await fetchExistingPdf(pdfPath);
+  const existingProgramme = await getProgrammeDocumentByQuoteId(quote.id);
+  const programmeDocument = existingProgramme ?? (await createProgrammeDocumentForQuote(quote.id));
+  const programmePdf = await fetchExistingPdf(programmeDocument.fileUrl ?? `/api/pdf/programme/${quote.id}`);
   const body = await buildQuoteEmailBody(quote);
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
@@ -74,6 +77,10 @@ export async function sendQuoteEmail(quote: QuoteEditData) {
         {
           name: `devis-${quote.quote_number}.pdf`,
           content: Buffer.from(pdf.buffer).toString("base64")
+        },
+        {
+          name: "programme-sst.pdf",
+          content: Buffer.from(programmePdf.buffer).toString("base64")
         }
       ]
     })

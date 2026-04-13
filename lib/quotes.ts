@@ -47,6 +47,8 @@ type QuoteSessionRow = {
   start_date: string;
   end_date: string;
   location: string;
+  trainer_name: string | null;
+  duration_hours: number | null;
 };
 
 type QuoteBaseRow = Omit<QuoteRow, "price_ht" | "vat_rate" | "total_ttc"> & {
@@ -128,7 +130,7 @@ async function selectSessionForQuote(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location")
+    .select("id, title, start_date, end_date, location, trainer_name, duration_hours")
     .eq("id", sessionId)
     .maybeSingle<QuoteSessionRow>();
 
@@ -138,7 +140,7 @@ async function selectSessionForQuote(sessionId: string) {
 
   const fallback = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location")
+    .select("id, title, start_date, end_date, location, trainer_name, duration_hours")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -587,6 +589,98 @@ export async function duplicateQuote(quoteId: string) {
   return {
     quote: duplicatedQuote,
     fileUrl
+  };
+}
+
+export async function getProgrammeDocumentByQuoteId(quoteId: string): Promise<{
+  id: string;
+  fileUrl: string | null;
+  documentRef: string;
+} | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("generated_documents")
+    .select("id, file_url, document_ref")
+    .eq("document_type", "programme")
+    .contains("metadata", { quote_id: quoteId })
+    .maybeSingle();
+
+  if (error) {
+    throw new QuoteError("Impossible de retrouver le programme lie a ce devis.");
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: data.id,
+    fileUrl: data.file_url,
+    documentRef: data.document_ref
+  };
+}
+
+export async function createProgrammeDocumentForQuote(quoteId: string) {
+  const quote = await getQuoteById(quoteId);
+  const fileUrl = `/api/pdf/programme/${quote.id}`;
+
+  await callExistingPdfGeneration(fileUrl);
+
+  const existingDocument = await getProgrammeDocumentByQuoteId(quoteId);
+
+  if (existingDocument) {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("generated_documents")
+      .update({
+        session_id: quote.session?.id ?? null,
+        company_id: quote.company.id,
+        file_url: fileUrl,
+        status: "generated",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", existingDocument.id);
+
+    if (error) {
+      throw new QuoteError("Impossible de synchroniser le programme lie a ce devis.");
+    }
+
+    return {
+      id: existingDocument.id,
+      fileUrl,
+      documentRef: existingDocument.documentRef
+    };
+  }
+
+  const documentRef = await generateUniqueDocumentRef("programme");
+  const document = await insertGeneratedDocumentRecord({
+    sessionId: quote.session?.id ?? null,
+    candidateId: null,
+    companyId: quote.company.id,
+    documentType: "programme",
+    documentRef,
+    status: "generated",
+    fileUrl,
+    metadata: {
+      quote_id: quote.id,
+      quote_number: quote.quote_number,
+      company: {
+        id: quote.company.id,
+        company_name: quote.company.company_name
+      },
+      session: quote.session
+        ? {
+            id: quote.session.id,
+            title: quote.session.title
+          }
+        : null
+    }
+  });
+
+  return {
+    id: document.id,
+    fileUrl,
+    documentRef
   };
 }
 

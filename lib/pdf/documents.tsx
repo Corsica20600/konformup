@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
@@ -13,6 +13,8 @@ const validationLabel = {
   validated: "Valide",
   not_validated: "Non valide"
 } as const;
+
+Font.registerHyphenationCallback((word) => [word]);
 
 const shared = StyleSheet.create({
   page: {
@@ -807,5 +809,630 @@ export function InvoiceDocument({
         ) : null}
       </Page>
     </Document>
+  );
+}
+
+const programmeStyles = StyleSheet.create({
+  page: {
+    backgroundColor: "#fcfaf5"
+  },
+  heroShell: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#d6d0c3",
+    backgroundColor: "#ffffff"
+  },
+  heroBand: {
+    backgroundColor: "#1f3028",
+    paddingTop: 14,
+    paddingRight: 16,
+    paddingBottom: 14,
+    paddingLeft: 16
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start"
+  },
+  heroBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16
+  },
+  heroSquare: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#a8c957",
+    marginRight: 8
+  },
+  heroKicker: {
+    fontSize: 10,
+    color: "#d8e6dd",
+    textTransform: "uppercase",
+    letterSpacing: 0.6
+  },
+  heroTitle: {
+    maxWidth: 345,
+    fontSize: 22,
+    lineHeight: 1.18,
+    fontWeight: 700,
+    color: "#ffffff"
+  },
+  heroSubtitle: {
+    marginTop: 8,
+    maxWidth: 350,
+    fontSize: 10.5,
+    lineHeight: 1.45,
+    color: "#d8e6dd"
+  },
+  heroAside: {
+    width: 190,
+    alignItems: "flex-end"
+  },
+  logo: {
+    width: 82,
+    height: 48,
+    objectFit: "contain",
+    marginBottom: 14
+  },
+  orgBlock: {
+    width: "100%"
+  },
+  metaGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  metaChip: {
+    width: "31%",
+    minHeight: 64,
+    paddingTop: 8,
+    paddingRight: 8,
+    paddingBottom: 8,
+    paddingLeft: 8,
+    borderWidth: 1,
+    borderColor: "#4a5f55",
+    backgroundColor: "#24372f"
+  },
+  metaChipLabel: {
+    fontSize: 7.6,
+    color: "#d8e6dd",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginBottom: 6
+  },
+  metaChipValue: {
+    fontSize: 12.4,
+    lineHeight: 1.2,
+    fontWeight: 700,
+    color: "#ffffff"
+  },
+  heroMetaValue: {
+    fontSize: 17
+  },
+  heroMetaLabel: {
+    fontSize: 9.5
+  },
+  heroFooter: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#d6d0c3"
+  },
+  heroFooterCol: {
+    flex: 1,
+    paddingTop: 10,
+    paddingRight: 14,
+    paddingBottom: 10,
+    paddingLeft: 14,
+    borderRightWidth: 1,
+    borderRightColor: "#d6d0c3"
+  },
+  heroFooterColLast: {
+    borderRightWidth: 0
+  },
+  heroFooterLabel: {
+    fontSize: 9,
+    color: "#5e665f",
+    textTransform: "uppercase",
+    marginBottom: 3,
+    letterSpacing: 1
+  },
+  heroFooterValue: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  firstPageColumns: {
+    flexDirection: "row",
+    marginBottom: 6
+  },
+  firstLeft: {
+    width: "57%",
+    paddingRight: 8
+  },
+  firstRight: {
+    width: "43%",
+    paddingLeft: 6
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 8,
+    marginBottom: 6
+  },
+  cardEmphasis: {
+    backgroundColor: "#f2f6f3",
+    borderColor: "#bfd1c4"
+  },
+  cardTitle: {
+    fontSize: 8.2,
+    textTransform: "uppercase",
+    color: "#285943",
+    marginBottom: 4,
+    letterSpacing: 0.6
+  },
+  sectionLead: {
+    fontSize: 14,
+    lineHeight: 1.1,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 4
+  },
+  bodyText: {
+    fontSize: 9.2,
+    lineHeight: 1.35,
+    color: "#1d2a24"
+  },
+  bulletRow: {
+    flexDirection: "row",
+    marginBottom: 3
+  },
+  bulletDot: {
+    width: 10,
+    fontSize: 10.5,
+    color: "#285943"
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 9.4,
+    lineHeight: 1.28,
+    color: "#1d2a24"
+  },
+  factsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 12
+  },
+  factTile: {
+    width: "48%",
+    marginRight: "4%",
+    marginBottom: 8,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    minHeight: 46
+  },
+  factTileEven: {
+    marginRight: 0
+  },
+  factLabel: {
+    fontSize: 8,
+    textTransform: "uppercase",
+    color: "#6a716b",
+    letterSpacing: 0.8,
+    marginBottom: 3
+  },
+  factValue: {
+    fontSize: 10.2,
+    lineHeight: 1.2,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  twoMiniCols: {
+    flexDirection: "row",
+    marginBottom: 4
+  },
+  miniCol: {
+    flex: 1,
+    marginRight: 6
+  },
+  miniColLast: {
+    marginRight: 0
+  },
+  sectionBand: {
+    paddingTop: 8,
+    paddingRight: 10,
+    paddingBottom: 8,
+    paddingLeft: 10,
+    backgroundColor: "#1f3028",
+    marginBottom: 10
+  },
+  sectionBandKicker: {
+    fontSize: 9,
+    textTransform: "uppercase",
+    color: "#cfe0d7",
+    letterSpacing: 1.3,
+    marginBottom: 4
+  },
+  sectionBandTitle: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#ffffff"
+  },
+  splitShell: {
+    borderWidth: 1,
+    borderColor: "#d7d0c3",
+    backgroundColor: "#ffffff",
+    paddingTop: 8,
+    paddingRight: 10,
+    paddingBottom: 8,
+    paddingLeft: 10,
+    marginBottom: 10
+  },
+  splitEyebrow: {
+    fontSize: 8.4,
+    textTransform: "uppercase",
+    color: "#6a716b",
+    letterSpacing: 0.8,
+    marginBottom: 7
+  },
+  splitBar: {
+    flexDirection: "row",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 10
+  },
+  splitBarTheory: {
+    width: "40%",
+    backgroundColor: "#285943"
+  },
+  splitBarPractice: {
+    width: "60%",
+    backgroundColor: "#a8c957"
+  },
+  splitHighlight: {
+    flexDirection: "row",
+    marginBottom: 0
+  },
+  splitCard: {
+    flex: 1,
+    paddingTop: 10,
+    paddingRight: 14,
+    paddingBottom: 10,
+    paddingLeft: 14,
+    borderWidth: 1,
+    borderColor: "#d7d0c3",
+    backgroundColor: "#fdfdfb",
+    marginRight: 10
+  },
+  splitCardLast: {
+    marginRight: 0
+  },
+  splitPercent: {
+    fontSize: 22,
+    fontWeight: 700,
+    marginBottom: 4
+  },
+  splitTheory: {
+    color: "#285943"
+  },
+  splitPractice: {
+    color: "#a8c957"
+  },
+  splitTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    letterSpacing: 0.5
+  },
+  splitText: {
+    fontSize: 10,
+    color: "#4d5751",
+    lineHeight: 1.4
+  },
+  secondPageColumns: {
+    flexDirection: "row",
+    marginBottom: 6
+  },
+  secondCol: {
+    flex: 1,
+    marginRight: 10
+  },
+  secondColLast: {
+    marginRight: 0
+  },
+  pageFooter: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#d7d0c3"
+  },
+  footerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 2
+  },
+  footerOrg: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  footerMeta: {
+    fontSize: 7.8,
+    color: "#5b655f",
+    textAlign: "right"
+  },
+  footerNote: {
+    fontSize: 7.6,
+    color: "#5b655f"
+  }
+});
+
+function ProgrammeBullet({ children }: { children: string }) {
+  return (
+    <View style={programmeStyles.bulletRow}>
+      <Text style={programmeStyles.bulletDot}>•</Text>
+      <Text style={programmeStyles.bulletText}>{children}</Text>
+    </View>
+  );
+}
+
+export function ProgrammeDocument({
+  quote,
+  organizationSettings
+}: {
+  quote: QuotePdfData;
+  organizationSettings: OrganizationBranding;
+}) {
+  const trainerLabel = quote.session?.trainer_name || "Formateur SST Konformup";
+  const dateLabel =
+    quote.session_start_date || quote.session_end_date
+      ? formatDateRange(quote.session_start_date, quote.session_end_date)
+      : "Dates a definir";
+  const locationLabel = quote.location || quote.session?.location || "Lieu a confirmer";
+  const participantLabel =
+    quote.candidate_count > 0
+      ? `${quote.candidate_count} participant(s) prevu(s) - 4 mini / 10 maxi`
+      : "4 mini / 10 maxi";
+  const organizationMeta = [
+    organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
+      ? organizationSettings.address
+      : null,
+    organizationSettings.siret ? `SIRET ${organizationSettings.siret}` : null,
+    organizationSettings.training_declaration_number
+      ? `NDA ${organizationSettings.training_declaration_number}`
+      : null
+  ].filter(Boolean);
+
+return (
+  <Document>
+    <Page size="A4" style={[shared.page, programmeStyles.page]}>
+      <View style={programmeStyles.heroShell}>
+        <View style={programmeStyles.heroBand}>
+          <View style={programmeStyles.heroHeader}>
+            <View>
+              <View style={programmeStyles.heroBrand}>
+                <View style={programmeStyles.heroSquare} />
+                <Text style={programmeStyles.heroKicker}>Programme de formation</Text>
+              </View>
+              <Text style={programmeStyles.heroTitle}>
+                Programme SST {"\n"}Sauveteur Secouriste du Travail
+              </Text>
+              <Text style={programmeStyles.heroSubtitle}>
+                Une presentation structurée et operationnelle de la formation, inspiree d&apos;une brochure pedagogique et alignee sur le dispositif SST / INRS.
+              </Text>
+            </View>
+            <View style={programmeStyles.heroAside}>
+              {organizationSettings.resolved_logo_url ? (
+                <Image src={organizationSettings.resolved_logo_url} style={programmeStyles.logo} />
+              ) : null}
+              <View style={programmeStyles.orgBlock}>
+                <View style={programmeStyles.metaGrid}>
+                  <View style={programmeStyles.metaChip}>
+                    <Text style={programmeStyles.metaChipLabel}>Duree</Text>
+                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaValue]}>14 h</Text>
+                  </View>
+                  <View style={programmeStyles.metaChip}>
+                    <Text style={programmeStyles.metaChipLabel}>Modalite</Text>
+                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>Presentiel</Text>
+                  </View>
+                  <View style={programmeStyles.metaChip}>
+                    <Text style={programmeStyles.metaChipLabel}>Certificat</Text>
+                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>Valide 24 mois</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={programmeStyles.heroFooter}>
+          <View style={programmeStyles.heroFooterCol}>
+            <Text style={programmeStyles.heroFooterLabel}>Societe</Text>
+            <Text style={programmeStyles.heroFooterValue}>{quote.company.company_name}</Text>
+          </View>
+          <View style={programmeStyles.heroFooterCol}>
+            <Text style={programmeStyles.heroFooterLabel}>Lieu</Text>
+            <Text style={programmeStyles.heroFooterValue}>{locationLabel}</Text>
+          </View>
+          <View style={[programmeStyles.heroFooterCol, programmeStyles.heroFooterColLast]}>
+            <Text style={programmeStyles.heroFooterLabel}>Session</Text>
+            <Text style={programmeStyles.heroFooterValue}>{dateLabel}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.firstPageColumns}>
+        <View style={programmeStyles.firstLeft}>
+          <View style={[programmeStyles.card, programmeStyles.cardEmphasis]}>
+            <Text style={programmeStyles.cardTitle}>Objectif de la formation</Text>
+            <Text style={programmeStyles.sectionLead}>Former des SST capables d&apos;agir vite et juste.</Text>
+            <Text style={programmeStyles.bodyText}>
+              Intervenir efficacement face a une situation d&apos;accident du travail et contribuer a la prevention des risques professionnels dans l&apos;entreprise.
+            </Text>
+          </View>
+          <View style={programmeStyles.card}>
+            <Text style={programmeStyles.cardTitle}>Competences developpees</Text>
+            <ProgrammeBullet>Identifier les situations dangereuses et participer a la prevention.</ProgrammeBullet>
+            <ProgrammeBullet>Examiner une victime et alerter ou faire alerter les secours.</ProgrammeBullet>
+            <ProgrammeBullet>Realiser les gestes de secours adaptes: protection, saignement, etouffement, inconscience, arret cardiaque, malaise, brulure et traumatisme.</ProgrammeBullet>
+          </View>
+        </View>
+
+        <View style={programmeStyles.firstRight}>
+          <View style={programmeStyles.factsGrid}>
+            <View style={programmeStyles.factTile}>
+              <Text style={programmeStyles.factLabel}>Public</Text>
+              <Text style={programmeStyles.factValue}>Tout salarie</Text>
+            </View>
+            <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
+              <Text style={programmeStyles.factLabel}>Prerequis</Text>
+              <Text style={programmeStyles.factValue}>Aucun</Text>
+            </View>
+            <View style={programmeStyles.factTile}>
+              <Text style={programmeStyles.factLabel}>Duree</Text>
+              <Text style={programmeStyles.factValue}>14 h en presentiel</Text>
+            </View>
+            <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
+              <Text style={programmeStyles.factLabel}>Effectif</Text>
+              <Text style={programmeStyles.factValue}>{participantLabel}</Text>
+            </View>
+            <View style={programmeStyles.factTile}>
+              <Text style={programmeStyles.factLabel}>Intervenant</Text>
+              <Text style={programmeStyles.factValue}>{trainerLabel}</Text>
+            </View>
+          </View>
+
+          <View style={programmeStyles.card}>
+            <Text style={programmeStyles.cardTitle}>Cadre certificateur et validite</Text>
+            <Text style={programmeStyles.bodyText}>
+              Formation preparee selon le referentiel SST de l&apos;INRS. Certificat delivre dans le cadre du dispositif Assurance maladie - Risques professionnels / INRS.
+            </Text>
+            <Text style={[programmeStyles.bodyText, { marginTop: 5 }]}>
+              Validite du certificat: 24 mois. Maintien et actualisation des competences (MAC): 7 h tous les 24 mois.
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.twoMiniCols}>
+        <View style={programmeStyles.miniCol}>
+          <View style={programmeStyles.card}>
+            <Text style={programmeStyles.cardTitle}>Approche pedagogique</Text>
+            <ProgrammeBullet>Alternance d&apos;apports methodologiques, d&apos;echanges diriges et d&apos;etudes de cas.</ProgrammeBullet>
+            <ProgrammeBullet>Mises en situation concretes, demonstrations et exercices pratiques sur materiel de secours.</ProgrammeBullet>
+            <ProgrammeBullet>Pedagogie active centree sur les risques reels de l&apos;environnement de travail.</ProgrammeBullet>
+          </View>
+        </View>
+
+        <View style={[programmeStyles.miniCol, programmeStyles.miniColLast]}>
+          <View style={programmeStyles.card}>
+            <Text style={programmeStyles.cardTitle}>Modalites d&apos;evaluation</Text>
+            <ProgrammeBullet>Evaluations formatives tout au long de la formation.</ProgrammeBullet>
+            <ProgrammeBullet>Evaluation certificative selon les criteres definis par le dispositif SST.</ProgrammeBullet>
+            <ProgrammeBullet>Remise du certificat SST aux participants ayant satisfait aux exigences.</ProgrammeBullet>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.pageFooter}>
+        <View style={programmeStyles.footerTopRow}>
+          <Text style={programmeStyles.footerOrg}>{organizationSettings.organization_name}</Text>
+          <Text style={programmeStyles.footerMeta}>Programme SST • Document pedagogique</Text>
+        </View>
+        <Text style={programmeStyles.footerNote}>{organizationMeta.join(" • ")}</Text>
+      </View>
+    </Page>
+
+    <Page size="A4" style={[shared.page, programmeStyles.page]}>
+      <View style={programmeStyles.sectionBand}>
+        <Text style={programmeStyles.sectionBandKicker}>Programme detaille</Text>
+        <Text style={programmeStyles.sectionBandTitle}>Une progression equilibree entre theorie et mises en situation</Text>
+      </View>
+
+      <View style={programmeStyles.splitShell}>
+        <Text style={programmeStyles.splitEyebrow}>Repartition pedagogique</Text>
+        <View style={programmeStyles.splitBar}>
+          <View style={programmeStyles.splitBarTheory} />
+          <View style={programmeStyles.splitBarPractice} />
+        </View>
+        <View style={programmeStyles.splitHighlight}>
+          <View style={programmeStyles.splitCard}>
+            <Text style={[programmeStyles.splitPercent, programmeStyles.splitTheory]}>40%</Text>
+            <Text style={programmeStyles.splitTitle}>Partie theorique</Text>
+            <Text style={programmeStyles.splitText}>
+              Cadre d&apos;intervention, principes de prevention, analyse de la situation et logique d&apos;alerte.
+            </Text>
+          </View>
+          <View style={[programmeStyles.splitCard, programmeStyles.splitCardLast]}>
+            <Text style={[programmeStyles.splitPercent, programmeStyles.splitPractice]}>60%</Text>
+            <Text style={programmeStyles.splitTitle}>Partie pratique</Text>
+            <Text style={programmeStyles.splitText}>
+              Gestes de secours, ateliers, cas concrets et entrainements sur des situations proches du terrain.
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.secondPageColumns}>
+        <View style={programmeStyles.secondCol}>
+          <View style={programmeStyles.card}>
+            <Text style={programmeStyles.cardTitle}>Partie theorique</Text>
+            <ProgrammeBullet>Role du SST dans l&apos;entreprise et articulation avec la prevention des risques.</ProgrammeBullet>
+            <ProgrammeBullet>Cadre juridique de l&apos;intervention et principes generaux de prevention.</ProgrammeBullet>
+            <ProgrammeBullet>Recherche des dangers persistants et protection adaptee.</ProgrammeBullet>
+            <ProgrammeBullet>Examen de la victime, alerte, organisation des secours et transmission des informations.</ProgrammeBullet>
+            <ProgrammeBullet>Conduites a tenir face aux saignements, etouffements, malaises, brulures, traumatismes et pertes de connaissance.</ProgrammeBullet>
+            <ProgrammeBullet>Principes de la reanimation cardio-pulmonaire et usage du defibrillateur.</ProgrammeBullet>
+          </View>
+        </View>
+
+        <View style={[programmeStyles.secondCol, programmeStyles.secondColLast]}>
+          <View style={[programmeStyles.card, programmeStyles.cardEmphasis]}>
+            <Text style={programmeStyles.cardTitle}>Partie pratique</Text>
+            <ProgrammeBullet>Exercices de protection, degagement d&apos;urgence et mise en securite.</ProgrammeBullet>
+            <ProgrammeBullet>Mises en situation d&apos;accidents du travail contextualisees.</ProgrammeBullet>
+            <ProgrammeBullet>Ateliers gestes d&apos;urgence: compression, PLS, RCP adulte et utilisation du DEA.</ProgrammeBullet>
+            <ProgrammeBullet>Jeux de role sur l&apos;alerte et la coordination avec les secours externes.</ProgrammeBullet>
+            <ProgrammeBullet>Analyse de situations de travail pour reperer les actions de prevention a proposer.</ProgrammeBullet>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.card}>
+        <Text style={programmeStyles.cardTitle}>Synthese de la session</Text>
+        <View style={programmeStyles.factsGrid}>
+          <View style={programmeStyles.factTile}>
+            <Text style={programmeStyles.factLabel}>Intitule du devis</Text>
+            <Text style={programmeStyles.factValue}>{quote.title}</Text>
+          </View>
+          <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
+            <Text style={programmeStyles.factLabel}>Reference devis</Text>
+            <Text style={programmeStyles.factValue}>{quote.quote_number}</Text>
+          </View>
+          <View style={programmeStyles.factTile}>
+            <Text style={programmeStyles.factLabel}>Societe</Text>
+            <Text style={programmeStyles.factValue}>{quote.company.company_name}</Text>
+          </View>
+          <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
+            <Text style={programmeStyles.factLabel}>Lieu / dates</Text>
+            <Text style={programmeStyles.factValue}>{`${locationLabel} - ${dateLabel}`}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={programmeStyles.pageFooter}>
+        <View style={programmeStyles.footerTopRow}>
+          <Text style={programmeStyles.footerOrg}>{organizationSettings.organization_name}</Text>
+          <Text style={programmeStyles.footerMeta}>Programme SST • Document pedagogique</Text>
+        </View>
+        <Text style={programmeStyles.footerNote}>{organizationMeta.join(" • ")}</Text>
+      </View>
+    </Page>
+  </Document>
   );
 }

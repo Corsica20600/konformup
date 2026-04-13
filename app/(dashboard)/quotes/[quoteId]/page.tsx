@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { EditQuoteForm } from "@/components/quotes/edit-quote-form";
 import { Card } from "@/components/ui/card";
 import { getInvoiceByQuoteId } from "@/lib/invoices";
-import { getQuoteForEdit, QuoteError } from "@/lib/quotes";
+import { getProgrammeDocumentByQuoteId, getQuoteForEdit, QuoteError } from "@/lib/quotes";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +14,16 @@ export default async function QuoteDetailPage({
   const { quoteId } = await params;
 
   try {
-    const [quote, invoice] = await Promise.all([getQuoteForEdit(quoteId), getInvoiceByQuoteId(quoteId)]);
+    const [quote, invoice, programme] = await Promise.all([
+      getQuoteForEdit(quoteId),
+      getInvoiceByQuoteId(quoteId),
+      getProgrammeDocumentByQuoteId(quoteId)
+    ]);
 
     return (
       <main className="grid gap-4">
         <Card>
-          <EditQuoteForm quote={quote} invoice={invoice} />
+          <EditQuoteForm quote={quote} invoice={invoice} programmeFileUrl={programme?.fileUrl ?? null} />
         </Card>
       </main>
     );

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import {
   createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
+  generateProgrammePdfAction,
   regenerateQuotePdfAction,
   sendQuoteEmailAction,
   type QuoteEditorActionState,
@@ -21,10 +22,12 @@ type InvoiceSummary = Pick<Database["public"]["Tables"]["invoices"]["Row"], "id"
 
 export function EditQuoteForm({
   quote,
-  invoice
+  invoice,
+  programmeFileUrl
 }: {
   quote: QuoteEditData;
   invoice: InvoiceSummary;
+  programmeFileUrl: string | null;
 }) {
   const [saveState, saveAction, savePending] = useActionState(updateQuoteAction, initialState);
   const [createSessionState, createSessionAction, createSessionPending] = useActionState(
@@ -35,6 +38,7 @@ export function EditQuoteForm({
     createInvoiceFromQuoteAction,
     initialState
   );
+  const [programmeState, programmeAction, programmePending] = useActionState(generateProgrammePdfAction, initialState);
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
   const canCreateSession = quote.status === "accepted" && !quote.session_id;
@@ -91,6 +95,22 @@ export function EditQuoteForm({
               {sendPending ? "Envoi..." : "Envoyer"}
             </Button>
           </form>
+          <form action={programmeAction}>
+            <input type="hidden" name="quoteId" value={quote.id} />
+            <Button type="submit" variant="secondary" disabled={programmePending}>
+              {programmePending ? "Generation..." : "Programme SST"}
+            </Button>
+          </form>
+          {programmeFileUrl ? (
+            <Link
+              href={programmeFileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            >
+              Ouvrir programme
+            </Link>
+          ) : null}
           <Link
             href={`/api/pdf/quote/${quote.id}`}
             target="_blank"
@@ -201,6 +221,17 @@ export function EditQuoteForm({
           <p>{pdfState.success}</p>
           {pdfState.fileUrl ? (
             <Link href={pdfState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
+              Ouvrir le PDF
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {programmeState.error ? <p className="text-sm text-accent">{programmeState.error}</p> : null}
+      {programmeState.success ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-pine">
+          <p>{programmeState.success}</p>
+          {programmeState.fileUrl ? (
+            <Link href={programmeState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
               Ouvrir le PDF
             </Link>
           ) : null}

@@ -98,6 +98,7 @@ async function selectGeneratedDocumentsByForeignKey(
       quote_id: quoteId,
       quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null,
       invoice_id: invoiceIdFromMetadata ?? invoice?.id ?? null,
+      program_quote_id: document.document_type === "programme" ? extractProgramQuoteIdFromMetadata(document.metadata) : null,
       invoice_number:
         document.document_type === "invoice"
           ? document.document_ref
@@ -235,6 +236,15 @@ function extractInvoiceIdFromMetadata(metadata: unknown) {
 
   const invoiceId = (metadata as { invoice_id?: unknown }).invoice_id;
   return typeof invoiceId === "string" && invoiceId.length > 0 ? invoiceId : null;
+}
+
+function extractProgramQuoteIdFromMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const quoteId = (metadata as { quote_id?: unknown }).quote_id;
+  return typeof quoteId === "string" && quoteId.length > 0 ? quoteId : null;
 }
 
 async function selectQuoteStatusesByIds(quoteIds: string[]) {

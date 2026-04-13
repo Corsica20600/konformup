@@ -122,6 +122,7 @@ export type GeneratedDocumentItem = {
   quote_status?: QuoteStatus | null;
   invoice_id?: string | null;
   invoice_number?: string | null;
+  program_quote_id?: string | null;
   created_at: string;
   updated_at: string;
 };

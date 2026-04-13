@@ -6,7 +6,14 @@ import { requireUser } from "@/lib/auth";
 import { createInvoiceFromQuote, InvoiceError } from "@/lib/invoices";
 import { sendQuoteEmail } from "@/lib/quote-email";
 import { getQuoteStatusAfterSend } from "@/lib/quote-status";
-import { createSessionFromQuote, getQuoteForEdit, regenerateQuotePdf, updateQuote, updateQuoteStatus } from "@/lib/quotes";
+import {
+  createProgrammeDocumentForQuote,
+  createSessionFromQuote,
+  getQuoteForEdit,
+  regenerateQuotePdf,
+  updateQuote,
+  updateQuoteStatus
+} from "@/lib/quotes";
 import { updateQuoteSchema } from "@/lib/validation";
 
 export type QuoteEditorActionState = {
@@ -218,4 +225,36 @@ export async function createInvoiceFromQuoteAction(
   });
 
   redirect(`/invoices/${invoiceId}`);
+}
+
+export async function generateProgrammePdfAction(
+  _: QuoteEditorActionState,
+  formData: FormData
+): Promise<QuoteEditorActionState> {
+  const quoteId = formData.get("quoteId")?.toString().trim();
+
+  if (!quoteId) {
+    return { error: "Devis manquant." };
+  }
+
+  try {
+    const programme = await createProgrammeDocumentForQuote(quoteId);
+    const quote = await getQuoteForEdit(quoteId);
+
+    revalidatePath(`/quotes/${quote.id}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${quote.company.id}`);
+
+    return {
+      success: "Programme SST genere.",
+      fileUrl: programme.fileUrl
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de generer le programme SST." };
+  }
 }
