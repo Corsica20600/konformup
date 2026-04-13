@@ -15,6 +15,7 @@ import {
   RecoverableSessionQueryError,
   SessionNotFoundError
 } from "@/lib/queries";
+import type { SessionModule, SessionModuleGroup } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,42 @@ const statusLabel = {
   completed: "Terminée",
   cancelled: "Annulée"
 } as const;
+
+function buildModuleGroups(modules: SessionModule[]): SessionModuleGroup[] {
+  const parents = modules
+    .filter((module) => module.module_type === "parent")
+    .sort((a, b) => a.module_order - b.module_order);
+  const children = modules
+    .filter((module) => module.module_type === "child")
+    .sort((a, b) => a.module_order - b.module_order);
+  const childIds = new Set(children.map((module) => module.id));
+
+  const parentGroups = parents.map((parent) => ({
+    parent,
+    children: children
+      .filter((child) => child.parent_module_id === parent.id)
+      .sort((a, b) => a.module_order - b.module_order)
+  }));
+
+  const orphanStandaloneGroups = modules
+    .filter((module) => !childIds.has(module.id) && module.module_type !== "parent")
+    .sort((a, b) => a.module_order - b.module_order)
+    .map((module) => ({
+      parent: module,
+      children: []
+    }));
+
+  return [...parentGroups, ...orphanStandaloneGroups];
+}
+
+function resolveDefaultSelectedModule(moduleGroups: SessionModuleGroup[]) {
+  const firstGroup = moduleGroups[0];
+  if (!firstGroup) {
+    return null;
+  }
+
+  return firstGroup.children[0] ?? firstGroup.parent;
+}
 
 export default async function SessionDetailPage({
   params,
@@ -63,9 +100,11 @@ export default async function SessionDetailPage({
   }
 
   const { session, candidates, modules, globalProgress, sourceQuote, availableCompanyCandidateCount } = data;
+  const moduleGroups = buildModuleGroups(modules);
+  const defaultSelectedModule = resolveDefaultSelectedModule(moduleGroups);
   const selectedModule =
     modules.find((module) => module.id === selectedModuleParam) ??
-    modules[0] ??
+    defaultSelectedModule ??
     null;
   const completedModules = modules.filter((module) => module.is_completed).length;
 
@@ -122,7 +161,7 @@ export default async function SessionDetailPage({
             <div className="mt-6">
               <SessionModuleList
                 sessionId={session.id}
-                modules={modules}
+                moduleGroups={moduleGroups}
                 selectedModuleId={selectedModule?.id ?? ""}
               />
             </div>

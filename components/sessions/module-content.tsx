@@ -10,12 +10,16 @@ export function ModuleContent({
   sessionId: string;
   module: SessionModule;
 }) {
+  const moduleLabel = module.module_type === "parent" ? "Module parent" : "Sous-module";
+
   return (
     <div className="grid gap-4">
       <Card>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Module {module.module_order}</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">
+              {moduleLabel} {module.module_order}
+            </p>
             <h3 className="mt-2 text-2xl font-bold">{module.title}</h3>
             {module.summary ? <p className="mt-3 text-sm leading-6 text-ink/70">{module.summary}</p> : null}
           </div>

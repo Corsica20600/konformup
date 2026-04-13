@@ -86,14 +86,15 @@ export async function initializeSessionModuleProgress(sessionId: string) {
 
   const { data: modules, error: modulesError } = await supabase
     .from("training_modules")
-    .select("id, module_order")
+    .select("id, module_order, is_active")
+    .eq("is_active", true)
     .order("module_order", { ascending: true })
     .order("id", { ascending: true });
 
   logSupabaseQueryError({
     file: "lib/session-modules.ts",
     table: "training_modules",
-    query: 'select("id, module_order").order("module_order").order("id")',
+    query: 'select("id, module_order, is_active").eq("is_active", true).order("module_order").order("id")',
     error: modulesError
   });
 

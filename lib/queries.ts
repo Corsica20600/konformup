@@ -27,6 +27,9 @@ type SessionModuleRow = {
         video_url: string | null;
         pdf_url: string | null;
         trainer_guidance: string | null;
+        parent_module_id: string | null;
+        module_type: "parent" | "child";
+        is_active: boolean;
       }
     | {
         id: string;
@@ -38,6 +41,9 @@ type SessionModuleRow = {
         video_url: string | null;
         pdf_url: string | null;
         trainer_guidance: string | null;
+        parent_module_id: string | null;
+        module_type: "parent" | "child";
+        is_active: boolean;
       }[]
     | null;
 };
@@ -643,7 +649,7 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
     .select(`
       is_completed,
       completed_at,
-      training_modules (
+      training_modules!inner (
         id,
         title,
         summary,
@@ -652,15 +658,19 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
         content_text,
         video_url,
         pdf_url,
-        trainer_guidance
+        trainer_guidance,
+        parent_module_id,
+        module_type,
+        is_active
       )
     `)
-    .eq("session_id", sessionId);
+    .eq("session_id", sessionId)
+    .eq("training_modules.is_active", true);
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "session_module_progress -> training_modules",
-    query: 'select("is_completed, completed_at, training_modules(id, title, summary, module_order, estimated_minutes, content_text, video_url, pdf_url, trainer_guidance)").eq("session_id", sessionId)',
+    query: 'select("is_completed, completed_at, training_modules!inner(id, title, summary, module_order, estimated_minutes, content_text, video_url, pdf_url, trainer_guidance, parent_module_id, module_type, is_active)").eq("session_id", sessionId).eq("training_modules.is_active", true)',
     error: primary.error
   });
 
@@ -681,7 +691,10 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
         estimated_minutes,
         content_text,
         video_url,
-        pdf_url
+        pdf_url,
+        parent_module_id,
+        module_type,
+        is_active
       )
     `)
     .eq("session_id", sessionId);
@@ -689,7 +702,7 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "session_module_progress -> training_modules",
-    query: 'fallback select("is_completed, completed_at, training_modules(id, title, summary, module_order, estimated_minutes, content_text, video_url, pdf_url)").eq("session_id", sessionId)',
+    query: 'fallback select("is_completed, completed_at, training_modules(id, title, summary, module_order, estimated_minutes, content_text, video_url, pdf_url, parent_module_id, module_type, is_active)").eq("session_id", sessionId)',
     error: fallback.error
   });
 
@@ -697,14 +710,30 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
     data: ((fallback.data ?? []).map((row) => ({
       ...row,
       training_modules: Array.isArray(row.training_modules)
-        ? row.training_modules.map((module) => ({
-            ...module,
-            trainer_guidance: null
-          }))
+          ? row.training_modules.map((module) => ({
+              ...module,
+              trainer_guidance: null,
+              parent_module_id: "parent_module_id" in module ? module.parent_module_id : null,
+              module_type: "module_type" in module && module.module_type === "parent" ? "parent" : "child",
+              is_active: "is_active" in module ? Boolean(module.is_active) : true
+            }))
         : row.training_modules
           ? {
               ...(row.training_modules as Record<string, unknown>),
-              trainer_guidance: null
+              trainer_guidance: null,
+              parent_module_id:
+                "parent_module_id" in (row.training_modules as Record<string, unknown>)
+                  ? ((row.training_modules as Record<string, unknown>).parent_module_id as string | null)
+                  : null,
+              module_type:
+                "module_type" in (row.training_modules as Record<string, unknown>) &&
+                (row.training_modules as Record<string, unknown>).module_type === "parent"
+                  ? "parent"
+                  : "child",
+              is_active:
+                "is_active" in (row.training_modules as Record<string, unknown>)
+                  ? Boolean((row.training_modules as Record<string, unknown>).is_active)
+                  : true
             }
           : row.training_modules
     })) as SessionModuleRow[]),
@@ -804,12 +833,21 @@ export async function getSessionById(sessionId: string) {
         video_url: trainingModule.video_url,
         pdf_url: trainingModule.pdf_url,
         trainer_guidance: trainingModule.trainer_guidance,
+        parent_module_id: trainingModule.parent_module_id,
+        module_type: trainingModule.module_type,
+        is_active: trainingModule.is_active,
         is_completed: row.is_completed,
         completed_at: row.completed_at
       };
     })
-    .filter((module): module is SessionModule => module !== null)
-    .sort((a, b) => a.module_order - b.module_order);
+    .filter((module): module is SessionModule => module !== null && module.is_active)
+    .sort((a, b) => {
+      if (a.module_order !== b.module_order) {
+        return a.module_order - b.module_order;
+      }
+
+      return a.title.localeCompare(b.title);
+    });
 
   const completedModules = normalizedModules.filter((module) => module.is_completed).length;
   const globalProgress = normalizedModules.length

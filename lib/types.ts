@@ -96,8 +96,16 @@ export type SessionModule = {
   video_url: string | null;
   pdf_url: string | null;
   trainer_guidance: string | null;
+  parent_module_id: string | null;
+  module_type: "parent" | "child";
+  is_active: boolean;
   is_completed: boolean;
   completed_at: string | null;
+};
+
+export type SessionModuleGroup = {
+  parent: SessionModule;
+  children: SessionModule[];
 };
 
 export type DashboardStats = {
