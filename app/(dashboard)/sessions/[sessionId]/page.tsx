@@ -12,10 +12,11 @@ import {
   getCompanyOptions,
   getDocumentsBySessionId,
   getSessionById,
+  getTrainingQuizzesByModuleId,
   RecoverableSessionQueryError,
   SessionNotFoundError
 } from "@/lib/queries";
-import type { SessionModule, SessionModuleGroup } from "@/lib/types";
+import type { SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -106,6 +107,41 @@ export default async function SessionDetailPage({
     modules.find((module) => module.id === selectedModuleParam) ??
     defaultSelectedModule ??
     null;
+  let selectedModuleQuizzes: TrainingQuiz[] = [];
+  let quizLoadError: string | null = null;
+
+  if (selectedModule?.module_type === "child") {
+    try {
+      selectedModuleQuizzes = await getTrainingQuizzesByModuleId(selectedModule.id);
+    } catch (error) {
+      console.error("[sessions/page] quiz load failed", {
+        file: "app/(dashboard)/sessions/[sessionId]/page.tsx",
+        line: 117,
+        sessionId,
+        selectedModuleId: selectedModule.id,
+        code:
+          typeof error === "object" && error !== null && "code" in error
+            ? (error as { code?: string }).code
+            : undefined,
+        message:
+          typeof error === "object" && error !== null && "message" in error
+            ? (error as { message?: string }).message
+            : String(error),
+        details:
+          typeof error === "object" && error !== null && "details" in error
+            ? (error as { details?: string | null }).details
+            : undefined,
+        hint:
+          typeof error === "object" && error !== null && "hint" in error
+            ? (error as { hint?: string | null }).hint
+            : undefined
+      });
+
+      quizLoadError =
+        "Les questions de verification n'ont pas pu etre chargees pour ce sous-module. La fiche module reste consultable.";
+      selectedModuleQuizzes = [];
+    }
+  }
   const completedModules = modules.filter((module) => module.is_completed).length;
 
   return (
@@ -156,7 +192,7 @@ export default async function SessionDetailPage({
             <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
             <h3 className="mt-2 text-2xl font-bold">Modules SST</h3>
             <p className="mt-2 text-sm text-ink/65">
-              Sélectionne un module pour afficher son contenu et piloter l’avancement de la session.
+              Sélectionne un module pour afficher son contenu et piloter l&apos;avancement de la session.
             </p>
             <div className="mt-6">
               <SessionModuleList
@@ -226,7 +262,12 @@ export default async function SessionDetailPage({
 
         <section className="grid gap-4">
           {selectedModule ? (
-            <ModuleContent sessionId={session.id} module={selectedModule} />
+            <ModuleContent
+              sessionId={session.id}
+              module={selectedModule}
+              quizzes={selectedModuleQuizzes}
+              quizError={quizLoadError}
+            />
           ) : (
             <Card>
               <h3 className="text-lg font-bold">Aucun module</h3>

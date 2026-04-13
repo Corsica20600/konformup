@@ -10,6 +10,7 @@ import type {
   SessionItem,
   SessionModule,
   SessionSourceQuote,
+  TrainingQuiz,
   TrainerOption
 } from "@/lib/types";
 
@@ -866,6 +867,51 @@ export async function getSessionById(sessionId: string) {
     sourceQuote,
     availableCompanyCandidateCount
   };
+}
+
+export async function getTrainingQuizzesByModuleId(moduleId: string) {
+  if (!moduleId?.trim()) {
+    console.error("[training-quizzes] missing module id", {
+      file: "lib/queries.ts",
+      fn: "getTrainingQuizzesByModuleId",
+      moduleId
+    });
+
+    return [];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("training_quizzes")
+    .select("id, module_id, question, option_a, option_b, option_c, option_d, correct_answer, explanation")
+    .eq("module_id", moduleId)
+    .order("id", { ascending: true });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "training_quizzes",
+    query:
+      'select("id, module_id, question, option_a, option_b, option_c, option_d, correct_answer, explanation").eq("module_id", moduleId).order("id")',
+    error
+  });
+
+  if (error) {
+    console.error("[training-quizzes] query failed", {
+      file: "lib/queries.ts",
+      fn: "getTrainingQuizzesByModuleId",
+      table: "training_quizzes",
+      column: "module_id",
+      moduleId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+
+    return [];
+  }
+
+  return (data ?? []) as TrainingQuiz[];
 }
 
 export async function getDashboardStats() {

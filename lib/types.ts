@@ -108,6 +108,20 @@ export type SessionModuleGroup = {
   children: SessionModule[];
 };
 
+export type TrainingQuizAnswer = "A" | "B" | "C" | "D";
+
+export type TrainingQuiz = {
+  id: string;
+  module_id: string;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: TrainingQuizAnswer;
+  explanation: string | null;
+};
+
 export type DashboardStats = {
   totalSessions: number;
   inProgressSessions: number;

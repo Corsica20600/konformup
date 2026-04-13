@@ -1,14 +1,19 @@
 import { toggleSessionModuleAction } from "@/app/(dashboard)/sessions/actions";
+import { ModuleQuiz } from "@/components/sessions/module-quiz";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { SessionModule } from "@/lib/types";
+import type { SessionModule, TrainingQuiz } from "@/lib/types";
 
 export function ModuleContent({
   sessionId,
-  module
+  module,
+  quizzes,
+  quizError
 }: {
   sessionId: string;
   module: SessionModule;
+  quizzes: TrainingQuiz[];
+  quizError?: string | null;
 }) {
   const moduleLabel = module.module_type === "parent" ? "Module parent" : "Sous-module";
 
@@ -87,6 +92,26 @@ export function ModuleContent({
           {module.trainer_guidance ?? "Aucune consigne formateur renseignée pour ce module."}
         </div>
       </Card>
+
+      {module.module_type === "child" ? (
+        quizError ? (
+          <Card>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Quiz</p>
+            <h4 className="mt-2 text-xl font-bold">Chargement indisponible</h4>
+            <p className="mt-3 text-sm leading-6 text-ink/65">{quizError}</p>
+          </Card>
+        ) : quizzes.length ? (
+          <ModuleQuiz quizzes={quizzes} moduleTitle={module.title} />
+        ) : (
+          <Card>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Quiz</p>
+            <h4 className="mt-2 text-xl font-bold">Aucun quiz disponible</h4>
+            <p className="mt-3 text-sm leading-6 text-ink/65">
+              Aucun quiz n&apos;est encore rattaché à ce sous-module.
+            </p>
+          </Card>
+        )
+      ) : null}
     </div>
   );
 }
