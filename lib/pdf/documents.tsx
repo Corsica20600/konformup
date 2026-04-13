@@ -14,6 +14,112 @@ const validationLabel = {
   not_validated: "Non valide"
 } as const;
 
+type SstProgrammeRow = {
+  label: string;
+  duration: string;
+};
+
+type SstProgrammeSection = {
+  index?: string;
+  title: string;
+  totalDuration?: string;
+  rows: SstProgrammeRow[];
+};
+
+const SST_PROGRAMME_PAGE_1: SstProgrammeSection[] = [
+  {
+    index: "0",
+    title: "Presentation de la formation SST",
+    totalDuration: "20 min",
+    rows: [{ label: "Ouverture de formation", duration: "20 min" }]
+  },
+  {
+    index: "1",
+    title: "Situer le sauveteur secouriste du travail dans la sante et securite au travail",
+    totalDuration: "1h15",
+    rows: [
+      { label: "Les principaux indicateurs de sante au travail", duration: "15 min" },
+      { label: "Le role du Sauveteur Secouriste du Travail", duration: "25 min" },
+      { label: "Le cadre juridique de l'intervention du SST", duration: "20 min" },
+      { label: "Presentation du programme (PREFAS)", duration: "15 min" }
+    ]
+  },
+  {
+    index: "2",
+    title: "Rechercher les risques persistants pour proteger",
+    totalDuration: "1h20",
+    rows: [
+      { label: "L'alerte aux populations", duration: "08 min" },
+      { label: "Analyser une situation d'accident (le mecanisme accidentel)", duration: "30 min" },
+      { label: "Proteger face a une situation d'accident (Supprimer un danger)", duration: "18 min" },
+      { label: "Proteger face a une situation d'accident (Isoler un danger)", duration: "09 min" },
+      { label: "Proteger face a une situation d'accident (Soustraire d'un danger)", duration: "15 min" }
+    ]
+  },
+  {
+    index: "3",
+    title: 'De "proteger" a "prevenir"',
+    totalDuration: "30 min",
+    rows: [
+      { label: "Les dangers dans une situation de travail", duration: "15 min" },
+      { label: "Les principes de base en prevention", duration: "15 min" }
+    ]
+  },
+  {
+    index: "4",
+    title: "Examiner la victime et faire alerter",
+    totalDuration: "50 min",
+    rows: [
+      { label: "Examiner la ou les victimes", duration: "35 min" },
+      {
+        label: "Faire alerter ou alerter en fonction de l'organisation des secours de l'entreprise",
+        duration: "15 min"
+      }
+    ]
+  },
+  {
+    index: "5",
+    title: 'De "faire alerter" a "informer"',
+    totalDuration: "15 min",
+    rows: [{ label: "Informer de la situation dangereuse reperee", duration: "15 min" }]
+  }
+];
+
+const SST_PROGRAMME_PAGE_2: SstProgrammeSection[] = [
+  {
+    index: "6",
+    title: "Secourir face a une situation d'accident",
+    totalDuration: "6h20",
+    rows: [
+      { label: "Secourir une victime qui saigne abondamment", duration: "50 min" },
+      { label: "Secourir une victime qui s'etouffe", duration: "45 min" },
+      {
+        label: "Secourir une victime qui se plaint de sensations penibles et/ou des signes anormaux",
+        duration: "30 min"
+      },
+      { label: "Secourir une victime qui se plaint de brulures", duration: "30 min" },
+      { label: "Secourir une victime qui se plaint d'une douleur empechant certains mouvements", duration: "30 min" },
+      { label: "Secourir une victime qui se plaint d'une plaie qui ne saigne pas abondamment", duration: "40 min" },
+      { label: "Secourir une victime qui ne repond pas, mais qui respire", duration: "50 min" },
+      { label: "Secourir une victime qui ne repond pas et ne respire pas (partie 1)", duration: "40 min" },
+      { label: "Secourir une victime qui ne repond pas et ne respire pas (partie 2)", duration: "01h05" }
+    ]
+  },
+  {
+    title: "Situations inherentes aux risques specifiques",
+    rows: [{ label: "Risques specifiques a l'entreprise", duration: "A definir" }]
+  },
+  {
+    index: "7",
+    title: "Le dispositif de validation des SST",
+    totalDuration: "1h10",
+    rows: [
+      { label: "Evaluation des acquis des stagiaires (cas concrets de synthese)", duration: "01h00" },
+      { label: "Bilan et evaluation de la formation", duration: "10 min" }
+    ]
+  }
+];
+
 Font.registerHyphenationCallback((word) => [word]);
 
 const shared = StyleSheet.create({
@@ -384,6 +490,194 @@ const invoiceStyles = StyleSheet.create({
   }
 });
 
+const convocationProgrammeStyles = StyleSheet.create({
+  page: {
+    backgroundColor: "#fcfaf5"
+  },
+  heroShell: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#d6d0c3",
+    backgroundColor: "#ffffff"
+  },
+  heroBand: {
+    backgroundColor: "#1f3028",
+    paddingTop: 12,
+    paddingRight: 18,
+    paddingBottom: 12,
+    paddingLeft: 18
+  },
+  heroKicker: {
+    fontSize: 9.2,
+    color: "#d8e6dd",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 4
+  },
+  heroTitle: {
+    fontSize: 17.2,
+    lineHeight: 1.15,
+    fontWeight: 700,
+    color: "#ffffff",
+    marginBottom: 5
+  },
+  heroSubtitle: {
+    fontSize: 9.4,
+    lineHeight: 1.35,
+    color: "#d8e6dd"
+  },
+  metaRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "#d6d0c3"
+  },
+  metaCol: {
+    flex: 1,
+    paddingTop: 7,
+    paddingRight: 12,
+    paddingBottom: 7,
+    paddingLeft: 12,
+    borderRightWidth: 1,
+    borderRightColor: "#d6d0c3"
+  },
+  metaColLast: {
+    borderRightWidth: 0
+  },
+  metaLabel: {
+    fontSize: 8.5,
+    color: "#5e665f",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 3
+  },
+  metaValue: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  tableShell: {
+    borderWidth: 1,
+    borderColor: "#d6d0c3",
+    backgroundColor: "#ffffff",
+    marginBottom: 14
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#e5ebe7",
+    borderBottomWidth: 1,
+    borderBottomColor: "#d6d0c3"
+  },
+  tableHeaderCell: {
+    paddingTop: 7,
+    paddingRight: 10,
+    paddingBottom: 7,
+    paddingLeft: 10,
+    fontSize: 8.4,
+    fontWeight: 700,
+    color: "#274738",
+    textTransform: "uppercase"
+  },
+  numberCol: {
+    width: "10%",
+    borderRightWidth: 1,
+    borderRightColor: "#e4ded2"
+  },
+  titleCol: {
+    width: "72%",
+    borderRightWidth: 1,
+    borderRightColor: "#e4ded2"
+  },
+  durationCol: {
+    width: "18%"
+  },
+  sectionRow: {
+    flexDirection: "row",
+    backgroundColor: "#f1f5f2",
+    borderBottomWidth: 1,
+    borderBottomColor: "#d9e3dc"
+  },
+  sectionCell: {
+    paddingTop: 6,
+    paddingRight: 10,
+    paddingBottom: 6,
+    paddingLeft: 10
+  },
+  sectionIndex: {
+    fontSize: 9.2,
+    fontWeight: 700,
+    color: "#285943",
+    textAlign: "center"
+  },
+  sectionTitle: {
+    fontSize: 9.4,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  sectionDuration: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#285943",
+    textAlign: "right"
+  },
+  itemRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ece6da",
+    backgroundColor: "#ffffff"
+  },
+  itemRowLast: {
+    borderBottomWidth: 0
+  },
+  itemCell: {
+    paddingTop: 6,
+    paddingRight: 10,
+    paddingBottom: 6,
+    paddingLeft: 10
+  },
+  itemText: {
+    fontSize: 9.1,
+    lineHeight: 1.3,
+    color: "#23312b"
+  },
+  itemDuration: {
+    fontSize: 9.1,
+    fontWeight: 700,
+    color: "#23312b",
+    textAlign: "right"
+  },
+  note: {
+    fontSize: 8.8,
+    color: "#4d5751",
+    marginTop: 4
+  },
+  pageFooter: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#d7d0c3"
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start"
+  },
+  footerOrg: {
+    fontSize: 8.8,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  footerText: {
+    fontSize: 8.1,
+    color: "#5b655f",
+    marginTop: 2
+  },
+  footerRight: {
+    fontSize: 8.4,
+    color: "#5b655f",
+    textAlign: "right"
+  }
+});
+
 function DetailRow({
   label,
   value,
@@ -398,6 +692,133 @@ function DetailRow({
       <Text style={certificateStyles.detailLabel}>{label}</Text>
       <Text style={certificateStyles.detailValue}>{value}</Text>
     </View>
+  );
+}
+
+function ConvocationProgrammeFooter({
+  organizationSettings
+}: {
+  organizationSettings: OrganizationBranding;
+}) {
+  const footerBits = [
+    organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
+      ? organizationSettings.address
+      : null,
+    organizationSettings.siret ? `SIRET ${organizationSettings.siret}` : null,
+    organizationSettings.training_declaration_number
+      ? `NDA ${organizationSettings.training_declaration_number.replace(/^NDA\s*/i, "")}`
+      : null
+  ].filter(Boolean);
+
+  return (
+    <View style={convocationProgrammeStyles.pageFooter}>
+      <View style={convocationProgrammeStyles.footerRow}>
+        <View>
+          <Text style={convocationProgrammeStyles.footerOrg}>{organizationSettings.organization_name}</Text>
+          <Text style={convocationProgrammeStyles.footerText}>{footerBits.join(" • ")}</Text>
+        </View>
+        <Text style={convocationProgrammeStyles.footerRight}>Programme SST joint a la convocation</Text>
+      </View>
+    </View>
+  );
+}
+
+function ConvocationProgrammePage({
+  title,
+  subtitle,
+  session,
+  candidateFullName,
+  sections,
+  organizationSettings,
+  note
+}: {
+  title: string;
+  subtitle: string;
+  session: SessionItem;
+  candidateFullName: string;
+  sections: SstProgrammeSection[];
+  organizationSettings: OrganizationBranding;
+  note?: string;
+}) {
+  return (
+    <Page size="A4" style={[shared.page, convocationProgrammeStyles.page]}>
+      <View style={convocationProgrammeStyles.heroShell}>
+        <View style={convocationProgrammeStyles.heroBand}>
+          <Text style={convocationProgrammeStyles.heroKicker}>Programme pedagogique SST</Text>
+          <Text style={convocationProgrammeStyles.heroTitle}>{title}</Text>
+          <Text style={convocationProgrammeStyles.heroSubtitle}>{subtitle}</Text>
+        </View>
+        <View style={convocationProgrammeStyles.metaRow}>
+          <View style={convocationProgrammeStyles.metaCol}>
+            <Text style={convocationProgrammeStyles.metaLabel}>Participant</Text>
+            <Text style={convocationProgrammeStyles.metaValue}>{candidateFullName}</Text>
+          </View>
+          <View style={convocationProgrammeStyles.metaCol}>
+            <Text style={convocationProgrammeStyles.metaLabel}>Session</Text>
+            <Text style={convocationProgrammeStyles.metaValue}>{formatDateRange(session.start_date, session.end_date)}</Text>
+          </View>
+          <View style={[convocationProgrammeStyles.metaCol, convocationProgrammeStyles.metaColLast]}>
+            <Text style={convocationProgrammeStyles.metaLabel}>Lieu</Text>
+            <Text style={convocationProgrammeStyles.metaValue}>{session.location}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={convocationProgrammeStyles.tableShell}>
+        <View style={convocationProgrammeStyles.tableHeader}>
+          <View style={convocationProgrammeStyles.numberCol}>
+            <Text style={convocationProgrammeStyles.tableHeaderCell}>N°</Text>
+          </View>
+          <View style={convocationProgrammeStyles.titleCol}>
+            <Text style={convocationProgrammeStyles.tableHeaderCell}>Programme</Text>
+          </View>
+          <View style={convocationProgrammeStyles.durationCol}>
+            <Text style={convocationProgrammeStyles.tableHeaderCell}>Duree</Text>
+          </View>
+        </View>
+
+        {sections.map((section, sectionIndex) => (
+          <View key={`${section.title}-${sectionIndex}`}>
+            <View style={convocationProgrammeStyles.sectionRow}>
+              <View style={[convocationProgrammeStyles.numberCol, convocationProgrammeStyles.sectionCell]}>
+                <Text style={convocationProgrammeStyles.sectionIndex}>{section.index || ""}</Text>
+              </View>
+              <View style={[convocationProgrammeStyles.titleCol, convocationProgrammeStyles.sectionCell]}>
+                <Text style={convocationProgrammeStyles.sectionTitle}>{section.title}</Text>
+              </View>
+              <View style={[convocationProgrammeStyles.durationCol, convocationProgrammeStyles.sectionCell]}>
+                <Text style={convocationProgrammeStyles.sectionDuration}>{section.totalDuration || ""}</Text>
+              </View>
+            </View>
+
+            {section.rows.map((row, rowIndex) => {
+              const isLastRow = rowIndex === section.rows.length - 1 && sectionIndex === sections.length - 1;
+
+              return (
+                <View
+                  key={`${section.title}-${row.label}`}
+                  style={isLastRow ? [convocationProgrammeStyles.itemRow, convocationProgrammeStyles.itemRowLast] : convocationProgrammeStyles.itemRow}
+                >
+                  <View style={[convocationProgrammeStyles.numberCol, convocationProgrammeStyles.itemCell]}>
+                    <Text style={convocationProgrammeStyles.itemText}></Text>
+                  </View>
+                  <View style={[convocationProgrammeStyles.titleCol, convocationProgrammeStyles.itemCell]}>
+                    <Text style={convocationProgrammeStyles.itemText}>{row.label}</Text>
+                  </View>
+                  <View style={[convocationProgrammeStyles.durationCol, convocationProgrammeStyles.itemCell]}>
+                    <Text style={convocationProgrammeStyles.itemDuration}>{row.duration}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+
+      {note ? <Text style={convocationProgrammeStyles.note}>{note}</Text> : null}
+
+      <ConvocationProgrammeFooter organizationSettings={organizationSettings} />
+    </Page>
   );
 }
 
@@ -592,6 +1013,9 @@ export function ConvocationDocument({
             <Text style={certificateStyles.validationTitle}>Informations pratiques</Text>
             <Text style={certificateStyles.validationValue}>Presence attendue a l&apos;horaire de convocation</Text>
             <Text style={certificateStyles.validationDate}>{addressLine}</Text>
+            <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
+              Le programme pedagogique detaille de la formation est joint aux pages suivantes.
+            </Text>
           </View>
 
           <View style={certificateStyles.footer}>
@@ -617,6 +1041,25 @@ export function ConvocationDocument({
           </View>
         </View>
       </Page>
+
+      <ConvocationProgrammePage
+        title="Formation initiale des sauveteurs secouristes du travail"
+        subtitle="Deroule pedagogique de la session, presente sous forme de tableau pour accompagner la convocation du participant."
+        session={session}
+        candidateFullName={candidateFullName}
+        sections={SST_PROGRAMME_PAGE_1}
+        organizationSettings={organizationSettings}
+      />
+
+      <ConvocationProgrammePage
+        title="Suite du programme de formation"
+        subtitle="Mises en situation, gestes de secours et dispositif de validation du SST."
+        session={session}
+        candidateFullName={candidateFullName}
+        sections={SST_PROGRAMME_PAGE_2}
+        organizationSettings={organizationSettings}
+        note="*Composition du jury : un formateur SST ayant assure la formation."
+      />
     </Document>
   );
 }
