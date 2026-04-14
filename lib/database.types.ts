@@ -10,6 +10,10 @@ export type TrainingSessionStatus = "draft" | "scheduled" | "in_progress" | "com
 export type CandidateValidationStatus = "pending" | "validated" | "not_validated";
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived";
+export type AttendanceSlotStatus = "draft" | "sent" | "open" | "closed";
+export type AttendanceDeliveryChannel = "email" | "sms";
+export type AttendanceDeliveryStatus = "pending" | "sent" | "failed";
+export type AttendanceResponseStatus = "pending" | "present" | "absent" | "issue";
 
 export type Database = {
   public: {
@@ -277,6 +281,128 @@ export type Database = {
             foreignKeyName: "generated_documents_company_id_fkey";
             columns: ["company_id"];
             referencedRelation: "client_companies";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      attendance_slots: {
+        Row: {
+          id: string;
+          session_id: string;
+          slot_label: string;
+          slot_date: string;
+          period: "morning" | "afternoon" | "custom";
+          starts_at: string | null;
+          ends_at: string | null;
+          status: AttendanceSlotStatus;
+          sent_at: string | null;
+          closed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          slot_label: string;
+          slot_date: string;
+          period?: "morning" | "afternoon" | "custom";
+          starts_at?: string | null;
+          ends_at?: string | null;
+          status?: AttendanceSlotStatus;
+          sent_at?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          slot_label?: string;
+          slot_date?: string;
+          period?: "morning" | "afternoon" | "custom";
+          starts_at?: string | null;
+          ends_at?: string | null;
+          status?: AttendanceSlotStatus;
+          sent_at?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_slots_session_id_fkey";
+            columns: ["session_id"];
+            referencedRelation: "training_sessions";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      attendance_responses: {
+        Row: {
+          id: string;
+          attendance_slot_id: string;
+          candidate_id: string;
+          response_token: string;
+          delivery_channel: AttendanceDeliveryChannel;
+          delivery_sent_at: string | null;
+          delivery_status: AttendanceDeliveryStatus;
+          responded_at: string | null;
+          response_status: AttendanceResponseStatus;
+          trainer_override_status: AttendanceResponseStatus | null;
+          trainer_overridden_at: string | null;
+          trainer_override_note: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          attendance_slot_id: string;
+          candidate_id: string;
+          response_token: string;
+          delivery_channel?: AttendanceDeliveryChannel;
+          delivery_sent_at?: string | null;
+          delivery_status?: AttendanceDeliveryStatus;
+          responded_at?: string | null;
+          response_status?: AttendanceResponseStatus;
+          trainer_override_status?: AttendanceResponseStatus | null;
+          trainer_overridden_at?: string | null;
+          trainer_override_note?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          attendance_slot_id?: string;
+          candidate_id?: string;
+          response_token?: string;
+          delivery_channel?: AttendanceDeliveryChannel;
+          delivery_sent_at?: string | null;
+          delivery_status?: AttendanceDeliveryStatus;
+          responded_at?: string | null;
+          response_status?: AttendanceResponseStatus;
+          trainer_override_status?: AttendanceResponseStatus | null;
+          trainer_overridden_at?: string | null;
+          trainer_override_note?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_responses_attendance_slot_id_fkey";
+            columns: ["attendance_slot_id"];
+            referencedRelation: "attendance_slots";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_responses_candidate_id_fkey";
+            columns: ["candidate_id"];
+            referencedRelation: "candidates";
             referencedColumns: ["id"];
           }
         ];

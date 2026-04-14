@@ -1,4 +1,10 @@
-import type { CandidateValidationStatus, QuoteStatus } from "@/lib/database.types";
+import type {
+  AttendanceDeliveryStatus,
+  AttendanceResponseStatus,
+  AttendanceSlotStatus,
+  CandidateValidationStatus,
+  QuoteStatus
+} from "@/lib/database.types";
 
 export type UserRole = "admin" | "trainer";
 
@@ -166,4 +172,57 @@ export type TrainerOption = {
   last_name: string;
   email: string | null;
   phone: string | null;
+};
+
+export type AttendanceCandidateResponse = {
+  id: string;
+  candidate_id: string;
+  candidate_name: string;
+  candidate_email: string | null;
+  delivery_status: AttendanceDeliveryStatus;
+  responded_at: string | null;
+  response_status: AttendanceResponseStatus;
+  trainer_override_status: AttendanceResponseStatus | null;
+  trainer_override_note: string | null;
+};
+
+export type AttendanceSlotSummary = {
+  id: string;
+  session_id: string;
+  slot_label: string;
+  slot_date: string;
+  period: "morning" | "afternoon" | "custom";
+  status: AttendanceSlotStatus;
+  sent_at: string | null;
+  closed_at: string | null;
+  total_candidates: number;
+  delivered_count: number;
+  responded_count: number;
+  present_count: number;
+  absent_count: number;
+  issue_count: number;
+  pending_count: number;
+  responses: AttendanceCandidateResponse[];
+};
+
+export type AttendanceOverview = {
+  enabled: boolean;
+  slots: AttendanceSlotSummary[];
+};
+
+export type PublicAttendanceResponse = {
+  response_id: string;
+  token: string;
+  slot_id: string;
+  slot_label: string;
+  slot_date: string;
+  session_id: string;
+  session_title: string;
+  session_location: string;
+  candidate_id: string;
+  candidate_name: string;
+  candidate_email: string | null;
+  response_status: AttendanceResponseStatus;
+  trainer_override_status: AttendanceResponseStatus | null;
+  responded_at: string | null;
 };

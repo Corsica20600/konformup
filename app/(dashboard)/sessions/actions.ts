@@ -9,6 +9,7 @@ import {
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
+import { closeAttendanceSlot, sendAttendanceSlotRequests } from "@/lib/attendance";
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
 import { createQuote, duplicateQuote, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
@@ -401,6 +402,30 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
 
     return { error: "Impossible de générer le document." };
   }
+}
+
+export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
+  const slotId = formData.get("slotId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!slotId || !sessionId) {
+    return;
+  }
+
+  await sendAttendanceSlotRequests(slotId);
+  revalidatePath(`/sessions/${sessionId}`);
+}
+
+export async function closeAttendanceSlotFormAction(formData: FormData) {
+  const slotId = formData.get("slotId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!slotId || !sessionId) {
+    return;
+  }
+
+  await closeAttendanceSlot(slotId);
+  revalidatePath(`/sessions/${sessionId}`);
 }
 
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {

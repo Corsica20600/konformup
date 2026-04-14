@@ -5,6 +5,7 @@ import { CandidateCard } from "@/components/sessions/candidate-card";
 import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
 import { PrefillCompanyCandidatesForm } from "@/components/sessions/prefill-company-candidates-form";
 import { DocumentList } from "@/components/documents/document-list";
+import { AttendancePanel } from "@/components/sessions/attendance-panel";
 import { ModuleContent } from "@/components/sessions/module-content";
 import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
@@ -187,6 +188,8 @@ export default async function SessionDetailPage({
             completedCount={completedModules}
             totalCount={modules.length}
           />
+
+          <AttendancePanel session={session} candidates={candidates} />
 
           <Card>
             <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
