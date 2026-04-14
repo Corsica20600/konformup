@@ -26,6 +26,7 @@ function documentLabel(type: string) {
   if (type === "quote") return "Devis";
   if (type === "invoice") return "Facture";
   if (type === "programme") return "Programme";
+  if (type === "aide_memoire") return "Aide memoire sauveteur secouriste du travail";
   if (type === "attestation") return "Attestation";
   if (type === "certificat") return "Certificat";
   if (type === "convocation") return "Convocation";

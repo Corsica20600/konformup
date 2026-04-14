@@ -364,7 +364,11 @@ const certificateStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 14,
+    paddingTop: 10,
+    paddingRight: 12,
+    paddingBottom: 10,
+    paddingLeft: 12,
+    marginTop: 6,
     marginBottom: 20,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -376,40 +380,40 @@ const certificateStyles = StyleSheet.create({
     paddingRight: 8
   },
   verificationTitle: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: "#4e5f57",
     textTransform: "uppercase",
-    marginBottom: 4
+    marginBottom: 3
   },
   verificationLead: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
     color: "#1d2a24",
-    marginBottom: 4
+    marginBottom: 3
   },
   verificationBody: {
-    fontSize: 9.5,
-    lineHeight: 1.45,
+    fontSize: 9,
+    lineHeight: 1.35,
     color: "#5b655f"
   },
   verificationRef: {
-    fontSize: 9.5,
+    fontSize: 9,
     color: "#285943",
-    marginTop: 6
+    marginTop: 4
   },
   qrShell: {
-    width: 92,
-    height: 92,
+    width: 84,
+    height: 84,
     borderWidth: 1,
     borderColor: "#d7d0c2",
     backgroundColor: "#fffdf8",
     alignItems: "center",
     justifyContent: "center",
-    padding: 6
+    padding: 5
   },
   qrImage: {
-    width: 78,
-    height: 78,
+    width: 72,
+    height: 72,
     objectFit: "contain"
   },
   qrFallback: {

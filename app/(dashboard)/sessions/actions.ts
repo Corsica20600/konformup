@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createDocument,
+  generateUniqueDocumentRef,
+  insertGeneratedDocumentRecord,
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
@@ -322,17 +324,60 @@ export async function toggleSessionModuleAction(formData: FormData) {
 export async function generateDocumentAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const sessionId = formData.get("sessionId")?.toString();
   const candidateId = formData.get("candidateId")?.toString();
-  const type = formData.get("type")?.toString() as SupportedGeneratedDocumentType | undefined;
+  const type = formData.get("type")?.toString();
 
   if (!sessionId || !candidateId || !type) {
     return { error: "Paramètres de génération manquants." };
   }
 
   try {
+    if (type === "aide_memoire") {
+      const supabase = await createClient();
+      const existingDocument = await supabase
+        .from("generated_documents")
+        .select("id, file_url")
+        .eq("session_id", sessionId)
+        .eq("candidate_id", candidateId)
+        .eq("document_type", "aide_memoire")
+        .maybeSingle();
+
+      if (existingDocument.data?.file_url) {
+        revalidatePath(`/sessions/${sessionId}`);
+
+        return {
+          success: "Aide memoire deja attache.",
+          fileUrl: existingDocument.data.file_url
+        };
+      }
+
+      const documentRef = await generateUniqueDocumentRef("attestation");
+      const fileUrl = "/aide-memoire-sauveteur-secouriste-du-travail.pdf";
+
+      await insertGeneratedDocumentRecord({
+        sessionId,
+        candidateId,
+        documentType: "aide_memoire",
+        documentRef: `AIDE-${documentRef}`,
+        status: "generated",
+        fileUrl,
+        metadata: {
+          title: "Aide memoire sauveteur secouriste du travail",
+          static_asset: true
+        }
+      });
+
+      revalidatePath(`/sessions/${sessionId}`);
+
+      return {
+        success: "Aide memoire attache au candidat.",
+        fileUrl
+      };
+    }
+
     const document = await createDocument({
       sessionId,
       candidateId,
-      type
+      type: type as SupportedGeneratedDocumentType
     });
 
     revalidatePath(`/sessions/${sessionId}`);
