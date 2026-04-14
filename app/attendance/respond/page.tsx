@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function AttendanceRespondPage({
   searchParams
 }: {
-  searchParams: Promise<{ token?: string; submitted?: string }>;
+  searchParams: Promise<{ token?: string; submitted?: string; error?: string }>;
 }) {
-  const { token, submitted } = await searchParams;
+  const { token, submitted, error } = await searchParams;
   const trimmedToken = token?.trim() ?? "";
 
   if (!trimmedToken) {
@@ -70,6 +70,16 @@ export default async function AttendanceRespondPage({
             <p className="text-sm text-ink/65">{attendance.session_location}</p>
           </div>
         </div>
+
+        {error === "1" ? (
+          <div className="mt-6 rounded-[24px] border border-accent/20 bg-accent/10 p-5">
+            <p className="text-sm font-semibold text-accent">La confirmation n&apos;a pas pu etre enregistree.</p>
+            <p className="mt-2 text-sm text-ink/65">
+              Recharge la page et reessaie. Si le probleme persiste, le formateur pourra valider manuellement ta
+              presence.
+            </p>
+          </div>
+        ) : null}
 
         {isSubmitted ? (
           <div className="mt-6 rounded-[24px] border border-pine/20 bg-pine/10 p-5">

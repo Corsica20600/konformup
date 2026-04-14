@@ -512,6 +512,54 @@ function extractPublicAttendanceRow(data: unknown): PublicAttendanceResponse | n
   };
 }
 
+async function getPublicAttendanceResponseDirect(token: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendance_responses")
+    .select(
+      "id, response_token, response_status, trainer_override_status, responded_at, attendance_slots(id, slot_label, slot_date, session_id, training_sessions(id, title, location)), candidates(id, first_name, last_name, email)"
+    )
+    .eq("response_token", token)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  const slot = Array.isArray(data.attendance_slots) ? data.attendance_slots[0] : data.attendance_slots;
+  const session = slot && "training_sessions" in slot ? (Array.isArray(slot.training_sessions) ? slot.training_sessions[0] : slot.training_sessions) : null;
+  const candidate = Array.isArray(data.candidates) ? data.candidates[0] : data.candidates;
+
+  if (!slot || !session || !candidate) {
+    return null;
+  }
+
+  return {
+    response_id: data.id,
+    token: data.response_token,
+    slot_id: slot.id,
+    slot_label: slot.slot_label,
+    slot_date: slot.slot_date,
+    session_id: session.id,
+    session_title: session.title,
+    session_location: session.location,
+    candidate_id: candidate.id,
+    candidate_name: `${candidate.first_name} ${candidate.last_name}`.trim(),
+    candidate_email: candidate.email ?? null,
+    response_status:
+      data.response_status === "present" || data.response_status === "absent" || data.response_status === "issue"
+        ? data.response_status
+        : "pending",
+    trainer_override_status:
+      data.trainer_override_status === "present" ||
+      data.trainer_override_status === "absent" ||
+      data.trainer_override_status === "issue"
+        ? data.trainer_override_status
+        : null,
+    responded_at: data.responded_at
+  };
+}
+
 export async function getPublicAttendanceResponse(token: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_attendance_response_by_token", {
@@ -520,10 +568,17 @@ export async function getPublicAttendanceResponse(token: string) {
 
   if (error) {
     if (isMissingAttendanceError(error)) {
-      return null;
+      return getPublicAttendanceResponseDirect(token);
     }
 
-    throw error;
+    console.error("[attendance] get public response rpc failed", {
+      token,
+      code: error.code,
+      message: error.message,
+      details: error.details
+    });
+
+    return getPublicAttendanceResponseDirect(token);
   }
 
   return extractPublicAttendanceRow(data);
@@ -544,11 +599,31 @@ export async function confirmAttendanceResponse(input: {
   });
 
   if (error) {
-    if (isMissingAttendanceError(error)) {
-      throw new Error("Les fonctions Supabase d'emargement ne sont pas encore en place.");
+    if (!isMissingAttendanceError(error)) {
+      console.error("[attendance] confirm response rpc failed", {
+        token: input.token,
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
     }
 
-    throw error;
+    const { error: updateError } = await supabase
+      .from("attendance_responses")
+      .update({
+        response_status: input.responseStatus,
+        responded_at: new Date().toISOString(),
+        ip_address: input.ipAddress,
+        user_agent: input.userAgent,
+        updated_at: new Date().toISOString()
+      })
+      .eq("response_token", input.token);
+
+    if (updateError) {
+      throw new Error("Impossible d'enregistrer cette confirmation de presence.");
+    }
+
+    return getPublicAttendanceResponseDirect(input.token);
   }
 
   return extractPublicAttendanceRow(data);

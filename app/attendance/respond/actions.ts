@@ -21,12 +21,20 @@ export async function confirmAttendanceResponseFormAction(formData: FormData) {
   const ipAddress = forwardedFor ? forwardedFor.split(",")[0]?.trim() ?? null : null;
   const userAgent = headerStore.get("user-agent");
 
-  await confirmAttendanceResponse({
-    token,
-    responseStatus,
-    ipAddress,
-    userAgent
-  });
+  try {
+    await confirmAttendanceResponse({
+      token,
+      responseStatus,
+      ipAddress,
+      userAgent
+    });
 
-  redirect(`/attendance/respond?token=${encodeURIComponent(token)}&submitted=1`);
+    redirect(`/attendance/respond?token=${encodeURIComponent(token)}&submitted=1`);
+  } catch (error) {
+    console.error("[attendance] public confirm failed", {
+      token,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    redirect(`/attendance/respond?token=${encodeURIComponent(token)}&error=1`);
+  }
 }
