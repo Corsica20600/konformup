@@ -71,10 +71,20 @@ export default async function SessionDetailPage({
   searchParams
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams: Promise<{ module?: string }>;
+  searchParams: Promise<{
+    module?: string;
+    attendanceError?: string;
+    attendanceSuccess?: string;
+    attendanceClosed?: string;
+  }>;
 }) {
   const { sessionId } = await params;
-  const { module: selectedModuleParam } = await searchParams;
+  const {
+    module: selectedModuleParam,
+    attendanceError,
+    attendanceSuccess,
+    attendanceClosed
+  } = await searchParams;
   let data;
   const companies = await getCompanyOptions();
   const sessionDocuments = await getDocumentsBySessionId(sessionId);
@@ -189,7 +199,18 @@ export default async function SessionDetailPage({
             totalCount={modules.length}
           />
 
-          <AttendancePanel session={session} candidates={candidates} />
+          <AttendancePanel
+            session={session}
+            candidates={candidates}
+            feedback={{
+              success: attendanceSuccess
+                ? "Demandes de presence envoyees."
+                : attendanceClosed
+                  ? "Creneau cloture."
+                  : null,
+              error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null
+            }}
+          />
 
           <Card>
             <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>

@@ -312,7 +312,7 @@ async function buildAttendanceEmailBody({
   url
 }: {
   candidateName: string;
-  session: SessionItem;
+  session: Pick<SessionItem, "title" | "location">;
   slot: AttendanceSlotRow;
   url: string;
 }) {
@@ -351,9 +351,9 @@ export async function sendAttendanceSlotRequests(slotId: string) {
 
   const { data: session, error: sessionError } = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
+    .select("id, title, start_date, end_date, location, status, trainer_user_id, created_at")
     .eq("id", slot.session_id)
-    .maybeSingle<SessionItem>();
+    .maybeSingle<Pick<SessionItem, "id" | "title" | "start_date" | "end_date" | "location" | "status" | "trainer_user_id" | "created_at">>();
 
   if (sessionError || !session) {
     throw new Error("Session introuvable pour ce creneau.");
@@ -419,6 +419,12 @@ export async function sendAttendanceSlotRequests(slotId: string) {
     });
 
     if (!emailResponse.ok) {
+      console.error("[attendance] brevo send failed", {
+        slotId,
+        candidateId: response.candidate_id,
+        status: emailResponse.status,
+        statusText: emailResponse.statusText
+      });
       await supabase
         .from("attendance_responses")
         .update({

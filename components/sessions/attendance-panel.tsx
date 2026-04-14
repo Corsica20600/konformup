@@ -25,10 +25,15 @@ const slotStatusLabel = {
 
 export async function AttendancePanel({
   session,
-  candidates
+  candidates,
+  feedback
 }: {
   session: SessionItem;
   candidates: SessionCandidate[];
+  feedback?: {
+    success?: string | null;
+    error?: string | null;
+  };
 }) {
   const overview = await getAttendanceOverviewForSession(session, candidates);
 
@@ -69,6 +74,18 @@ export async function AttendancePanel({
           Ouvrir la feuille PDF
         </a>
       </div>
+
+      {feedback?.success ? (
+        <div className="mt-4 rounded-2xl border border-pine/20 bg-pine/10 px-4 py-3 text-sm text-pine">
+          {feedback.success}
+        </div>
+      ) : null}
+
+      {feedback?.error ? (
+        <div className="mt-4 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent">
+          {feedback.error}
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4">
         {overview.slots.map((slot) => (

@@ -412,8 +412,18 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
     return;
   }
 
-  await sendAttendanceSlotRequests(slotId);
-  revalidatePath(`/sessions/${sessionId}`);
+  try {
+    await sendAttendanceSlotRequests(slotId);
+    revalidatePath(`/sessions/${sessionId}`);
+    redirect(`/sessions/${sessionId}?attendanceSuccess=1`);
+  } catch (error) {
+    console.error("[attendance] send slot requests failed", {
+      slotId,
+      sessionId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    redirect(`/sessions/${sessionId}?attendanceError=1`);
+  }
 }
 
 export async function closeAttendanceSlotFormAction(formData: FormData) {
@@ -424,8 +434,18 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
     return;
   }
 
-  await closeAttendanceSlot(slotId);
-  revalidatePath(`/sessions/${sessionId}`);
+  try {
+    await closeAttendanceSlot(slotId);
+    revalidatePath(`/sessions/${sessionId}`);
+    redirect(`/sessions/${sessionId}?attendanceClosed=1`);
+  } catch (error) {
+    console.error("[attendance] close slot failed", {
+      slotId,
+      sessionId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    redirect(`/sessions/${sessionId}?attendanceError=1`);
+  }
 }
 
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
