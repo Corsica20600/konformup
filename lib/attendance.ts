@@ -309,12 +309,14 @@ async function buildAttendanceEmailBody({
   candidateName,
   session,
   slot,
-  url
+  url,
+  reminder = false
 }: {
   candidateName: string;
   session: Pick<SessionItem, "title" | "location">;
   slot: AttendanceSlotRow;
   url: string;
+  reminder?: boolean;
 }) {
   const organization = await getOrganizationSettings();
   const senderName = organization.certificate_signatory_name || organization.organization_name;
@@ -322,7 +324,9 @@ async function buildAttendanceEmailBody({
   return [
     `Bonjour ${candidateName},`,
     "",
-    `Merci de confirmer votre presence pour ${session.title}.`,
+    reminder
+      ? `Rappel : merci de confirmer votre presence pour ${session.title}.`
+      : `Merci de confirmer votre presence pour ${session.title}.`,
     `Creneau : ${slot.slot_label} (${slot.slot_date})`,
     `Lieu : ${session.location}`,
     "",
@@ -337,7 +341,126 @@ async function buildAttendanceEmailBody({
   ].join("\n");
 }
 
-export async function sendAttendanceSlotRequests(slotId: string) {
+async function sendAttendanceEmailToResponse({
+  supabase,
+  slot,
+  session,
+  response,
+  fromEmail,
+  fromName,
+  reminder
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  slot: AttendanceSlotRow;
+  session: Pick<SessionItem, "title" | "location">;
+  response: {
+    id: string;
+    candidate_id: string;
+    response_token: string;
+    candidates:
+      | {
+          first_name: string;
+          last_name: string;
+          email: string | null;
+        }
+      | {
+          first_name: string;
+          last_name: string;
+          email: string | null;
+        }[]
+      | null;
+  };
+  fromEmail: string;
+  fromName: string;
+  reminder: boolean;
+}) {
+  const candidateRecord = Array.isArray(response.candidates) ? response.candidates[0] : response.candidates;
+
+  if (!candidateRecord?.email) {
+    await supabase
+      .from("attendance_responses")
+      .update({
+        delivery_status: "failed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", response.id);
+
+    return { sent: false, failed: true };
+  }
+
+  const candidateName = `${candidateRecord.first_name} ${candidateRecord.last_name}`.trim() || candidateRecord.email;
+  const responseUrl = buildAttendanceResponseUrl(response.response_token);
+  const body = await buildAttendanceEmailBody({
+    candidateName,
+    session,
+    slot,
+    url: responseUrl,
+    reminder
+  });
+
+  const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": requireEnv("BREVO_API_KEY"),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      sender: {
+        email: fromEmail,
+        name: fromName
+      },
+      to: [
+        {
+          email: candidateRecord.email,
+          name: candidateName
+        }
+      ],
+      subject: `${reminder ? "Rappel - " : ""}Confirmation de presence - ${session.title} - ${slot.slot_label}`,
+      textContent: body
+    })
+  });
+
+  if (!emailResponse.ok) {
+    console.error("[attendance] brevo send failed", {
+      slotId: slot.id,
+      candidateId: response.candidate_id,
+      status: emailResponse.status,
+      statusText: emailResponse.statusText,
+      reminder
+    });
+    await supabase
+      .from("attendance_responses")
+      .update({
+        delivery_status: "failed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", response.id);
+
+    return { sent: false, failed: true };
+  }
+
+  await supabase
+    .from("attendance_responses")
+    .update({
+      delivery_status: "sent",
+      delivery_sent_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", response.id);
+
+  return { sent: true, failed: false };
+}
+
+export async function sendAttendanceSlotRequests(
+  slotId: string,
+  options?: {
+    pendingOnly?: boolean;
+    reminder?: boolean;
+    minimumHoursSinceLastSend?: number;
+    requireOpenSlot?: boolean;
+  }
+) {
   const supabase = await createClient();
   const { data: slot, error: slotError } = await supabase
     .from("attendance_slots")
@@ -347,6 +470,14 @@ export async function sendAttendanceSlotRequests(slotId: string) {
 
   if (slotError || !slot) {
     throw new Error("Creneau d'emargement introuvable.");
+  }
+
+  if (options?.requireOpenSlot && slot.status !== "open") {
+    return {
+      sentCount: 0,
+      failedCount: 0,
+      skippedCount: 0
+    };
   }
 
   const { data: session, error: sessionError } = await supabase
@@ -361,88 +492,60 @@ export async function sendAttendanceSlotRequests(slotId: string) {
 
   const { data: responses, error: responsesError } = await supabase
     .from("attendance_responses")
-    .select("id, candidate_id, response_token, delivery_status, candidates(first_name, last_name, email)")
+    .select(
+      "id, candidate_id, response_token, delivery_status, delivery_sent_at, responded_at, response_status, trainer_override_status, candidates(first_name, last_name, email)"
+    )
     .eq("attendance_slot_id", slotId);
 
   if (responsesError) {
     throw new Error("Impossible de charger les candidats pour ce creneau.");
   }
 
-  const apiKey = requireEnv("BREVO_API_KEY");
   const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
   const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  let sentCount = 0;
+  let failedCount = 0;
+  let skippedCount = 0;
 
   for (const response of responses ?? []) {
-    const candidateRecord = Array.isArray(response.candidates) ? response.candidates[0] : response.candidates;
+    const isPending =
+      !response.responded_at &&
+      response.response_status === "pending" &&
+      response.trainer_override_status === null;
+    const pendingOnly = options?.pendingOnly ?? Boolean(slot.sent_at);
 
-    if (!candidateRecord?.email) {
-      await supabase
-        .from("attendance_responses")
-        .update({
-          delivery_status: "failed",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", response.id);
+    if (pendingOnly && !isPending) {
+      skippedCount += 1;
       continue;
     }
 
-    const candidateName = `${candidateRecord.first_name} ${candidateRecord.last_name}`.trim() || candidateRecord.email;
-    const responseUrl = buildAttendanceResponseUrl(response.response_token);
-    const body = await buildAttendanceEmailBody({
-      candidateName,
-      session,
+    if (options?.minimumHoursSinceLastSend && response.delivery_sent_at) {
+      const hoursSinceLastSend =
+        (Date.now() - new Date(response.delivery_sent_at).getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceLastSend < options.minimumHoursSinceLastSend) {
+        skippedCount += 1;
+        continue;
+      }
+    }
+
+    const result = await sendAttendanceEmailToResponse({
+      supabase,
       slot: slot as AttendanceSlotRow,
-      url: responseUrl
+      session,
+      response,
+      fromEmail,
+      fromName,
+      reminder: options?.reminder ?? Boolean(slot.sent_at)
     });
 
-    const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "api-key": apiKey,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        sender: {
-          email: fromEmail,
-          name: fromName
-        },
-        to: [
-          {
-            email: candidateRecord.email,
-            name: candidateName
-          }
-        ],
-        subject: `Confirmation de presence - ${session.title} - ${slot.slot_label}`,
-        textContent: body
-      })
-    });
-
-    if (!emailResponse.ok) {
-      console.error("[attendance] brevo send failed", {
-        slotId,
-        candidateId: response.candidate_id,
-        status: emailResponse.status,
-        statusText: emailResponse.statusText
-      });
-      await supabase
-        .from("attendance_responses")
-        .update({
-          delivery_status: "failed",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", response.id);
-      continue;
+    if (result.sent) {
+      sentCount += 1;
     }
 
-    await supabase
-      .from("attendance_responses")
-      .update({
-        delivery_status: "sent",
-        delivery_sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", response.id);
+    if (result.failed) {
+      failedCount += 1;
+    }
   }
 
   const now = new Date().toISOString();
@@ -458,6 +561,60 @@ export async function sendAttendanceSlotRequests(slotId: string) {
   if (updateSlotError) {
     throw new Error("Les demandes ont ete envoyees mais le statut du creneau n'a pas pu etre mis a jour.");
   }
+
+  return {
+    sentCount,
+    failedCount,
+    skippedCount
+  };
+}
+
+export async function sendAutomaticAttendanceReminders(options?: {
+  minimumHoursSinceLastSend?: number;
+}) {
+  const minimumHoursSinceLastSend = options?.minimumHoursSinceLastSend ?? 4;
+  const supabase = await createClient();
+  const { data: slots, error } = await supabase
+    .from("attendance_slots")
+    .select("id")
+    .eq("status", "open");
+
+  if (error) {
+    if (isMissingAttendanceError(error)) {
+      return {
+        processedSlots: 0,
+        sentCount: 0,
+        failedCount: 0
+      };
+    }
+
+    throw error;
+  }
+
+  let processedSlots = 0;
+  let sentCount = 0;
+  let failedCount = 0;
+
+  for (const slot of slots ?? []) {
+    const result = await sendAttendanceSlotRequests(slot.id, {
+      pendingOnly: true,
+      reminder: true,
+      minimumHoursSinceLastSend,
+      requireOpenSlot: true
+    });
+
+    if (result.sentCount > 0 || result.failedCount > 0) {
+      processedSlots += 1;
+      sentCount += result.sentCount;
+      failedCount += result.failedCount;
+    }
+  }
+
+  return {
+    processedSlots,
+    sentCount,
+    failedCount
+  };
 }
 
 export async function closeAttendanceSlot(slotId: string) {

@@ -427,6 +427,32 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
   redirect(`/sessions/${sessionId}?attendanceSuccess=1&attendanceSlot=${encodeURIComponent(slotId)}`);
 }
 
+export async function sendAttendanceSlotReminderFormAction(formData: FormData) {
+  const slotId = formData.get("slotId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!slotId || !sessionId) {
+    return;
+  }
+
+  try {
+    await sendAttendanceSlotRequests(slotId, {
+      pendingOnly: true,
+      reminder: true
+    });
+    revalidatePath(`/sessions/${sessionId}`);
+  } catch (error) {
+    console.error("[attendance] manual reminder failed", {
+      slotId,
+      sessionId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=${encodeURIComponent(slotId)}`);
+  }
+
+  redirect(`/sessions/${sessionId}?attendanceSuccess=1&attendanceSlot=${encodeURIComponent(slotId)}`);
+}
+
 export async function closeAttendanceSlotFormAction(formData: FormData) {
   const slotId = formData.get("slotId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();

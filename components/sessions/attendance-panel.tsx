@@ -6,6 +6,7 @@ import type { SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import {
   closeAttendanceSlotFormAction,
+  sendAttendanceSlotReminderFormAction,
   sendAttendanceSlotRequestsFormAction,
   setAttendanceResponseOverrideFormAction
 } from "@/app/(dashboard)/sessions/actions";
@@ -114,9 +115,18 @@ export async function AttendancePanel({
                   <input type="hidden" name="slotId" value={slot.id} />
                   <input type="hidden" name="sessionId" value={session.id} />
                   <Button variant="secondary" type="submit" disabled={!slot.total_candidates}>
-                    {slot.sent_at ? "Renvoyer les demandes" : "Envoyer les demandes"}
+                    {slot.sent_at ? "Renvoyer a tous" : "Envoyer les demandes"}
                   </Button>
                 </form>
+                {slot.sent_at ? (
+                  <form action={sendAttendanceSlotReminderFormAction}>
+                    <input type="hidden" name="slotId" value={slot.id} />
+                    <input type="hidden" name="sessionId" value={session.id} />
+                    <Button variant="secondary" type="submit" disabled={!slot.pending_count}>
+                      Relancer les en attente
+                    </Button>
+                  </form>
+                ) : null}
                 <form action={closeAttendanceSlotFormAction}>
                   <input type="hidden" name="slotId" value={slot.id} />
                   <input type="hidden" name="sessionId" value={session.id} />
