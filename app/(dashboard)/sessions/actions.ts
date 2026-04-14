@@ -9,6 +9,7 @@ import {
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
+import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
 import { createQuote, duplicateQuote, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createClient } from "@/lib/supabase/server";
@@ -485,6 +486,62 @@ export async function regenerateGeneratedDocumentAction(_: ActionState, formData
     }
 
     return { error: "Impossible de régénérer le document." };
+  }
+}
+
+export async function sendCandidateDocumentEmailAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const documentId = formData.get("documentId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!documentId) {
+    return { error: "Document manquant." };
+  }
+
+  try {
+    const result = await sendCandidateDocumentEmail(documentId);
+
+    if (sessionId) {
+      revalidatePath(`/sessions/${sessionId}`);
+    }
+    revalidatePath("/sessions");
+
+    return {
+      success: "Document envoye par email.",
+      fileUrl: result.fileUrl
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible d'envoyer le document par email." };
+  }
+}
+
+export async function sendCandidateSessionDocumentsEmailAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const candidateId = formData.get("candidateId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!candidateId || !sessionId) {
+    return { error: "Parametres d'envoi manquants." };
+  }
+
+  try {
+    const result = await sendCandidateSessionDocumentsEmail(candidateId, sessionId);
+
+    revalidatePath(`/sessions/${sessionId}`);
+    revalidatePath("/sessions");
+
+    return {
+      success: "Tous les documents du candidat ont ete envoyes.",
+      fileUrl: result.fileUrl ?? undefined
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible d'envoyer les documents du candidat." };
   }
 }
 

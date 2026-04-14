@@ -1195,7 +1195,7 @@ export function CertificateDocument({
             ) : null}
           </View>
 
-          <View style={certificateStyles.verificationCard}>
+          <View style={certificateStyles.verificationCard} wrap={false}>
             <View style={certificateStyles.verificationCopy}>
               <Text style={certificateStyles.verificationTitle}>Verification</Text>
               <Text style={certificateStyles.verificationLead}>

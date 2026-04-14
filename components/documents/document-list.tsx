@@ -9,7 +9,12 @@ import {
   type QuoteEditorActionState
 } from "@/app/(dashboard)/quotes/actions";
 import { sendInvoiceEmailAction, type InvoiceActionState } from "@/app/(dashboard)/invoices/actions";
-import { duplicateQuoteAction, type ActionState, updateQuoteStatusAction } from "@/app/(dashboard)/sessions/actions";
+import {
+  duplicateQuoteAction,
+  sendCandidateDocumentEmailAction,
+  type ActionState,
+  updateQuoteStatusAction
+} from "@/app/(dashboard)/sessions/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getQuoteStatusTone, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
@@ -54,6 +59,10 @@ function DocumentRow({
   const [sendInvoiceState, sendInvoiceFormAction, sendInvoicePending] = useActionState(
     sendInvoiceEmailAction,
     initialInvoiceMailState
+  );
+  const [sendCandidateDocumentState, sendCandidateDocumentFormAction, sendCandidateDocumentPending] = useActionState(
+    sendCandidateDocumentEmailAction,
+    initialStatusState
   );
   const [quoteStatusState, quoteStatusFormAction, quoteStatusPending] = useActionState(
     updateQuoteStatusAction,
@@ -162,6 +171,15 @@ function DocumentRow({
               </Button>
             </form>
           ) : null}
+          {document.candidate_id && document.file_url ? (
+            <form action={sendCandidateDocumentFormAction}>
+              <input type="hidden" name="documentId" value={document.id} />
+              <input type="hidden" name="sessionId" value={document.session_id ?? ""} />
+              <Button type="submit" variant="secondary" disabled={sendCandidateDocumentPending}>
+                {sendCandidateDocumentPending ? "Envoi..." : "Envoyer"}
+              </Button>
+            </form>
+          ) : null}
           {document.file_url ? (
             <Link
               href={document.file_url}
@@ -217,6 +235,17 @@ function DocumentRow({
           <p>{sendInvoiceState.success}</p>
           {sendInvoiceState.fileUrl ? (
             <Link href={sendInvoiceState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
+              Ouvrir le PDF
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {sendCandidateDocumentState.error ? <p className="mt-2 text-sm text-accent">{sendCandidateDocumentState.error}</p> : null}
+      {sendCandidateDocumentState.success ? (
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-pine">
+          <p>{sendCandidateDocumentState.success}</p>
+          {sendCandidateDocumentState.fileUrl ? (
+            <Link href={sendCandidateDocumentState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
               Ouvrir le PDF
             </Link>
           ) : null}

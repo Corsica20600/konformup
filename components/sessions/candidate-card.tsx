@@ -4,6 +4,7 @@ import { initials } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { EditCandidateForm } from "@/components/sessions/edit-candidate-form";
 import { GenerateDocumentsMenu } from "@/components/sessions/generate-documents-menu";
+import { SendCandidateSessionDocumentsButton } from "@/components/sessions/send-candidate-session-documents-button";
 import type { CompanyOption, GeneratedDocumentItem } from "@/lib/types";
 
 const validationLabel = {
@@ -49,14 +50,11 @@ export function CandidateCard({
           ) : null}
         </div>
         <div className="flex flex-col items-end gap-2">
-          <a
-            href={`/api/pdf/certificate/${candidateSession.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-          >
-            Attestation PDF
-          </a>
+          <SendCandidateSessionDocumentsButton
+            candidateId={candidateSession.candidate.id}
+            sessionId={candidateSession.session_id}
+            disabled={!documents.length}
+          />
           <GenerateDocumentsMenu
             sessionId={candidateSession.session_id}
             candidateId={candidateSession.candidate.id}
