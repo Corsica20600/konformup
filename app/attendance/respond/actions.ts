@@ -28,8 +28,6 @@ export async function confirmAttendanceResponseFormAction(formData: FormData) {
       ipAddress,
       userAgent
     });
-
-    redirect(`/attendance/respond?token=${encodeURIComponent(token)}&submitted=1`);
   } catch (error) {
     console.error("[attendance] public confirm failed", {
       token,
@@ -37,4 +35,6 @@ export async function confirmAttendanceResponseFormAction(formData: FormData) {
     });
     redirect(`/attendance/respond?token=${encodeURIComponent(token)}&error=1`);
   }
+
+  redirect(`/attendance/respond?token=${encodeURIComponent(token)}&submitted=1`);
 }

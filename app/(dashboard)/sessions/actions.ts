@@ -415,7 +415,6 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
   try {
     await sendAttendanceSlotRequests(slotId);
     revalidatePath(`/sessions/${sessionId}`);
-    redirect(`/sessions/${sessionId}?attendanceSuccess=1`);
   } catch (error) {
     console.error("[attendance] send slot requests failed", {
       slotId,
@@ -424,6 +423,8 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
     });
     redirect(`/sessions/${sessionId}?attendanceError=1`);
   }
+
+  redirect(`/sessions/${sessionId}?attendanceSuccess=1`);
 }
 
 export async function closeAttendanceSlotFormAction(formData: FormData) {
@@ -437,7 +438,6 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
   try {
     await closeAttendanceSlot(slotId);
     revalidatePath(`/sessions/${sessionId}`);
-    redirect(`/sessions/${sessionId}?attendanceClosed=1`);
   } catch (error) {
     console.error("[attendance] close slot failed", {
       slotId,
@@ -446,6 +446,8 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
     });
     redirect(`/sessions/${sessionId}?attendanceError=1`);
   }
+
+  redirect(`/sessions/${sessionId}?attendanceClosed=1`);
 }
 
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {

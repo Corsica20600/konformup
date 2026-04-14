@@ -71,7 +71,7 @@ export default async function AttendanceRespondPage({
           </div>
         </div>
 
-        {error === "1" ? (
+        {error === "1" && !isSubmitted ? (
           <div className="mt-6 rounded-[24px] border border-accent/20 bg-accent/10 p-5">
             <p className="text-sm font-semibold text-accent">La confirmation n&apos;a pas pu etre enregistree.</p>
             <p className="mt-2 text-sm text-ink/65">
