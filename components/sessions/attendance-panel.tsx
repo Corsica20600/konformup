@@ -33,9 +33,21 @@ export async function AttendancePanel({
   feedback?: {
     success?: string | null;
     error?: string | null;
+    slotId?: string | null;
   };
 }) {
   const overview = await getAttendanceOverviewForSession(session, candidates);
+  const targetedSlot = feedback?.slotId ? overview.slots.find((slot) => slot.id === feedback.slotId) ?? null : null;
+  const shouldHideError =
+    Boolean(feedback?.error) &&
+    Boolean(
+      targetedSlot &&
+        (targetedSlot.sent_at ||
+          targetedSlot.status === "open" ||
+          targetedSlot.status === "closed" ||
+          targetedSlot.delivered_count > 0 ||
+          targetedSlot.responded_count > 0)
+    );
 
   if (!overview.enabled) {
     return (
@@ -81,7 +93,7 @@ export async function AttendancePanel({
         </div>
       ) : null}
 
-      {feedback?.error ? (
+      {feedback?.error && !shouldHideError ? (
         <div className="mt-4 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent">
           {feedback.error}
         </div>

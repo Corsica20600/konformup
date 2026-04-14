@@ -421,10 +421,10 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
       sessionId,
       message: error instanceof Error ? error.message : "Unknown error"
     });
-    redirect(`/sessions/${sessionId}?attendanceError=1`);
+    redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=${encodeURIComponent(slotId)}`);
   }
 
-  redirect(`/sessions/${sessionId}?attendanceSuccess=1`);
+  redirect(`/sessions/${sessionId}?attendanceSuccess=1&attendanceSlot=${encodeURIComponent(slotId)}`);
 }
 
 export async function closeAttendanceSlotFormAction(formData: FormData) {
@@ -444,10 +444,10 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
       sessionId,
       message: error instanceof Error ? error.message : "Unknown error"
     });
-    redirect(`/sessions/${sessionId}?attendanceError=1`);
+    redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=${encodeURIComponent(slotId)}`);
   }
 
-  redirect(`/sessions/${sessionId}?attendanceClosed=1`);
+  redirect(`/sessions/${sessionId}?attendanceClosed=1&attendanceSlot=${encodeURIComponent(slotId)}`);
 }
 
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {

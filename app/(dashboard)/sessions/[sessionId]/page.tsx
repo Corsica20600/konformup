@@ -76,6 +76,7 @@ export default async function SessionDetailPage({
     attendanceError?: string;
     attendanceSuccess?: string;
     attendanceClosed?: string;
+    attendanceSlot?: string;
   }>;
 }) {
   const { sessionId } = await params;
@@ -83,7 +84,8 @@ export default async function SessionDetailPage({
     module: selectedModuleParam,
     attendanceError,
     attendanceSuccess,
-    attendanceClosed
+    attendanceClosed,
+    attendanceSlot
   } = await searchParams;
   let data;
   const companies = await getCompanyOptions();
@@ -208,7 +210,8 @@ export default async function SessionDetailPage({
                 : attendanceClosed
                   ? "Creneau cloture."
                   : null,
-              error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null
+              error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null,
+              slotId: attendanceSlot ?? null
             }}
           />
 
