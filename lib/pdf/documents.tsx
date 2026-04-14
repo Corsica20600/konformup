@@ -4,7 +4,7 @@ import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import { formatCurrency, formatDate, formatDateRange, formatDurationHours, formatPercent } from "@/lib/utils";
-import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
+import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 
 const TRAINING_TITLE = "Sauveteur Secouriste du Travail (SST)";
 
@@ -172,6 +172,118 @@ const shared = StyleSheet.create({
   badge: {
     fontSize: 10,
     color: "#285943"
+  }
+});
+
+const attendanceStyles = StyleSheet.create({
+  page: {
+    backgroundColor: "#fffdf8"
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 18
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    objectFit: "contain"
+  },
+  summaryCard: {
+    borderWidth: 1,
+    borderColor: "#d7d0c2",
+    backgroundColor: "#faf6ee",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10
+  },
+  summaryChip: {
+    borderWidth: 1,
+    borderColor: "#ddd4c4",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 10,
+    color: "#47514c"
+  },
+  slotCard: {
+    borderWidth: 1,
+    borderColor: "#d7d0c2",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12
+  },
+  slotHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10
+  },
+  slotTitle: {
+    fontSize: 13,
+    fontWeight: 700
+  },
+  slotMeta: {
+    fontSize: 10,
+    color: "#5b655f"
+  },
+  slotStatus: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#1d2a24",
+    backgroundColor: "#ede6d8"
+  },
+  slotTableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd4c4",
+    paddingBottom: 6,
+    marginBottom: 4
+  },
+  colCandidate: {
+    width: "38%"
+  },
+  colStatus: {
+    width: "18%"
+  },
+  colTime: {
+    width: "24%"
+  },
+  colChannel: {
+    width: "20%"
+  },
+  tableHeaderText: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: "#5b655f",
+    textTransform: "uppercase"
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: "#efe8db"
+  },
+  tableCell: {
+    fontSize: 9,
+    color: "#1d2a24",
+    paddingRight: 6
+  },
+  footerNote: {
+    marginTop: 8,
+    fontSize: 9,
+    color: "#5b655f",
+    lineHeight: 1.5
   }
 });
 
@@ -1061,16 +1173,25 @@ function ConvocationProgrammePage({
 export function AttendanceDocument({
   session,
   candidates,
-  organizationSettings
+  organizationSettings,
+  attendanceOverview = null
 }: {
   session: SessionItem;
   candidates: SessionCandidate[];
   organizationSettings: OrganizationBranding;
+  attendanceOverview?: AttendanceOverview | null;
 }) {
+  const slotStatusLabel = {
+    draft: "Brouillon",
+    sent: "Envoye",
+    open: "Ouvert",
+    closed: "Cloture"
+  } as const;
+
   return (
     <Document>
-      <Page size="A4" style={shared.page}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+      <Page size="A4" style={[shared.page, attendanceStyles.page]}>
+        <View style={attendanceStyles.header}>
           <View>
             <Text style={shared.title}>Feuille de presence SST</Text>
             <Text style={shared.subtitle}>
@@ -1078,22 +1199,100 @@ export function AttendanceDocument({
             </Text>
           </View>
           {organizationSettings.resolved_logo_url ? (
-            <Image src={organizationSettings.resolved_logo_url} style={{ width: 70, height: 70, objectFit: "contain" }} />
+            <Image src={organizationSettings.resolved_logo_url} style={attendanceStyles.logo} />
           ) : null}
         </View>
-        <View style={shared.section}>
-          {candidates.map((item, index) => (
-            <View key={item.id} style={shared.row}>
-              <View>
-                <Text style={shared.strong}>
-                  {index + 1}. {item.candidate.first_name} {item.candidate.last_name}
-                </Text>
-                <Text style={shared.label}>{item.candidate.company || "Societe non renseignee"}</Text>
-              </View>
-              <Text style={shared.badge}>Signature : __________________</Text>
-            </View>
-          ))}
+
+        <View style={attendanceStyles.summaryCard}>
+          <OrganizationIdentityBlock organizationSettings={organizationSettings} align="left" />
+          <View style={attendanceStyles.summaryGrid}>
+            <Text style={attendanceStyles.summaryChip}>Formateur : {session.trainer_name || "Non renseigne"}</Text>
+            <Text style={attendanceStyles.summaryChip}>Duree : {formatDurationHours(session.duration_hours)}</Text>
+            <Text style={attendanceStyles.summaryChip}>Participants : {candidates.length}</Text>
+            <Text style={attendanceStyles.summaryChip}>
+              Emargement : {attendanceOverview?.enabled ? "numerique" : "manuel / PDF"}
+            </Text>
+          </View>
         </View>
+
+        {attendanceOverview?.enabled && attendanceOverview.slots.length ? (
+          attendanceOverview.slots.map((slot) => (
+            <View key={slot.id} style={attendanceStyles.slotCard} wrap={false}>
+              <View style={attendanceStyles.slotHeader}>
+                <View>
+                  <Text style={attendanceStyles.slotTitle}>{slot.slot_label}</Text>
+                  <Text style={attendanceStyles.slotMeta}>
+                    {formatDate(slot.slot_date)} • {slot.present_count}/{slot.total_candidates} presents confirmes
+                  </Text>
+                </View>
+                <Text style={attendanceStyles.slotStatus}>{slotStatusLabel[slot.status]}</Text>
+              </View>
+
+              <View style={attendanceStyles.slotTableHeader}>
+                <View style={attendanceStyles.colCandidate}>
+                  <Text style={attendanceStyles.tableHeaderText}>Candidat</Text>
+                </View>
+                <View style={attendanceStyles.colStatus}>
+                  <Text style={attendanceStyles.tableHeaderText}>Statut</Text>
+                </View>
+                <View style={attendanceStyles.colTime}>
+                  <Text style={attendanceStyles.tableHeaderText}>Horodatage</Text>
+                </View>
+                <View style={attendanceStyles.colChannel}>
+                  <Text style={attendanceStyles.tableHeaderText}>Envoi</Text>
+                </View>
+              </View>
+
+              {slot.responses.map((response) => {
+                const effectiveStatus = response.trainer_override_status ?? response.response_status;
+                const statusLabel =
+                  effectiveStatus === "present"
+                    ? "Present"
+                    : effectiveStatus === "absent"
+                      ? "Absent"
+                      : effectiveStatus === "issue"
+                        ? "Probleme"
+                        : "En attente";
+                const respondedAt = response.responded_at
+                  ? new Intl.DateTimeFormat("fr-FR", {
+                      dateStyle: "short",
+                      timeStyle: "short"
+                    }).format(new Date(response.responded_at))
+                  : "Non confirme";
+
+                return (
+                  <View key={response.id} style={attendanceStyles.tableRow}>
+                    <Text style={[attendanceStyles.tableCell, attendanceStyles.colCandidate]}>{response.candidate_name}</Text>
+                    <Text style={[attendanceStyles.tableCell, attendanceStyles.colStatus]}>{statusLabel}</Text>
+                    <Text style={[attendanceStyles.tableCell, attendanceStyles.colTime]}>{respondedAt}</Text>
+                    <Text style={[attendanceStyles.tableCell, attendanceStyles.colChannel]}>
+                      {response.delivery_status === "sent" ? "Email envoye" : response.delivery_status === "failed" ? "Echec" : "En attente"}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))
+        ) : (
+          <View style={shared.section}>
+            {candidates.map((item, index) => (
+              <View key={item.id} style={shared.row}>
+                <View>
+                  <Text style={shared.strong}>
+                    {index + 1}. {item.candidate.first_name} {item.candidate.last_name}
+                  </Text>
+                  <Text style={shared.label}>{item.candidate.company || "Societe non renseignee"}</Text>
+                </View>
+                <Text style={shared.badge}>Signature : __________________</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <Text style={attendanceStyles.footerNote}>
+          Document interne de suivi de presence. En mode numerique, les confirmations sont horodatees via un lien
+          personnel, puis consolidees dans le registre de session.
+        </Text>
       </Page>
     </Document>
   );
