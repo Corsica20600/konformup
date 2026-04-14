@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import QRCode from "qrcode";
+import { buildDocumentVerificationUrl, resolvePublicAppOrigin } from "@/lib/generated-documents";
 import { CertificateDocument } from "@/lib/pdf/documents";
 import { getOrganizationBranding } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +12,9 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request, context: { params: Promise<{ candidateSessionId: string }> }) {
   const { candidateSessionId } = await context.params;
-  const origin = new URL(request.url).origin;
+  const requestUrl = new URL(request.url);
+  const origin = requestUrl.origin;
+  let documentRef = requestUrl.searchParams.get("ref")?.trim() || null;
   const supabase = await createClient();
 
   const { data: candidateRow, error } = await supabase
@@ -79,10 +83,38 @@ export async function GET(request: Request, context: { params: Promise<{ candida
   };
 
   const organizationSettings = await getOrganizationBranding(origin);
+  if (!documentRef) {
+    const { data: generatedDocument } = await supabase
+      .from("generated_documents")
+      .select("document_ref")
+      .eq("candidate_id", candidateSessionId)
+      .in("document_type", ["attestation", "certificat"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    documentRef = generatedDocument?.document_ref ?? null;
+  }
+
+  const publicOrigin = resolvePublicAppOrigin();
+  const verificationUrl = documentRef && publicOrigin ? buildDocumentVerificationUrl(publicOrigin, documentRef) : null;
+  const verificationQrCodeDataUrl = verificationUrl
+    ? await QRCode.toDataURL(verificationUrl, {
+        margin: 0,
+        width: 180,
+        errorCorrectionLevel: "M",
+        color: {
+          dark: "#1f3028",
+          light: "#ffffff"
+        }
+      })
+    : null;
   const document = createElement(CertificateDocument as never, {
     session,
     candidateSession,
-    organizationSettings
+    organizationSettings,
+    documentRef,
+    verificationQrCodeDataUrl
   });
   const buffer = await renderToBuffer(document as never);
 

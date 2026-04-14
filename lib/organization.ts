@@ -24,6 +24,12 @@ function logSupabaseQueryError({
     return;
   }
 
+  const hasUsefulDetails = Boolean(error.code || error.message || error.details || error.hint);
+
+  if (!hasUsefulDetails) {
+    return;
+  }
+
   console.error("[supabase-query-error]", {
     file,
     table,
@@ -38,6 +44,8 @@ function logSupabaseQueryError({
 export const defaultOrganizationSettings: OrganizationSettings = {
   organization_name: "Organisme de formation",
   address: "Adresse a configurer",
+  postal_code: null,
+  city: null,
   siret: null,
   training_declaration_number: null,
   qualiopi_mention: null,
@@ -77,23 +85,53 @@ function withResolvedBranding(settings: OrganizationSettings, origin?: string): 
   };
 }
 
-export async function getOrganizationSettings() {
+function isMissingColumnError(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    error.message?.toLowerCase().includes("column") === true
+  );
+}
+
+function shouldLogOrganizationQueryError(error: { code?: string; message?: string; details?: string; hint?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  if (isMissingColumnError(error)) {
+    return false;
+  }
+
+  return Boolean(error.code || error.message || error.details || error.hint);
+}
+
+async function fetchOrganizationSettingsRecord() {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const result = await supabase
     .from("organization_settings")
-    .select(
-      "id, organization_name, address, siret, training_declaration_number:nda, qualiopi_mention:qualiopi_label, logo_url, signature_url, certificate_signatory_name:legal_representative, created_at"
-    )
+    .select("*")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  logSupabaseQueryError({
-    file: "lib/organization.ts",
-    table: "organization_settings",
-    query: 'select("id, organization_name, address, siret, training_declaration_number:nda, qualiopi_mention:qualiopi_label, logo_url, signature_url, certificate_signatory_name:legal_representative, created_at").order("created_at").limit(1).maybeSingle()',
-    error
-  });
+  if (shouldLogOrganizationQueryError(result.error)) {
+    logSupabaseQueryError({
+      file: "lib/organization.ts",
+      table: "organization_settings",
+      query: 'select("*").order("created_at").limit(1).maybeSingle()',
+      error: result.error
+    });
+  }
+
+  return result;
+}
+
+export async function getOrganizationSettings() {
+  const { data, error } = await fetchOrganizationSettingsRecord();
 
   if (error || !data) {
     return defaultOrganizationSettings;
@@ -101,9 +139,40 @@ export async function getOrganizationSettings() {
 
   return {
     ...defaultOrganizationSettings,
-    ...data,
+    id: typeof data.id === "string" ? data.id : undefined,
+    organization_name:
+      (typeof data.organization_name === "string" && data.organization_name.trim()) ||
+      defaultOrganizationSettings.organization_name,
+    address: (typeof data.address === "string" && data.address.trim()) || defaultOrganizationSettings.address,
+    postal_code:
+      (typeof data.postal_code === "string" && data.postal_code.trim()) ||
+      (typeof data.zip_code === "string" && data.zip_code.trim()) ||
+      (typeof data.postcode === "string" && data.postcode.trim()) ||
+      null,
+    city:
+      (typeof data.city === "string" && data.city.trim()) ||
+      (typeof data.town === "string" && data.town.trim()) ||
+      (typeof data.locality === "string" && data.locality.trim()) ||
+      null,
+    siret: (typeof data.siret === "string" && data.siret.trim()) || null,
+    training_declaration_number:
+      (typeof data.training_declaration_number === "string" && data.training_declaration_number.trim()
+        ? data.training_declaration_number
+        : typeof data.nda === "string" && data.nda.trim()
+          ? data.nda
+          : null)?.replace(/^NDA\s*:?\s*/i, "").trim() || null,
+    qualiopi_mention:
+      (typeof data.qualiopi_mention === "string" && data.qualiopi_mention.trim()) ||
+      (typeof data.qualiopi_label === "string" && data.qualiopi_label.trim()) ||
+      null,
     logo_url: normalizeConfiguredAssetUrl(data.logo_url) ?? defaultOrganizationSettings.logo_url,
-    signature_url: normalizeConfiguredAssetUrl(data.signature_url) ?? defaultOrganizationSettings.signature_url
+    signature_url: normalizeConfiguredAssetUrl(data.signature_url) ?? defaultOrganizationSettings.signature_url,
+    certificate_signatory_name:
+      (typeof data.certificate_signatory_name === "string" && data.certificate_signatory_name.trim()) ||
+      (typeof data.legal_representative === "string" && data.legal_representative.trim()) ||
+      null,
+    certificate_signatory_title:
+      (typeof data.certificate_signatory_title === "string" && data.certificate_signatory_title.trim()) || null
   } as OrganizationSettings;
 }
 

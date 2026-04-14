@@ -72,6 +72,8 @@ export type OrganizationSettings = {
   id?: string;
   organization_name: string;
   address: string;
+  postal_code: string | null;
+  city: string | null;
   siret: string | null;
   training_declaration_number: string | null;
   qualiopi_mention: string | null;

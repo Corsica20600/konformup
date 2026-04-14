@@ -14,6 +14,15 @@ const validationLabel = {
   not_validated: "Non valide"
 } as const;
 
+function formatTrainingDeclarationNumber(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.replace(/^NDA\s*:?\s*/i, "").trim();
+}
+
 type SstProgrammeRow = {
   label: string;
   duration: string;
@@ -235,7 +244,30 @@ const certificateStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 700,
     textAlign: "center",
-    marginBottom: 24
+    marginBottom: 16
+  },
+  identificationGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 18
+  },
+  identificationCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14
+  },
+  identificationLabel: {
+    fontSize: 9.5,
+    textTransform: "uppercase",
+    color: "#5b655f",
+    marginBottom: 4
+  },
+  identificationValue: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#1d2a24"
   },
   detailsCard: {
     borderWidth: 1,
@@ -277,6 +309,41 @@ const certificateStyles = StyleSheet.create({
     marginBottom: 4,
     textTransform: "uppercase"
   },
+  validationBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  validationBadge: {
+    paddingTop: 7,
+    paddingRight: 12,
+    paddingBottom: 7,
+    paddingLeft: 12,
+    borderRadius: 999,
+    borderWidth: 1
+  },
+  validationBadgeValidated: {
+    backgroundColor: "#1f5f43",
+    borderColor: "#1f5f43"
+  },
+  validationBadgePending: {
+    backgroundColor: "#efe8d1",
+    borderColor: "#d9c79b"
+  },
+  validationBadgeRejected: {
+    backgroundColor: "#6c2d26",
+    borderColor: "#6c2d26"
+  },
+  validationBadgeText: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#ffffff",
+    textTransform: "uppercase",
+    letterSpacing: 0.4
+  },
+  validationBadgeTextPending: {
+    color: "#6d571f"
+  },
   validationValue: {
     fontSize: 16,
     fontWeight: 700,
@@ -287,11 +354,75 @@ const certificateStyles = StyleSheet.create({
     fontSize: 10,
     color: "#4e5f57"
   },
+  validationHint: {
+    fontSize: 9.5,
+    lineHeight: 1.4,
+    color: "#4e5f57",
+    marginTop: 8
+  },
+  verificationCard: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12
+  },
+  verificationCopy: {
+    flex: 1,
+    paddingRight: 8
+  },
+  verificationTitle: {
+    fontSize: 10,
+    color: "#4e5f57",
+    textTransform: "uppercase",
+    marginBottom: 4
+  },
+  verificationLead: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 4
+  },
+  verificationBody: {
+    fontSize: 9.5,
+    lineHeight: 1.45,
+    color: "#5b655f"
+  },
+  verificationRef: {
+    fontSize: 9.5,
+    color: "#285943",
+    marginTop: 6
+  },
+  qrShell: {
+    width: 92,
+    height: 92,
+    borderWidth: 1,
+    borderColor: "#d7d0c2",
+    backgroundColor: "#fffdf8",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 6
+  },
+  qrImage: {
+    width: 78,
+    height: 78,
+    objectFit: "contain"
+  },
+  qrFallback: {
+    fontSize: 8.5,
+    textAlign: "center",
+    color: "#5b655f",
+    lineHeight: 1.3
+  },
   footer: {
     marginTop: "auto",
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end"
+    alignItems: "flex-start"
   },
   legalBlock: {
     maxWidth: 300
@@ -301,9 +432,48 @@ const certificateStyles = StyleSheet.create({
     color: "#47514c",
     marginBottom: 3
   },
+  legalFootnote: {
+    fontSize: 9,
+    lineHeight: 1.35,
+    color: "#5b655f",
+    marginTop: 8
+  },
   signatureBlock: {
+    width: 220,
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14
+  },
+  signatureBlockSlim: {
     width: 180,
-    alignItems: "center"
+    alignItems: "flex-start"
+  },
+  signatureBlockTransparent: {
+    width: 220,
+    alignItems: "flex-start"
+  },
+  signatureLabelSlim: {
+    fontSize: 8.5,
+    marginBottom: 3
+  },
+  signatureImageSlim: {
+    width: 96,
+    height: 40,
+    objectFit: "contain",
+    marginBottom: 4
+  },
+  signatureSection: {
+    marginBottom: 12
+  },
+  signatureSectionLast: {
+    marginBottom: 0
+  },
+  signatureLabel: {
+    fontSize: 9.5,
+    textTransform: "uppercase",
+    color: "#5b655f",
+    marginBottom: 5
   },
   signatureImage: {
     width: 120,
@@ -312,20 +482,31 @@ const certificateStyles = StyleSheet.create({
     marginBottom: 8
   },
   signatureLine: {
-    width: 150,
+    width: 130,
     borderBottomWidth: 1,
     borderBottomColor: "#9da6a1",
     marginBottom: 8
   },
+  signatureLineSlim: {
+    width: 96,
+    marginBottom: 4
+  },
+  signatureNameSlim: {
+    fontSize: 9.2
+  },
+  signatureTitleSlim: {
+    fontSize: 8.2,
+    marginTop: 1
+  },
   signatureName: {
     fontSize: 10,
     fontWeight: 700,
-    textAlign: "center"
+    textAlign: "left"
   },
   signatureTitle: {
     fontSize: 9,
     color: "#5b655f",
-    textAlign: "center",
+    textAlign: "left",
     marginTop: 2
   },
   qualiopi: {
@@ -695,19 +876,70 @@ function DetailRow({
   );
 }
 
+function getOrganizationAddressLines(organizationSettings: OrganizationBranding) {
+  const rawAddress = organizationSettings.address?.trim() || "";
+  const explicitCityLine = [organizationSettings.postal_code, organizationSettings.city].filter(Boolean).join(" ").trim();
+
+  if (explicitCityLine) {
+    return [rawAddress || null, explicitCityLine].filter(Boolean);
+  }
+
+  const normalizedAddress = rawAddress.replace(/\s+/g, " ").trim();
+  const addressMatch = normalizedAddress.match(/^(.*?)(?:,\s*|\s+)(\d{5}\s+.+)$/);
+
+  if (addressMatch) {
+    return [addressMatch[1].trim(), addressMatch[2].trim()].filter(Boolean);
+  }
+
+  const trailingPostalCityMatch = normalizedAddress.match(/^(.*?)(\d{5}\s+.+)$/);
+
+  if (trailingPostalCityMatch) {
+    return [trailingPostalCityMatch[1].trim().replace(/[,-]\s*$/, ""), trailingPostalCityMatch[2].trim()].filter(Boolean);
+  }
+
+  const addressLines = [rawAddress || null].filter(Boolean);
+
+  return addressLines;
+}
+
+function OrganizationIdentityBlock({
+  organizationSettings,
+  align = "right"
+}: {
+  organizationSettings: OrganizationBranding;
+  align?: "right" | "left";
+}) {
+  const ndaLabel = formatTrainingDeclarationNumber(organizationSettings.training_declaration_number);
+  const addressLines = getOrganizationAddressLines(organizationSettings);
+  const blockStyle = align === "left" ? [certificateStyles.organizationBlock, { textAlign: "left" as const }] : certificateStyles.organizationBlock;
+
+  return (
+    <View style={blockStyle}>
+      <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
+      {addressLines.map((line) => (
+        <Text key={line} style={certificateStyles.organizationLine}>
+          {line}
+        </Text>
+      ))}
+      {organizationSettings.siret ? (
+        <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
+      ) : null}
+      {ndaLabel ? <Text style={certificateStyles.organizationLine}>NDA : {ndaLabel}</Text> : null}
+    </View>
+  );
+}
+
 function ConvocationProgrammeFooter({
   organizationSettings
 }: {
   organizationSettings: OrganizationBranding;
 }) {
+  const addressLines = getOrganizationAddressLines(organizationSettings);
+  const ndaLabel = formatTrainingDeclarationNumber(organizationSettings.training_declaration_number);
   const footerBits = [
-    organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
-      ? organizationSettings.address
-      : null,
+    ...addressLines,
     organizationSettings.siret ? `SIRET ${organizationSettings.siret}` : null,
-    organizationSettings.training_declaration_number
-      ? `NDA ${organizationSettings.training_declaration_number.replace(/^NDA\s*/i, "")}`
-      : null
+    ndaLabel ? `NDA ${ndaLabel}` : null
   ].filter(Boolean);
 
   return (
@@ -866,17 +1098,41 @@ export function AttendanceDocument({
 export function CertificateDocument({
   session,
   candidateSession,
-  organizationSettings
+  organizationSettings,
+  documentRef = null,
+  verificationQrCodeDataUrl = null
 }: {
   session: SessionItem;
   candidateSession: SessionCandidate;
   organizationSettings: OrganizationBranding;
+  documentRef?: string | null;
+  verificationQrCodeDataUrl?: string | null;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
   const validationStatus = validationLabel[candidateSession.candidate.validation_status];
   const validationDate = candidateSession.candidate.validated_at
     ? formatDate(candidateSession.candidate.validated_at)
     : formatDate(new Date().toISOString());
+  const validationBadgeLabel =
+    candidateSession.candidate.validation_status === "validated"
+      ? "✓ Valide"
+      : candidateSession.candidate.validation_status === "not_validated"
+        ? "Non valide"
+        : "En attente";
+  const validationBadgeStyle =
+    candidateSession.candidate.validation_status === "validated"
+      ? [certificateStyles.validationBadge, certificateStyles.validationBadgeValidated]
+      : candidateSession.candidate.validation_status === "not_validated"
+        ? [certificateStyles.validationBadge, certificateStyles.validationBadgeRejected]
+        : [certificateStyles.validationBadge, certificateStyles.validationBadgePending];
+  const validationBadgeTextStyle =
+    candidateSession.candidate.validation_status === "pending"
+      ? [certificateStyles.validationBadgeText, certificateStyles.validationBadgeTextPending]
+      : certificateStyles.validationBadgeText;
+  const trainerName = session.trainer_name || "Formateur non renseigne";
+  const attestationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
+  const attestationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
+  const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
 
   return (
     <Document>
@@ -890,26 +1146,26 @@ export function CertificateDocument({
                 <Image src={organizationSettings.resolved_logo_url} style={certificateStyles.logo} />
               ) : null}
             </View>
-            <View style={certificateStyles.organizationBlock}>
-              <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
-              <Text style={certificateStyles.organizationLine}>{organizationSettings.address}</Text>
-              {organizationSettings.siret ? (
-                <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
-              ) : null}
-              {organizationSettings.training_declaration_number ? (
-                <Text style={certificateStyles.organizationLine}>
-                  Declaration d&apos;activite : {organizationSettings.training_declaration_number}
-                </Text>
-              ) : null}
-            </View>
+            <OrganizationIdentityBlock organizationSettings={organizationSettings} />
           </View>
 
           <Text style={certificateStyles.certificateTitle}>Attestation de fin de formation</Text>
-          <Text style={certificateStyles.certificateSubtitle}>Document etabli pour servir et valoir ce que de droit</Text>
+          <Text style={certificateStyles.certificateSubtitle}>Sauveteur Secouriste du Travail (SST)</Text>
 
           <Text style={certificateStyles.intro}>Nous attestons que le stagiaire suivant a suivi la formation :</Text>
           <Text style={certificateStyles.candidateName}>{candidateFullName}</Text>
           <Text style={certificateStyles.trainingTitle}>{TRAINING_TITLE}</Text>
+
+          <View style={certificateStyles.identificationGrid}>
+            <View style={certificateStyles.identificationCard}>
+              <Text style={certificateStyles.identificationLabel}>Reference attestation</Text>
+              <Text style={certificateStyles.identificationValue}>{documentRef || "A attribuer"}</Text>
+            </View>
+            <View style={certificateStyles.identificationCard}>
+              <Text style={certificateStyles.identificationLabel}>Date de delivrance</Text>
+              <Text style={certificateStyles.identificationValue}>{validationDate}</Text>
+            </View>
+          </View>
 
           <View style={certificateStyles.detailsCard}>
             <DetailRow label="Dates de session" value={formatDateRange(session.start_date, session.end_date)} />
@@ -919,9 +1175,44 @@ export function CertificateDocument({
           </View>
 
           <View style={certificateStyles.validationBox}>
-            <Text style={certificateStyles.validationTitle}>Statut de validation</Text>
+            <Text style={certificateStyles.validationTitle}>Validation</Text>
+            <View style={certificateStyles.validationBadgeRow}>
+              <View style={validationBadgeStyle}>
+                <Text style={validationBadgeTextStyle}>{validationBadgeLabel}</Text>
+              </View>
+            </View>
             <Text style={certificateStyles.validationValue}>{validationStatus}</Text>
             <Text style={certificateStyles.validationDate}>Date de delivrance : {validationDate}</Text>
+            {candidateSession.candidate.validation_status === "validated" ? (
+              <Text style={certificateStyles.validationHint}>
+                Validite indicative : 24 mois, sous reserve d&apos;enregistrement et de delivrance du certificat officiel
+                dans le dispositif applicable.
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={certificateStyles.verificationCard}>
+            <View style={certificateStyles.verificationCopy}>
+              <Text style={certificateStyles.verificationTitle}>Verification</Text>
+              <Text style={certificateStyles.verificationLead}>
+                {verificationQrCodeDataUrl ? "Scan pour verifier ce document" : "Verification manuelle"}
+              </Text>
+              <Text style={certificateStyles.verificationBody}>
+                Cette verification permet de confirmer l&apos;existence de l&apos;attestation dans le registre
+                documentaire interne.
+              </Text>
+              {documentRef ? (
+                <Text style={certificateStyles.verificationRef}>Reference : {documentRef}</Text>
+              ) : null}
+            </View>
+
+            <View style={certificateStyles.qrShell}>
+              {verificationQrCodeDataUrl ? (
+                <Image src={verificationQrCodeDataUrl} style={certificateStyles.qrImage} />
+              ) : (
+                <Text style={certificateStyles.qrFallback}>Verification{"\n"}interne</Text>
+              )}
+            </View>
           </View>
 
           {organizationSettings.qualiopi_mention ? (
@@ -931,22 +1222,35 @@ export function CertificateDocument({
           <View style={certificateStyles.footer}>
             <View style={certificateStyles.legalBlock}>
               <Text style={certificateStyles.legalText}>{organizationSettings.organization_name}</Text>
-              <Text style={certificateStyles.legalText}>{organizationSettings.address}</Text>
+              {organizationAddressLines.map((line) => (
+                <Text key={line} style={certificateStyles.legalText}>
+                  {line}
+                </Text>
+              ))}
               <Text style={certificateStyles.legalText}>Formation suivie : {TRAINING_TITLE}</Text>
+              <Text style={certificateStyles.legalFootnote}>
+                Cette attestation interne de fin de formation ne se substitue pas au certificat officiel delivre dans le
+                cadre du dispositif SST / FORPREV lorsque celui-ci est applicable.
+              </Text>
             </View>
 
-            <View style={certificateStyles.signatureBlock}>
-              {organizationSettings.resolved_signature_url ? (
-                <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImage} />
-              ) : (
-                <View style={certificateStyles.signatureLine} />
-              )}
-              <Text style={certificateStyles.signatureName}>
-                {organizationSettings.certificate_signatory_name || organizationSettings.organization_name}
-              </Text>
-              {organizationSettings.certificate_signatory_title ? (
-                <Text style={certificateStyles.signatureTitle}>{organizationSettings.certificate_signatory_title}</Text>
-              ) : null}
+            <View style={certificateStyles.signatureBlockTransparent}>
+              <View style={certificateStyles.signatureSection}>
+                <Text style={certificateStyles.signatureLabel}>Formation animee par</Text>
+                <Text style={certificateStyles.signatureName}>{trainerName}</Text>
+                <Text style={certificateStyles.signatureTitle}>Formateur SST</Text>
+              </View>
+
+              <View style={[certificateStyles.signatureSection, certificateStyles.signatureSectionLast]}>
+                <Text style={certificateStyles.signatureLabel}>Attestation etablie par</Text>
+                {organizationSettings.resolved_signature_url ? (
+                  <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImage} />
+                ) : (
+                  <View style={certificateStyles.signatureLine} />
+                )}
+                <Text style={certificateStyles.signatureName}>{attestationAuthor}</Text>
+                <Text style={certificateStyles.signatureTitle}>{attestationAuthorTitle}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -968,6 +1272,10 @@ export function ConvocationDocument({
   const addressLine = [session.location, session.start_date ? formatDateRange(session.start_date, session.end_date) : null]
     .filter(Boolean)
     .join(" • ");
+  const trainerName = session.trainer_name || "Formateur non renseigne";
+  const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
+  const convocationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
+  const convocationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
 
   return (
     <Document>
@@ -981,18 +1289,7 @@ export function ConvocationDocument({
                 <Image src={organizationSettings.resolved_logo_url} style={certificateStyles.logo} />
               ) : null}
             </View>
-            <View style={certificateStyles.organizationBlock}>
-              <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
-              <Text style={certificateStyles.organizationLine}>{organizationSettings.address}</Text>
-              {organizationSettings.siret ? (
-                <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
-              ) : null}
-              {organizationSettings.training_declaration_number ? (
-                <Text style={certificateStyles.organizationLine}>
-                  Declaration d&apos;activite : {organizationSettings.training_declaration_number}
-                </Text>
-              ) : null}
-            </View>
+            <OrganizationIdentityBlock organizationSettings={organizationSettings} />
           </View>
 
           <Text style={certificateStyles.certificateTitle}>Convocation a la formation</Text>
@@ -1021,22 +1318,29 @@ export function ConvocationDocument({
           <View style={certificateStyles.footer}>
             <View style={certificateStyles.legalBlock}>
               <Text style={certificateStyles.legalText}>{organizationSettings.organization_name}</Text>
-              <Text style={certificateStyles.legalText}>{organizationSettings.address}</Text>
+              {organizationAddressLines.map((line) => (
+                <Text key={line} style={certificateStyles.legalText}>
+                  {line}
+                </Text>
+              ))}
               <Text style={certificateStyles.legalText}>Formation convoquee : {TRAINING_TITLE}</Text>
             </View>
 
-            <View style={certificateStyles.signatureBlock}>
-              {organizationSettings.resolved_signature_url ? (
-                <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImage} />
-              ) : (
-                <View style={certificateStyles.signatureLine} />
-              )}
-              <Text style={certificateStyles.signatureName}>
-                {organizationSettings.certificate_signatory_name || organizationSettings.organization_name}
+            <View style={certificateStyles.signatureBlockSlim}>
+              <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim]}>Formation animee par</Text>
+              <Text style={[certificateStyles.signatureName, certificateStyles.signatureNameSlim]}>{trainerName}</Text>
+              <Text style={[certificateStyles.signatureTitle, certificateStyles.signatureTitleSlim]}>Formateur SST</Text>
+
+              <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim, { marginTop: 8 }]}>
+                Convocation etablie par
               </Text>
-              {organizationSettings.certificate_signatory_title ? (
-                <Text style={certificateStyles.signatureTitle}>{organizationSettings.certificate_signatory_title}</Text>
-              ) : null}
+              {organizationSettings.resolved_signature_url ? (
+                <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImageSlim} />
+              ) : (
+                <View style={[certificateStyles.signatureLine, certificateStyles.signatureLineSlim]} />
+              )}
+              <Text style={[certificateStyles.signatureName, certificateStyles.signatureNameSlim]}>{convocationAuthor}</Text>
+              <Text style={[certificateStyles.signatureTitle, certificateStyles.signatureTitleSlim]}>{convocationAuthorTitle}</Text>
             </View>
           </View>
         </View>
@@ -1100,16 +1404,7 @@ export function QuoteDocument({
           </View>
 
           <View style={quoteStyles.headerRight}>
-            <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
-            <Text style={certificateStyles.organizationLine}>{organizationSettings.address}</Text>
-            {organizationSettings.siret ? (
-              <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
-            ) : null}
-            {organizationSettings.training_declaration_number ? (
-              <Text style={certificateStyles.organizationLine}>
-                Declaration d&apos;activite : {organizationSettings.training_declaration_number}
-              </Text>
-            ) : null}
+            <OrganizationIdentityBlock organizationSettings={organizationSettings} />
           </View>
         </View>
 
@@ -1200,16 +1495,7 @@ export function InvoiceDocument({
           </View>
 
           <View style={invoiceStyles.headerRight}>
-            <Text style={certificateStyles.organizationName}>{organizationSettings.organization_name}</Text>
-            <Text style={certificateStyles.organizationLine}>{organizationSettings.address}</Text>
-            {organizationSettings.siret ? (
-              <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
-            ) : null}
-            {organizationSettings.training_declaration_number ? (
-              <Text style={certificateStyles.organizationLine}>
-                Declaration d&apos;activite : {organizationSettings.training_declaration_number}
-              </Text>
-            ) : null}
+            <OrganizationIdentityBlock organizationSettings={organizationSettings} />
           </View>
         </View>
 

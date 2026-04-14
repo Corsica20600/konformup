@@ -82,6 +82,68 @@ export class DocumentGenerationError extends Error {
   }
 }
 
+function isLocalHostname(hostname: string) {
+  const normalized = hostname.trim().toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized.endsWith(".local")
+  );
+}
+
+export function normalizePublicAppOrigin(value: string | null | undefined) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const candidate =
+    trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
+
+  try {
+    const url = new URL(candidate);
+
+    if (isLocalHostname(url.hostname)) {
+      return null;
+    }
+
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+export function resolvePublicAppOrigin() {
+  return (
+    normalizePublicAppOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizePublicAppOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
+    normalizePublicAppOrigin(process.env.APP_URL) ||
+    normalizePublicAppOrigin(process.env.VERCEL_URL)
+  );
+}
+
+export function buildDocumentVerificationUrl(publicOrigin: string, ref: string) {
+  const url = new URL("/documents/verify", publicOrigin);
+  url.searchParams.set("ref", ref);
+  return url.toString();
+}
+
+function appendQueryParams(pathname: string, params: Record<string, string | null | undefined>) {
+  const [basePath, queryString = ""] = pathname.split("?");
+  const searchParams = new URLSearchParams(queryString);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const nextQuery = searchParams.toString();
+  return nextQuery ? `${basePath}?${nextQuery}` : basePath;
+}
+
 function logDocumentGenerationError(
   step: string,
   details: {
@@ -339,7 +401,18 @@ export async function createDocument({
     const config = DOCUMENT_CONFIG[type];
     const context = await ensureGenerationContext({ sessionId, candidateId, type });
     const documentRef = await generateUniqueDocumentRef(type);
-    const filePath = config.buildPath?.({ sessionId, candidateId }) ?? null;
+    const rawFilePath = config.buildPath?.({ sessionId, candidateId }) ?? null;
+    const publicOrigin =
+      type === "attestation" || type === "certificat" ? resolvePublicAppOrigin() : null;
+    const verificationUrl =
+      publicOrigin && (type === "attestation" || type === "certificat")
+        ? buildDocumentVerificationUrl(publicOrigin, documentRef)
+        : null;
+    const filePath = rawFilePath
+      ? appendQueryParams(rawFilePath, {
+          ref: documentRef
+        })
+      : null;
 
     if (!filePath) {
       throw new DocumentGenerationError(
@@ -373,6 +446,15 @@ export async function createDocument({
           name: context.organization.organization_name,
           siret: context.organization.siret,
           training_declaration_number: context.organization.training_declaration_number
+        },
+        verification: verificationUrl
+          ? {
+              ref: documentRef,
+              url: verificationUrl
+            }
+          : null,
+        document: {
+          ref: documentRef
         }
       }
     });
