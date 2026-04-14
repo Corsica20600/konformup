@@ -170,14 +170,6 @@ export default async function SessionDetailPage({
                 </Badge>
               </div>
               <a
-                href={`/api/pdf/attendance/${session.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-              >
-                Feuille de presence PDF
-              </a>
-              <a
                 href={`/sessions/${session.id}/edit`}
                 className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
               >

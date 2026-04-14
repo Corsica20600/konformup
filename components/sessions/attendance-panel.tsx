@@ -79,14 +79,6 @@ export async function AttendancePanel({
             du creneau.
           </p>
         </div>
-        <a
-          href={`/api/pdf/attendance/${session.id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-        >
-          Ouvrir la feuille PDF
-        </a>
       </div>
 
       {feedback?.success ? (
