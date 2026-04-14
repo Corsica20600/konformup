@@ -450,6 +450,49 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
   redirect(`/sessions/${sessionId}?attendanceClosed=1&attendanceSlot=${encodeURIComponent(slotId)}`);
 }
 
+export async function setAttendanceResponseOverrideFormAction(formData: FormData) {
+  const responseId = formData.get("responseId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  const overrideStatus = formData.get("overrideStatus")?.toString().trim() ?? "";
+
+  if (!responseId || !sessionId) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const payload =
+    overrideStatus === ""
+      ? {
+          trainer_override_status: null,
+          trainer_overridden_at: null,
+          trainer_override_note: null,
+          updated_at: now
+        }
+      : {
+          trainer_override_status: overrideStatus,
+          trainer_overridden_at: now,
+          trainer_override_note: "Validation manuelle formateur",
+          updated_at: now
+        };
+
+  const { error } = await supabase.from("attendance_responses").update(payload).eq("id", responseId);
+
+  if (error) {
+    console.error("[attendance] override failed", {
+      responseId,
+      sessionId,
+      overrideStatus,
+      code: error.code,
+      message: error.message
+    });
+    redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=manual`);
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}`);
+}
+
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = createQuoteSchema.safeParse({
     sessionId: formData.get("sessionId"),

@@ -6,7 +6,8 @@ import type { SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import {
   closeAttendanceSlotFormAction,
-  sendAttendanceSlotRequestsFormAction
+  sendAttendanceSlotRequestsFormAction,
+  setAttendanceResponseOverrideFormAction
 } from "@/app/(dashboard)/sessions/actions";
 
 const slotStatusTone = {
@@ -38,8 +39,9 @@ export async function AttendancePanel({
 }) {
   const overview = await getAttendanceOverviewForSession(session, candidates);
   const targetedSlot = feedback?.slotId ? overview.slots.find((slot) => slot.id === feedback.slotId) ?? null : null;
+  const hasContextualError = Boolean(feedback?.error && feedback?.slotId);
   const shouldHideError =
-    Boolean(feedback?.error) &&
+    hasContextualError &&
     Boolean(
       targetedSlot &&
         (targetedSlot.sent_at ||
@@ -93,7 +95,7 @@ export async function AttendancePanel({
         </div>
       ) : null}
 
-      {feedback?.error && !shouldHideError ? (
+      {hasContextualError && feedback?.error && !shouldHideError ? (
         <div className="mt-4 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent">
           {feedback.error}
         </div>
@@ -161,8 +163,52 @@ export async function AttendancePanel({
                       <p className="text-xs text-ink/55">
                         {response.candidate_email || "Email manquant"} • Envoi {response.delivery_status}
                       </p>
+                      {response.trainer_override_status ? (
+                        <p className="mt-1 text-xs font-medium text-pine">
+                          Validation manuelle formateur
+                          {response.trainer_override_note ? ` • ${response.trainer_override_note}` : ""}
+                        </p>
+                      ) : null}
                     </div>
-                    <Badge tone={statusTone}>{statusLabel}</Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge tone={statusTone}>{statusLabel}</Badge>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <form action={setAttendanceResponseOverrideFormAction}>
+                          <input type="hidden" name="responseId" value={response.id} />
+                          <input type="hidden" name="sessionId" value={session.id} />
+                          <input type="hidden" name="overrideStatus" value="present" />
+                          <Button type="submit" variant="ghost" className="px-3 py-1 text-xs">
+                            Present
+                          </Button>
+                        </form>
+                        <form action={setAttendanceResponseOverrideFormAction}>
+                          <input type="hidden" name="responseId" value={response.id} />
+                          <input type="hidden" name="sessionId" value={session.id} />
+                          <input type="hidden" name="overrideStatus" value="absent" />
+                          <Button type="submit" variant="ghost" className="px-3 py-1 text-xs">
+                            Absent
+                          </Button>
+                        </form>
+                        <form action={setAttendanceResponseOverrideFormAction}>
+                          <input type="hidden" name="responseId" value={response.id} />
+                          <input type="hidden" name="sessionId" value={session.id} />
+                          <input type="hidden" name="overrideStatus" value="issue" />
+                          <Button type="submit" variant="ghost" className="px-3 py-1 text-xs">
+                            Probleme
+                          </Button>
+                        </form>
+                        {response.trainer_override_status ? (
+                          <form action={setAttendanceResponseOverrideFormAction}>
+                            <input type="hidden" name="responseId" value={response.id} />
+                            <input type="hidden" name="sessionId" value={session.id} />
+                            <input type="hidden" name="overrideStatus" value="" />
+                            <Button type="submit" variant="secondary" className="px-3 py-1 text-xs">
+                              Reinitialiser
+                            </Button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
