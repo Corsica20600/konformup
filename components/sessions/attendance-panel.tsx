@@ -26,6 +26,19 @@ const slotStatusLabel = {
   closed: "Cloture"
 } as const;
 
+function AttendancePdfLink({ sessionId }: { sessionId: string }) {
+  return (
+    <Link
+      href={`/api/pdf/attendance/${sessionId}`}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+    >
+      Synthese PDF formateur
+    </Link>
+  );
+}
+
 export async function AttendancePanel({
   session,
   candidates,
@@ -56,16 +69,23 @@ export async function AttendancePanel({
   if (!overview.enabled) {
     return (
       <Card>
-        <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Emargement</p>
-        <h3 className="mt-2 text-2xl font-bold">Emargement numerique</h3>
-        <p className="mt-2 text-sm text-ink/65">
-          Le module est pret dans l&apos;application, mais les tables Supabase d&apos;emargement ne sont pas encore
-          creees.
-        </p>
-        <p className="mt-3 text-sm text-ink/65">
-          Une fois le SQL ajoute, tu pourras envoyer les demandes de presence par email et suivre les confirmations par
-          creneau.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Emargement</p>
+            <h3 className="mt-2 text-2xl font-bold">Emargement numerique</h3>
+            <p className="mt-2 text-sm text-ink/65">
+              Le module est pret dans l&apos;application, mais les tables Supabase d&apos;emargement ne sont pas encore
+              creees.
+            </p>
+            <p className="mt-3 text-sm text-ink/65">
+              Une fois le SQL ajoute, tu pourras envoyer les demandes de presence par email et suivre les confirmations par
+              creneau.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AttendancePdfLink sessionId={session.id} />
+          </div>
+        </div>
       </Card>
     );
   }
@@ -82,14 +102,7 @@ export async function AttendancePanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/api/pdf/attendance/${session.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-          >
-            Synthese PDF formateur
-          </Link>
+          <AttendancePdfLink sessionId={session.id} />
         </div>
       </div>
 
