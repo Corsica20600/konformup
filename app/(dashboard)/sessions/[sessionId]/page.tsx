@@ -17,7 +17,7 @@ import {
   RecoverableSessionQueryError,
   SessionNotFoundError
 } from "@/lib/queries";
-import type { SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
+import type { SessionCandidate, SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +29,12 @@ const statusLabel = {
   completed: "Terminée",
   cancelled: "Annulée"
 } as const;
+
+type SessionCompanyGroup = {
+  companyId: string | null;
+  companyName: string;
+  candidates: SessionCandidate[];
+};
 
 function buildModuleGroups(modules: SessionModule[]): SessionModuleGroup[] {
   const parents = modules
@@ -64,6 +70,38 @@ function resolveDefaultSelectedModule(moduleGroups: SessionModuleGroup[]) {
   }
 
   return firstGroup.children[0] ?? firstGroup.parent;
+}
+
+function buildSessionCompanyGroups(candidates: SessionCandidate[]): SessionCompanyGroup[] {
+  const groups = new Map<string, SessionCompanyGroup>();
+
+  candidates.forEach((candidateSession) => {
+    const companyId = candidateSession.candidate.company_id;
+    const companyName = candidateSession.candidate.company?.trim() || "Sans société";
+    const key = companyId ?? `unassigned:${companyName.toLowerCase()}`;
+    const existingGroup = groups.get(key);
+
+    if (existingGroup) {
+      existingGroup.candidates.push(candidateSession);
+      return;
+    }
+
+    groups.set(key, {
+      companyId,
+      companyName,
+      candidates: [candidateSession]
+    });
+  });
+
+  return Array.from(groups.values()).sort((left, right) => {
+    if (left.companyId === null && right.companyId !== null) {
+      return 1;
+    }
+    if (left.companyId !== null && right.companyId === null) {
+      return -1;
+    }
+    return left.companyName.localeCompare(right.companyName, "fr", { sensitivity: "base" });
+  });
 }
 
 export default async function SessionDetailPage({
@@ -156,6 +194,11 @@ export default async function SessionDetailPage({
     }
   }
   const completedModules = modules.filter((module) => module.is_completed).length;
+  const companyGroups = buildSessionCompanyGroups(candidates);
+  const linkedCompanyGroups = companyGroups.filter((group) => group.companyId !== null);
+  const unassignedCandidateCount = companyGroups
+    .filter((group) => group.companyId === null)
+    .reduce((total, group) => total + group.candidates.length, 0);
 
   return (
     <main className="grid gap-4">
@@ -304,13 +347,62 @@ export default async function SessionDetailPage({
           <h2 className="mt-2 text-2xl font-bold">{candidates.length} candidat(s)</h2>
         </div>
         {candidates.length ? (
-          candidates.map((candidateSession) => (
-            <CandidateCard
-              key={candidateSession.id}
-              candidateSession={candidateSession}
-              companies={companies}
-              documents={sessionDocuments.filter((document) => document.candidate_id === candidateSession.candidate.id)}
-            />
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Sociétés présentes</p>
+              <p className="mt-3 text-4xl font-bold">{linkedCompanyGroups.length}</p>
+              <p className="mt-2 text-sm text-ink/65">
+                Société(s) représentée(s) dans cette session via les candidats rattachés.
+              </p>
+            </Card>
+            <Card>
+              <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Candidats hors société</p>
+              <p className="mt-3 text-4xl font-bold">{unassignedCandidateCount}</p>
+              <p className="mt-2 text-sm text-ink/65">
+                Participant(s) sans société renseignée ou non rattachée.
+              </p>
+            </Card>
+            <Card>
+              <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Répartition</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {companyGroups.map((group) => (
+                  <Badge key={`${group.companyId ?? "unassigned"}-${group.companyName}`} tone="neutral">
+                    {group.companyName} • {group.candidates.length}
+                  </Badge>
+                ))}
+              </div>
+            </Card>
+          </div>
+        ) : null}
+        {candidates.length ? (
+          companyGroups.map((group) => (
+            <section key={`${group.companyId ?? "unassigned"}-${group.companyName}`} className="grid gap-4">
+              <Card>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Groupe société</p>
+                    <h3 className="mt-2 text-2xl font-bold">{group.companyName}</h3>
+                    <p className="mt-2 text-sm text-ink/65">
+                      {group.candidates.length} candidat(s) dans ce groupe
+                      {group.companyId === null
+                        ? " sans rattachement société."
+                        : ` rattaché(s) à cette société.`}
+                    </p>
+                  </div>
+                  <Badge tone={group.companyId === null ? "warning" : "neutral"}>
+                    {group.companyId === null ? "Sans société" : "Société liée"}
+                  </Badge>
+                </div>
+              </Card>
+              {group.candidates.map((candidateSession) => (
+                <CandidateCard
+                  key={candidateSession.id}
+                  candidateSession={candidateSession}
+                  companies={companies}
+                  documents={sessionDocuments.filter((document) => document.candidate_id === candidateSession.candidate.id)}
+                />
+              ))}
+            </section>
           ))
         ) : (
           <Card>
