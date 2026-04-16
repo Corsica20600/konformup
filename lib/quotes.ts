@@ -5,6 +5,7 @@ import {
   generateUniqueDocumentRef,
   insertGeneratedDocumentRecord
 } from "@/lib/generated-documents";
+import { persistGeneratedDocumentPdfToStorage } from "@/lib/document-storage";
 import {
   buildDefaultQuoteDescription,
   buildDefaultQuoteTitle,
@@ -479,7 +480,7 @@ export async function createQuote(input: CreateQuoteInput) {
   await callExistingPdfGeneration(fileUrl);
   const organization = await getOrganizationSettings();
 
-  await insertGeneratedDocumentRecord({
+  const document = await insertGeneratedDocumentRecord({
     sessionId: quote.session_id,
     candidateId: null,
     companyId: context.company.id,
@@ -511,9 +512,14 @@ export async function createQuote(input: CreateQuoteInput) {
     }
   });
 
+  const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+    documentId: document.id,
+    sourcePath: fileUrl
+  });
+
   return {
     quote,
-    fileUrl
+    fileUrl: persistedDocument.fileUrl
   };
 }
 
@@ -562,7 +568,7 @@ export async function duplicateQuote(quoteId: string) {
 
   const fileUrl = `/api/pdf/quote/${duplicatedQuote.id}`;
 
-  await insertGeneratedDocumentRecord({
+  const document = await insertGeneratedDocumentRecord({
     sessionId: null,
     candidateId: null,
     companyId: duplicatedQuote.company_id,
@@ -586,9 +592,14 @@ export async function duplicateQuote(quoteId: string) {
     }
   });
 
+  const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+    documentId: document.id,
+    sourcePath: fileUrl
+  });
+
   return {
     quote: duplicatedQuote,
-    fileUrl
+    fileUrl: persistedDocument.fileUrl
   };
 }
 
@@ -645,9 +656,14 @@ export async function createProgrammeDocumentForQuote(quoteId: string) {
       throw new QuoteError("Impossible de synchroniser le programme lie a ce devis.");
     }
 
+    const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+      documentId: existingDocument.id,
+      sourcePath: fileUrl
+    });
+
     return {
       id: existingDocument.id,
-      fileUrl,
+      fileUrl: persistedDocument.fileUrl,
       documentRef: existingDocument.documentRef
     };
   }
@@ -677,9 +693,14 @@ export async function createProgrammeDocumentForQuote(quoteId: string) {
     }
   });
 
+  const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+    documentId: document.id,
+    sourcePath: fileUrl
+  });
+
   return {
     id: document.id,
-    fileUrl,
+    fileUrl: persistedDocument.fileUrl,
     documentRef
   };
 }
@@ -765,7 +786,7 @@ async function upsertGeneratedDocumentForQuote(quote: QuoteRow, status: "draft" 
   }
 
   if (!existingDocument) {
-    await insertGeneratedDocumentRecord({
+    const document = await insertGeneratedDocumentRecord({
       sessionId: quote.session_id,
       candidateId: null,
       companyId: quote.company_id,
@@ -774,6 +795,11 @@ async function upsertGeneratedDocumentForQuote(quote: QuoteRow, status: "draft" 
       status,
       fileUrl,
       metadata
+    });
+
+    await persistGeneratedDocumentPdfToStorage({
+      documentId: document.id,
+      sourcePath: fileUrl
     });
 
     return;
@@ -795,6 +821,11 @@ async function upsertGeneratedDocumentForQuote(quote: QuoteRow, status: "draft" 
   if (updateError) {
     throw new QuoteError("Impossible de synchroniser le document du devis.");
   }
+
+  await persistGeneratedDocumentPdfToStorage({
+    documentId: existingDocument.id,
+    sourcePath: fileUrl
+  });
 }
 
 export async function regenerateQuotePdf(quoteId: string) {

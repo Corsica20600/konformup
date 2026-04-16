@@ -1,5 +1,6 @@
 import type { Json } from "@/lib/database.types";
 import { callExistingPdfGeneration, generateUniqueDocumentRef, insertGeneratedDocumentRecord } from "@/lib/generated-documents";
+import { persistGeneratedDocumentPdfToStorage } from "@/lib/document-storage";
 import { getOrganizationSettings } from "@/lib/organization";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import type { QuotePdfData } from "@/lib/quotes";
@@ -453,9 +454,14 @@ export async function createTrainingAgreementDocumentForQuote(
       throw new QuoteError("Impossible de mettre a jour la convention de formation.");
     }
 
+    const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+      documentId: existingDocument.id,
+      sourcePath: fileUrl
+    });
+
     return {
       id: existingDocument.id,
-      fileUrl,
+      fileUrl: persistedDocument.fileUrl,
       documentRef: agreementRef,
       version: existingDocument.version + 1,
       status: "generated"
@@ -472,9 +478,14 @@ export async function createTrainingAgreementDocumentForQuote(
     metadata
   });
 
+  const persistedDocument = await persistGeneratedDocumentPdfToStorage({
+    documentId: document.id,
+    sourcePath: fileUrl
+  });
+
   return {
     id: document.id,
-    fileUrl,
+    fileUrl: persistedDocument.fileUrl,
     documentRef: agreementRef,
     version: document.version,
     status: document.status

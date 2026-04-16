@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/database.types";
+import { persistGeneratedDocumentPdfToStorage } from "@/lib/document-storage";
 import { insertGeneratedDocumentRecord } from "@/lib/generated-documents";
 import { createClient } from "@/lib/supabase/server";
 
@@ -183,7 +184,7 @@ async function upsertGeneratedDocumentForInvoice(invoice: InvoiceRow | LegacyInv
   }
 
   if (!existingDocument) {
-    await insertGeneratedDocumentRecord({
+    const document = await insertGeneratedDocumentRecord({
       sessionId: null,
       candidateId: null,
       companyId: invoice.company_id,
@@ -192,6 +193,11 @@ async function upsertGeneratedDocumentForInvoice(invoice: InvoiceRow | LegacyInv
       status: "generated",
       fileUrl,
       metadata
+    });
+
+    await persistGeneratedDocumentPdfToStorage({
+      documentId: document.id,
+      sourcePath: fileUrl
     });
 
     return;
@@ -212,6 +218,11 @@ async function upsertGeneratedDocumentForInvoice(invoice: InvoiceRow | LegacyInv
   if (updateError) {
     throw new InvoiceError("Impossible de synchroniser le document de facture.");
   }
+
+  await persistGeneratedDocumentPdfToStorage({
+    documentId: existingDocument.id,
+    sourcePath: fileUrl
+  });
 }
 
 export async function createInvoiceFromQuote(quoteId: string) {
