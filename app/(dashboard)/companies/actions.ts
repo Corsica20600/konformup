@@ -39,7 +39,7 @@ export async function createCompanyAction(
   const supabase = await createClient();
   const now = new Date().toISOString();
 
-  const { error } = await supabase.from("client_companies").insert({
+  let { error } = await supabase.from("client_companies").insert({
     company_name: parsed.data.companyName,
     contact_first_name: parsed.data.contactFirstName || null,
     contact_last_name: parsed.data.contactLastName || null,
@@ -54,6 +54,24 @@ export async function createCompanyAction(
     created_at: now,
     updated_at: now
   });
+
+  if (error?.code === "42703") {
+    error = (
+      await supabase.from("client_companies").insert({
+        company_name: parsed.data.companyName,
+        contact_name: [parsed.data.contactFirstName, parsed.data.contactLastName].filter(Boolean).join(" ") || null,
+        contact_email: parsed.data.contactEmail || null,
+        contact_phone: parsed.data.contactPhone || null,
+        billing_address: parsed.data.address || null,
+        postal_code: parsed.data.postalCode || null,
+        city: parsed.data.city || null,
+        siret: parsed.data.siret || null,
+        notes: parsed.data.notes || null,
+        created_at: now,
+        updated_at: now
+      })
+    ).error;
+  }
 
   if (error) {
     console.error("[createCompanyAction] insert client_companies failed", {
@@ -95,7 +113,7 @@ export async function updateCompanyAction(
   const supabase = await createClient();
   const now = new Date().toISOString();
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("client_companies")
     .update({
       company_name: parsed.data.companyName,
@@ -112,6 +130,26 @@ export async function updateCompanyAction(
       updated_at: now
     })
     .eq("id", parsed.data.companyId);
+
+  if (error?.code === "42703") {
+    error = (
+      await supabase
+        .from("client_companies")
+        .update({
+          company_name: parsed.data.companyName,
+          contact_name: [parsed.data.contactFirstName, parsed.data.contactLastName].filter(Boolean).join(" ") || null,
+          contact_email: parsed.data.contactEmail || null,
+          contact_phone: parsed.data.contactPhone || null,
+          billing_address: parsed.data.address || null,
+          postal_code: parsed.data.postalCode || null,
+          city: parsed.data.city || null,
+          siret: parsed.data.siret || null,
+          notes: parsed.data.notes || null,
+          updated_at: now
+        })
+        .eq("id", parsed.data.companyId)
+    ).error;
+  }
 
   if (error) {
     console.error("[updateCompanyAction] update client_companies failed", {

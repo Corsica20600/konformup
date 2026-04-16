@@ -174,6 +174,75 @@ export type TrainerOption = {
   phone: string | null;
 };
 
+export type CompanySessionSummary = {
+  session: SessionItem;
+  company_candidate_count: number;
+  total_candidate_count: number;
+};
+
+export type CompanyQuoteSummary = {
+  id: string;
+  quote_number: string;
+  status: QuoteStatus;
+  title: string;
+  total_ttc: number;
+  created_at: string;
+  session_start_date: string | null;
+  session_end_date: string | null;
+};
+
+export type CompanyInvoiceSummary = {
+  id: string;
+  invoice_number: string | null;
+  status: string;
+  total_ttc: number;
+  due_date: string | null;
+  created_at: string;
+  quote_id: string;
+  quote_number: string | null;
+  quote_title: string | null;
+};
+
+export type CompanyComplaintSummary = {
+  id: string;
+  invoice_id: string;
+  invoice_number: string | null;
+  status: string;
+  severity: string;
+  dissatisfaction_summary: string;
+  send_with_invoice: boolean;
+  sent_with_invoice_at: string | null;
+  resolved_at: string | null;
+  updated_at: string;
+};
+
+export type CompanyDashboard = {
+  company: ClientCompany;
+  candidates: Array<
+    Candidate & {
+      created_at: string;
+      training_sessions:
+        | {
+            id: string;
+            title: string;
+            start_date: string;
+          }
+        | {
+            id: string;
+            title: string;
+            start_date: string;
+          }[]
+        | null;
+    }
+  >;
+  documents: GeneratedDocumentItem[];
+  candidateDocuments: GeneratedDocumentItem[];
+  sessions: CompanySessionSummary[];
+  quotes: CompanyQuoteSummary[];
+  invoices: CompanyInvoiceSummary[];
+  complaints: CompanyComplaintSummary[];
+};
+
 export type AttendanceCandidateResponse = {
   id: string;
   candidate_id: string;

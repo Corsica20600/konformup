@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
-import type { QuoteStatus } from "@/lib/database.types";
+import type { CandidateValidationStatus, QuoteStatus } from "@/lib/database.types";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import type {
   ClientCompany,
+  CompanyComplaintSummary,
+  CompanyDashboard,
+  CompanyInvoiceSummary,
   CompanyOption,
+  CompanyQuoteSummary,
+  CompanySessionSummary,
   DashboardStats,
   GeneratedDocumentItem,
   SessionCandidate,
@@ -69,6 +74,23 @@ export class CompanyNotFoundError extends Error {
     this.name = "CompanyNotFoundError";
   }
 }
+
+type CompanyCompatRecord = {
+  id: string;
+  company_name: string;
+  siret: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string | null;
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 async function selectGeneratedDocumentsByForeignKey(
   field: "company_id" | "candidate_id" | "session_id",
@@ -150,6 +172,236 @@ async function selectGeneratedDocumentsByForeignKey(
   );
 }
 
+function normalizeCompanyRecord(company: {
+  id: string;
+  company_name: string;
+  siret: string | null;
+  address?: string | null;
+  billing_address?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  country?: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}): CompanyCompatRecord {
+  const splitContact = (company.contact_name ?? "").trim().split(/\s+/).filter(Boolean);
+
+  return {
+    id: company.id,
+    company_name: company.company_name,
+    siret: company.siret ?? null,
+    address: company.address ?? company.billing_address ?? null,
+    postal_code: company.postal_code ?? null,
+    city: company.city ?? null,
+    country: company.country ?? null,
+    contact_first_name: company.contact_first_name ?? splitContact[0] ?? null,
+    contact_last_name:
+      company.contact_last_name ??
+      (splitContact.length > 1 ? splitContact.slice(1).join(" ") : null),
+    contact_email: company.contact_email ?? null,
+    contact_phone: company.contact_phone ?? null,
+    notes: company.notes ?? null,
+    created_at: company.created_at,
+    updated_at: company.updated_at
+  };
+}
+
+async function selectCompanyByIdWithFallback(companyId: string): Promise<CompanyCompatRecord | null> {
+  const supabase = await createClient();
+  const primary = await supabase
+    .from("client_companies")
+    .select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "client_companies",
+    query: 'select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at").eq("id", companyId).maybeSingle()',
+    error: primary.error
+  });
+
+  if (!primary.error) {
+    return primary.data ? normalizeCompanyRecord(primary.data) : null;
+  }
+
+  if (!isMissingColumnError(primary.error) && !isMissingTableOrRelationError(primary.error) && primary.error.code !== "42703") {
+    throw primary.error;
+  }
+
+  const fallback = await supabase
+    .from("client_companies")
+    .select("id, company_name, siret, billing_address, postal_code, city, contact_name, contact_email, contact_phone, notes, created_at, updated_at")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "client_companies",
+    query: 'fallback select("id, company_name, siret, billing_address, postal_code, city, contact_name, contact_email, contact_phone, notes, created_at, updated_at").eq("id", companyId).maybeSingle()',
+    error: fallback.error
+  });
+
+  if (fallback.error) {
+    if (fallback.error.code === "42703" || isMissingColumnError(fallback.error)) {
+      const minimal = await supabase
+        .from("client_companies")
+        .select("id, company_name, created_at, updated_at")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      logSupabaseQueryError({
+        file: "lib/queries.ts",
+        table: "client_companies",
+        query: 'minimal select("id, company_name, created_at, updated_at").eq("id", companyId).maybeSingle()',
+        error: minimal.error
+      });
+
+      if (minimal.error) {
+        throw minimal.error;
+      }
+
+      return minimal.data
+        ? normalizeCompanyRecord({
+            ...minimal.data,
+            siret: null,
+            created_at: minimal.data.created_at,
+            updated_at: minimal.data.updated_at
+          })
+        : null;
+    }
+
+    throw fallback.error;
+  }
+
+  return fallback.data ? normalizeCompanyRecord(fallback.data) : null;
+}
+
+async function selectCompanyCandidatesByCompanyIdWithFallback(companyId: string) {
+  const supabase = await createClient();
+  const primary = await supabase
+    .from("candidates")
+    .select(`
+      id,
+      session_id,
+      company_id,
+      first_name,
+      last_name,
+      email,
+      company,
+      phone,
+      job_title,
+      address,
+      postal_code,
+      city,
+      validation_status,
+      validated_at,
+      created_at,
+      training_sessions (
+        id,
+        title,
+        start_date
+      )
+    `)
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, training_sessions(id, title, start_date)").eq("company_id", companyId).order("created_at")',
+    error: primary.error
+  });
+
+  if (!primary.error) {
+    return primary;
+  }
+
+  if (!isMissingColumnError(primary.error) && !isMissingTableOrRelationError(primary.error) && primary.error.code !== "42703") {
+    return primary;
+  }
+
+  const fallback = await supabase
+    .from("candidates")
+    .select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'fallback select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at").eq("company_id", companyId).order("created_at")',
+    error: fallback.error
+  });
+
+  if (fallback.error) {
+    return fallback;
+  }
+
+  return {
+    data: (fallback.data ?? []).map((candidate) => ({
+      ...candidate,
+      training_sessions: null
+    })),
+    error: fallback.error
+  };
+}
+
+async function selectGeneratedDocumentsByCandidateIds(candidateIds: string[]) {
+  if (!candidateIds.length) {
+    return [] as GeneratedDocumentItem[];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("generated_documents")
+    .select("id, session_id, candidate_id, company_id, document_type, document_ref, version, status, file_url, metadata, created_at, updated_at")
+    .in("candidate_id", candidateIds)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "generated_documents",
+    query: 'select("id, session_id, candidate_id, company_id, document_type, document_ref, version, status, file_url, metadata, created_at, updated_at").in("candidate_id", candidateIds).order("created_at")',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const documents = (data ?? []) as GeneratedDocumentItem[];
+  const quoteIds = documents
+    .map((document) => extractQuoteIdFromMetadata(document.metadata))
+    .filter((quoteId): quoteId is string => Boolean(quoteId));
+  const quoteStatuses = await selectQuoteStatusesByIds(quoteIds);
+  const invoicesByQuoteId = await selectInvoicesByQuoteIds(quoteIds);
+
+  return documents.map((document) => {
+    const quoteId = extractQuoteIdFromMetadata(document.metadata);
+    const invoiceIdFromMetadata = extractInvoiceIdFromMetadata(document.metadata);
+    const invoice = quoteId ? invoicesByQuoteId.get(quoteId) ?? null : null;
+
+    return {
+      ...document,
+      quote_id: quoteId,
+      quote_status: quoteId ? (quoteStatuses.get(quoteId) ?? null) : null,
+      invoice_id: invoiceIdFromMetadata ?? invoice?.id ?? null,
+      program_quote_id: document.document_type === "programme" ? extractProgramQuoteIdFromMetadata(document.metadata) : null,
+      invoice_number:
+        document.document_type === "invoice"
+          ? document.document_ref
+          : (invoice?.invoice_number ?? null)
+    };
+  });
+}
+
 function logSupabaseQueryError({
   file,
   table,
@@ -185,7 +437,22 @@ function logSupabaseQueryError({
 
 function isMissingColumnError(error: { message?: string; details?: string } | null) {
   const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
-  return text.includes("column") && text.includes("does not exist");
+  return (error as { code?: string } | null)?.code === "42703" || (text.includes("column") && text.includes("does not exist"));
+}
+
+function isMissingTableOrRelationError(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+} | null) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+  return (
+    error?.code === "42P01" ||
+    error?.code === "PGRST200" ||
+    error?.code === "PGRST202" ||
+    text.includes("relationship") ||
+    text.includes("schema cache")
+  );
 }
 
 function isRecoverableSessionQueryError(error: {
@@ -344,6 +611,280 @@ async function selectInvoicesByCompanyId(companyId: string) {
   }
 
   return data ?? [];
+}
+
+async function selectQuotesByCompanyId(companyId: string): Promise<CompanyQuoteSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("id, quote_number, status, title, total_ttc, created_at, session_start_date, session_end_date")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "quotes",
+    query: 'select("id, quote_number, status, title, total_ttc, created_at, session_start_date, session_end_date").eq("company_id", companyId).order("created_at")',
+    error
+  });
+
+  if (error) {
+    if (isMissingColumnError(error) || isMissingTableOrRelationError(error)) {
+      const fallback = await supabase
+        .from("quotes")
+        .select("id, quote_number, status, created_at")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+
+      logSupabaseQueryError({
+        file: "lib/queries.ts",
+        table: "quotes",
+        query: 'fallback select("id, quote_number, status, created_at").eq("company_id", companyId).order("created_at")',
+        error: fallback.error
+      });
+
+      if (fallback.error) {
+        return [];
+      }
+
+      return (fallback.data ?? []).map((quote) => ({
+        id: quote.id,
+        quote_number: quote.quote_number,
+        status: quote.status as QuoteStatus,
+        title: quote.quote_number,
+        total_ttc: 0,
+        created_at: quote.created_at,
+        session_start_date: null,
+        session_end_date: null
+      }));
+    }
+
+    throw error;
+  }
+
+  return (data ?? []) as CompanyQuoteSummary[];
+}
+
+async function selectCompanyInvoices(companyId: string): Promise<CompanyInvoiceSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(`
+      id,
+      invoice_number,
+      status,
+      total_ttc,
+      due_date,
+      created_at,
+      quote_id,
+      quotes (
+        quote_number,
+        title
+      )
+    `)
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoices -> quotes",
+    query: 'select("id, invoice_number, status, total_ttc, due_date, created_at, quote_id, quotes(quote_number, title)").eq("company_id", companyId).order("created_at")',
+    error
+  });
+
+  if (isMissingColumnError(error)) {
+    const fallback = await selectInvoicesByCompanyId(companyId);
+    const quoteIds = fallback.map((invoice) => invoice.quote_id).filter(Boolean);
+    const quotesById = await selectQuoteSummariesByIds(quoteIds);
+
+    return fallback.map((invoice) => ({
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      status: "generated",
+      total_ttc: 0,
+      due_date: null,
+      created_at: invoice.created_at,
+      quote_id: invoice.quote_id,
+      quote_number: quotesById.get(invoice.quote_id)?.quote_number ?? null,
+      quote_title: quotesById.get(invoice.quote_id)?.title ?? null
+    }));
+  }
+
+  if (isMissingTableOrRelationError(error)) {
+    const fallback = await selectInvoicesByCompanyId(companyId);
+    const quoteIds = fallback.map((invoice) => invoice.quote_id).filter(Boolean);
+    const quotesById = await selectQuoteSummariesByIds(quoteIds);
+
+    return fallback.map((invoice) => ({
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      status: "generated",
+      total_ttc: 0,
+      due_date: null,
+      created_at: invoice.created_at,
+      quote_id: invoice.quote_id,
+      quote_number: quotesById.get(invoice.quote_id)?.quote_number ?? null,
+      quote_title: quotesById.get(invoice.quote_id)?.title ?? null
+    }));
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((invoice) => {
+    const quote = Array.isArray(invoice.quotes) ? invoice.quotes[0] : invoice.quotes;
+
+    return {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      status: invoice.status,
+      total_ttc: invoice.total_ttc,
+      due_date: invoice.due_date,
+      created_at: invoice.created_at,
+      quote_id: invoice.quote_id,
+      quote_number: quote?.quote_number ?? null,
+      quote_title: quote?.title ?? null
+    };
+  });
+}
+
+async function selectQuoteSummariesByIds(quoteIds: string[]) {
+  if (!quoteIds.length) {
+    return new Map<string, { quote_number: string | null; title: string | null }>();
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("quotes")
+    .select("id, quote_number, title")
+    .in("id", Array.from(new Set(quoteIds)));
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "quotes",
+    query: 'select("id, quote_number, title").in("id", quoteIds)',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map((data ?? []).map((quote) => [quote.id, { quote_number: quote.quote_number, title: quote.title }]));
+}
+
+async function selectCompanyComplaints(companyId: string): Promise<CompanyComplaintSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("invoice_complaints")
+    .select(`
+      id,
+      invoice_id,
+      status,
+      severity,
+      dissatisfaction_summary,
+      send_with_invoice,
+      sent_with_invoice_at,
+      resolved_at,
+      updated_at,
+      invoices (
+        invoice_number
+      )
+    `)
+    .eq("company_id", companyId)
+    .order("updated_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "invoice_complaints -> invoices",
+    query: 'select("id, invoice_id, status, severity, dissatisfaction_summary, send_with_invoice, sent_with_invoice_at, resolved_at, updated_at, invoices(invoice_number)").eq("company_id", companyId).order("updated_at")',
+    error
+  });
+
+  if (
+    error &&
+    (
+      error.code === "42703" ||
+      error.code === "42P01" ||
+      error.code === "PGRST200" ||
+      error.code === "PGRST202" ||
+      `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase().includes("invoice_complaints")
+    )
+  ) {
+    return [];
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((complaint) => {
+    const invoice = Array.isArray(complaint.invoices) ? complaint.invoices[0] : complaint.invoices;
+
+    return {
+      id: complaint.id,
+      invoice_id: complaint.invoice_id,
+      invoice_number: invoice?.invoice_number ?? null,
+      status: complaint.status,
+      severity: complaint.severity,
+      dissatisfaction_summary: complaint.dissatisfaction_summary,
+      send_with_invoice: complaint.send_with_invoice,
+      sent_with_invoice_at: complaint.sent_with_invoice_at,
+      resolved_at: complaint.resolved_at,
+      updated_at: complaint.updated_at
+    };
+  });
+}
+
+async function selectCompanySessionSummaries(
+  companyId: string,
+  companyCandidates: Array<{ session_id: string | null }>
+): Promise<CompanySessionSummary[]> {
+  const sessionIds = Array.from(new Set(companyCandidates.map((candidate) => candidate.session_id).filter(Boolean)));
+
+  if (!sessionIds.length) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const [allSessionsResult, sessionCandidatesResult] = await Promise.all([
+    selectSessionsWithFallback(),
+    supabase.from("candidates").select("session_id, company_id").in("session_id", sessionIds)
+  ]);
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'select("session_id, company_id").in("session_id", sessionIds)',
+    error: sessionCandidatesResult.error
+  });
+
+  if (allSessionsResult.error) {
+    throw allSessionsResult.error;
+  }
+
+  if (sessionCandidatesResult.error) {
+    throw sessionCandidatesResult.error;
+  }
+
+  const counts = new Map<string, { company: number; total: number }>();
+  (sessionCandidatesResult.data ?? []).forEach((candidate) => {
+    const existing = counts.get(candidate.session_id) ?? { company: 0, total: 0 };
+    existing.total += 1;
+    if (candidate.company_id === companyId) {
+      existing.company += 1;
+    }
+    counts.set(candidate.session_id, existing);
+  });
+
+  return ((allSessionsResult.data ?? []) as SessionItem[])
+    .filter((session) => sessionIds.includes(session.id))
+    .map((session) => ({
+      session,
+      company_candidate_count: counts.get(session.id)?.company ?? 0,
+      total_candidate_count: counts.get(session.id)?.total ?? 0
+    }));
 }
 
 async function selectSessionsWithFallback() {
@@ -931,7 +1472,7 @@ export async function getDashboardStats() {
 
 export async function getClientCompanies() {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("client_companies")
     .select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at")
     .order("company_name", { ascending: true });
@@ -940,11 +1481,55 @@ export async function getClientCompanies() {
     file: "lib/queries.ts",
     table: "client_companies",
     query: 'select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at").order("company_name")',
-    error
+    error: primary.error
   });
 
-  if (error) throw error;
-  return (data ?? []) as unknown as ClientCompany[];
+  if (!primary.error) {
+    return (primary.data ?? []).map((company) => normalizeCompanyRecord(company)) as unknown as ClientCompany[];
+  }
+
+  if (!isMissingColumnError(primary.error) && !isMissingTableOrRelationError(primary.error) && primary.error.code !== "42703") {
+    throw primary.error;
+  }
+
+  const fallback = await supabase
+    .from("client_companies")
+    .select("id, company_name, siret, billing_address, postal_code, city, contact_name, contact_email, contact_phone, notes, created_at, updated_at")
+    .order("company_name", { ascending: true });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "client_companies",
+    query: 'fallback select("id, company_name, siret, billing_address, postal_code, city, contact_name, contact_email, contact_phone, notes, created_at, updated_at").order("company_name")',
+    error: fallback.error
+  });
+
+  if (!fallback.error) {
+    return (fallback.data ?? []).map((company) => normalizeCompanyRecord(company)) as unknown as ClientCompany[];
+  }
+
+  const minimal = await supabase
+    .from("client_companies")
+    .select("id, company_name, created_at, updated_at")
+    .order("company_name", { ascending: true });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "client_companies",
+    query: 'minimal select("id, company_name, created_at, updated_at").order("company_name")',
+    error: minimal.error
+  });
+
+  if (minimal.error) {
+    throw minimal.error;
+  }
+
+  return (minimal.data ?? []).map((company) =>
+    normalizeCompanyRecord({
+      ...company,
+      siret: null
+    })
+  ) as unknown as ClientCompany[];
 }
 
 export async function getCompanyOptions() {
@@ -955,65 +1540,60 @@ export async function getCompanyOptions() {
   })) satisfies CompanyOption[];
 }
 
-export async function getClientCompanyById(companyId: string) {
-  const supabase = await createClient();
-  const { data: company, error: companyError } = await supabase
-    .from("client_companies")
-    .select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at")
-    .eq("id", companyId)
-    .maybeSingle();
-
-  logSupabaseQueryError({
-    file: "lib/queries.ts",
-    table: "client_companies",
-    query: 'select("id, company_name, siret, address, postal_code, city, country, contact_first_name, contact_last_name, contact_email, contact_phone, notes, created_at, updated_at").eq("id", companyId).maybeSingle()',
-    error: companyError
-  });
-
-  if (companyError) throw companyError;
+export async function getClientCompanyById(companyId: string): Promise<CompanyDashboard> {
+  const company = await selectCompanyByIdWithFallback(companyId);
   if (!company) throw new CompanyNotFoundError(companyId);
-
-  const { data: candidates, error: candidatesError } = await supabase
-    .from("candidates")
-    .select(`
-      id,
-      session_id,
-      company_id,
-      first_name,
-      last_name,
-      email,
-      company,
-      phone,
-      job_title,
-      address,
-      postal_code,
-      city,
-      validation_status,
-      validated_at,
-      created_at,
-      training_sessions (
-        id,
-        title,
-        start_date
-      )
-    `)
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false });
-
-  logSupabaseQueryError({
-    file: "lib/queries.ts",
-    table: "candidates",
-    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, training_sessions(id, title, start_date)").eq("company_id", companyId).order("created_at")',
-    error: candidatesError
-  });
+  const { data: candidates, error: candidatesError } = await selectCompanyCandidatesByCompanyIdWithFallback(companyId);
 
   if (candidatesError) throw candidatesError;
-  const documents = await getDocumentsByCompanyId(companyId);
+  const candidateList = (candidates ?? []) as Array<{
+    id: string;
+    session_id: string | null;
+    company_id: string | null;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    company: string | null;
+    phone: string | null;
+    job_title: string | null;
+    address: string | null;
+    postal_code: string | null;
+    city: string | null;
+    validation_status: CandidateValidationStatus;
+    validated_at: string | null;
+    created_at: string;
+    training_sessions:
+      | {
+          id: string;
+          title: string;
+          start_date: string;
+        }
+      | {
+          id: string;
+          title: string;
+          start_date: string;
+        }[]
+      | null;
+  }>;
+  const candidateIds = candidateList.map((candidate) => candidate.id);
+  const [documents, candidateDocuments, sessions, quotes, invoices, complaints] = await Promise.all([
+    getDocumentsByCompanyId(companyId),
+    selectGeneratedDocumentsByCandidateIds(candidateIds),
+    selectCompanySessionSummaries(companyId, candidateList),
+    selectQuotesByCompanyId(companyId),
+    selectCompanyInvoices(companyId),
+    selectCompanyComplaints(companyId)
+  ]);
 
   return {
     company: company as unknown as ClientCompany,
-    candidates: candidates ?? [],
-    documents
+    candidates: candidateList,
+    documents,
+    candidateDocuments,
+    sessions,
+    quotes,
+    invoices,
+    complaints
   };
 }
 
