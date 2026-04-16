@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import type { Database, Json } from "@/lib/database.types";
+import { persistGeneratedDocumentPdfToStorage } from "@/lib/document-storage";
 import { getOrganizationSettings } from "@/lib/organization";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -147,6 +148,26 @@ function appendQueryParams(pathname: string, params: Record<string, string | nul
 
   const nextQuery = searchParams.toString();
   return nextQuery ? `${basePath}?${nextQuery}` : basePath;
+}
+
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function resolveStoredSourcePath(document: Pick<GeneratedDocumentRow, "file_url" | "metadata">) {
+  const metadata = isRecordObject(document.metadata) ? document.metadata : null;
+  const storage = metadata && isRecordObject(metadata.storage) ? metadata.storage : null;
+  const sourcePath = storage && typeof storage.source_path === "string" ? storage.source_path : null;
+
+  if (sourcePath) {
+    return sourcePath;
+  }
+
+  if (document.file_url?.startsWith("/api/documents/generated/")) {
+    return null;
+  }
+
+  return document.file_url;
 }
 
 function logDocumentGenerationError(
@@ -366,35 +387,99 @@ export async function regenerateGeneratedDocument(documentId: string): Promise<G
   const supabase = await createClient();
   const { data: document, error } = await supabase
     .from("generated_documents")
-    .select("id, file_url")
+    .select("*")
     .eq("id", documentId)
-    .maybeSingle();
+    .maybeSingle<GeneratedDocumentRow>();
 
   if (error || !document) {
     throw new DocumentGenerationError("Document introuvable.");
   }
 
-  if (!document.file_url) {
+  const sourcePath = resolveStoredSourcePath(document);
+
+  if (!sourcePath) {
     throw new DocumentGenerationError("Aucune route PDF n'est enregistrée pour ce document.");
   }
 
-  await callExistingPdfGeneration(document.file_url);
+  await callExistingPdfGeneration(sourcePath);
 
-  const { data: updated, error: updateError } = await supabase
+  const { error: updateError } = await supabase
     .from("generated_documents")
     .update({
       status: "generated",
       updated_at: new Date().toISOString()
     })
     .eq("id", documentId)
-    .select("*")
+    .select("id")
     .single();
 
-  if (updateError || !updated) {
+  if (updateError) {
     throw new DocumentGenerationError("Le document a été régénéré mais son historique n'a pas pu être mis à jour.");
   }
 
-  return updated;
+  await persistGeneratedDocumentPdfToStorage({
+    documentId,
+    sourcePath
+  });
+
+  const { data: refreshedDocument, error: refreshedError } = await supabase
+    .from("generated_documents")
+    .select("*")
+    .eq("id", documentId)
+    .maybeSingle<GeneratedDocumentRow>();
+
+  if (refreshedError || !refreshedDocument) {
+    throw new DocumentGenerationError("Le document a ete regenere mais n'a pas pu etre recharge.");
+  }
+
+  return refreshedDocument;
+}
+
+export async function getLatestGeneratedDocumentByType(params: {
+  sessionId: string;
+  type: SupportedGeneratedDocumentType;
+  candidateId?: string | null;
+}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("generated_documents")
+    .select("*")
+    .eq("session_id", params.sessionId)
+    .eq("document_type", params.type)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  query = params.candidateId ? query.eq("candidate_id", params.candidateId) : query.is("candidate_id", null);
+
+  const { data, error } = await query.maybeSingle<GeneratedDocumentRow>();
+
+  if (error) {
+    throw new DocumentGenerationError("Impossible de charger le document existant.");
+  }
+
+  return data;
+}
+
+export async function getOrCreateDocument({
+  sessionId,
+  candidateId = null,
+  type
+}: CreateDocumentInput): Promise<GeneratedDocumentRow> {
+  const existingDocument = await getLatestGeneratedDocumentByType({
+    sessionId,
+    candidateId,
+    type
+  });
+
+  if (existingDocument) {
+    return existingDocument;
+  }
+
+  return createDocument({
+    sessionId,
+    candidateId,
+    type
+  });
 }
 
 export async function createDocument({
@@ -427,7 +512,7 @@ export async function createDocument({
 
     await callExistingPdfGeneration(filePath);
 
-    return insertGeneratedDocumentRecord({
+    const generatedDocument = await insertGeneratedDocumentRecord({
       sessionId,
       candidateId,
       companyId: context.companyId,
@@ -463,6 +548,24 @@ export async function createDocument({
         }
       }
     });
+
+    await persistGeneratedDocumentPdfToStorage({
+      documentId: generatedDocument.id,
+      sourcePath: filePath
+    });
+
+    const supabase = await createClient();
+    const { data: refreshedDocument, error: refreshedError } = await supabase
+      .from("generated_documents")
+      .select("*")
+      .eq("id", generatedDocument.id)
+      .maybeSingle<GeneratedDocumentRow>();
+
+    if (refreshedError || !refreshedDocument) {
+      throw new DocumentGenerationError("Le document a ete genere mais n'a pas pu etre recharge.");
+    }
+
+    return refreshedDocument;
   } catch (error) {
     if (error instanceof DocumentGenerationError) {
       logDocumentGenerationError("create-document", {

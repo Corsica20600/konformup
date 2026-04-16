@@ -9,6 +9,7 @@ import { AttendancePanel } from "@/components/sessions/attendance-panel";
 import { ModuleContent } from "@/components/sessions/module-content";
 import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
+import { getOrCreateDocument } from "@/lib/generated-documents";
 import {
   getCompanyOptions,
   getDocumentsBySessionId,
@@ -127,7 +128,6 @@ export default async function SessionDetailPage({
   } = await searchParams;
   let data;
   const companies = await getCompanyOptions();
-  const sessionDocuments = await getDocumentsBySessionId(sessionId);
 
   try {
     data = await getSessionById(sessionId);
@@ -152,6 +152,27 @@ export default async function SessionDetailPage({
   }
 
   const { session, candidates, modules, globalProgress, sourceQuote, availableCompanyCandidateCount } = data;
+  let sessionDocuments = await getDocumentsBySessionId(sessionId);
+  let attendanceDocumentUrl =
+    sessionDocuments.find((document) => document.document_type === "feuille_presence")?.file_url ?? null;
+
+  if (!attendanceDocumentUrl) {
+    try {
+      const attendanceDocument = await getOrCreateDocument({
+        sessionId,
+        type: "feuille_presence"
+      });
+      attendanceDocumentUrl = attendanceDocument.file_url;
+      sessionDocuments = await getDocumentsBySessionId(sessionId);
+    } catch (error) {
+      console.error("[sessions/page] attendance document bootstrap failed", {
+        file: "app/(dashboard)/sessions/[sessionId]/page.tsx",
+        sessionId,
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+
   const moduleGroups = buildModuleGroups(modules);
   const defaultSelectedModule = resolveDefaultSelectedModule(moduleGroups);
   const selectedModule =
@@ -239,6 +260,7 @@ export default async function SessionDetailPage({
           <AttendancePanel
             session={session}
             candidates={candidates}
+            documentUrl={attendanceDocumentUrl}
             feedback={{
               success: attendanceSuccess
                 ? "Demandes de presence envoyees."

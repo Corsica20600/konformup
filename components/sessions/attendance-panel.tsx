@@ -26,15 +26,21 @@ const slotStatusLabel = {
   closed: "Cloture"
 } as const;
 
-function AttendancePdfLink({ sessionId }: { sessionId: string }) {
+function AttendancePdfLink({
+  sessionId,
+  documentUrl
+}: {
+  sessionId: string;
+  documentUrl?: string | null;
+}) {
   return (
     <Link
-      href={`/api/pdf/attendance/${sessionId}`}
+      href={documentUrl || `/api/pdf/attendance/${sessionId}`}
       target="_blank"
       rel="noreferrer"
       className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pine"
     >
-      Generer le fichier presences / absences
+      {documentUrl ? "Ouvrir le fichier presences / absences" : "Generer le fichier presences / absences"}
     </Link>
   );
 }
@@ -42,10 +48,12 @@ function AttendancePdfLink({ sessionId }: { sessionId: string }) {
 export async function AttendancePanel({
   session,
   candidates,
+  documentUrl,
   feedback
 }: {
   session: SessionItem;
   candidates: SessionCandidate[];
+  documentUrl?: string | null;
   feedback?: {
     success?: string | null;
     error?: string | null;
@@ -83,7 +91,7 @@ export async function AttendancePanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <AttendancePdfLink sessionId={session.id} />
+            <AttendancePdfLink sessionId={session.id} documentUrl={documentUrl} />
           </div>
         </div>
       </Card>
@@ -101,7 +109,7 @@ export async function AttendancePanel({
             du creneau.
           </p>
           <div className="mt-4">
-            <AttendancePdfLink sessionId={session.id} />
+            <AttendancePdfLink sessionId={session.id} documentUrl={documentUrl} />
           </div>
         </div>
       </div>

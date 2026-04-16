@@ -5,6 +5,9 @@ const GENERATED_DOCUMENTS_BUCKET = "generated-documents";
 
 type GeneratedDocumentStorageRow = {
   id: string;
+  session_id: string | null;
+  candidate_id: string | null;
+  company_id: string | null;
   document_type: string;
   document_ref: string;
   version: number;
@@ -44,9 +47,25 @@ function resolveEntityPath(document: GeneratedDocumentStorageRow, metadata: unkn
     return `invoices/${metadata.invoice_id}/${sanitizeSegment(document.document_type)}`;
   }
 
+  if (document.session_id && document.candidate_id) {
+    return `sessions/${document.session_id}/candidates/${document.candidate_id}/${sanitizeSegment(document.document_type)}`;
+  }
+
+  if (document.candidate_id) {
+    return `candidates/${document.candidate_id}/${sanitizeSegment(document.document_type)}`;
+  }
+
   const sessionValue = isRecordObject(metadata) ? metadata.session : null;
   if (isRecordObject(sessionValue) && typeof sessionValue.id === "string") {
     return `sessions/${sessionValue.id}/${sanitizeSegment(document.document_type)}`;
+  }
+
+  if (document.session_id) {
+    return `sessions/${document.session_id}/${sanitizeSegment(document.document_type)}`;
+  }
+
+  if (document.company_id) {
+    return `companies/${document.company_id}/${sanitizeSegment(document.document_type)}`;
   }
 
   return `documents/${sanitizeSegment(document.document_type)}/${document.id}`;
@@ -70,7 +89,7 @@ export async function persistGeneratedDocumentPdfToStorage(params: {
   const supabase = await createClient();
   const { data: document, error } = await supabase
     .from("generated_documents")
-    .select("id, document_type, document_ref, version, file_url, metadata")
+    .select("id, session_id, candidate_id, company_id, document_type, document_ref, version, file_url, metadata")
     .eq("id", params.documentId)
     .maybeSingle<GeneratedDocumentStorageRow>();
 
