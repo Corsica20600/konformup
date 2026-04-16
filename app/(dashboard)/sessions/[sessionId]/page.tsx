@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
 import { PrefillCompanyCandidatesForm } from "@/components/sessions/prefill-company-candidates-form";
 import { DocumentList } from "@/components/documents/document-list";
 import { AttendancePanel } from "@/components/sessions/attendance-panel";
@@ -11,7 +10,6 @@ import { SessionProgressCard } from "@/components/sessions/session-progress-card
 import { SessionCandidateBanner } from "@/components/sessions/session-candidate-banner";
 import { getOrCreateDocument } from "@/lib/generated-documents";
 import {
-  getCompanyOptions,
   getDocumentsBySessionId,
   getSessionById,
   getTrainingQuizzesByModuleId,
@@ -127,7 +125,6 @@ export default async function SessionDetailPage({
     attendanceSlot
   } = await searchParams;
   let data;
-  const companies = await getCompanyOptions();
 
   try {
     data = await getSessionById(sessionId);
@@ -249,6 +246,20 @@ export default async function SessionDetailPage({
               <p>Formateur : {session.trainer_name || "Non renseigne"}</p>
               <p>Duree : {session.duration_hours ? `${session.duration_hours} h` : "Non renseignee"}</p>
             </div>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <a
+                href="#candidats-session"
+                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Candidats
+              </a>
+              <a
+                href="#documents-session"
+                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Documents
+              </a>
+            </div>
           </Card>
 
           <SessionProgressCard
@@ -287,21 +298,6 @@ export default async function SessionDetailPage({
             </div>
           </Card>
 
-          <Card>
-            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Ajout manuel</p>
-            <h3 className="mt-2 text-2xl font-bold">Ajouter un candidat</h3>
-            <p className="mt-2 text-sm text-ink/65">
-              Saisie simple pour rattacher un candidat à cette session.
-            </p>
-            <div className="mt-6">
-              <CreateCandidateForm
-                sessionId={session.id}
-                companies={companies}
-                defaultCompanyId={sourceQuote?.company_id ?? ""}
-              />
-            </div>
-          </Card>
-
           {sourceQuote ? (
             <Card>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -335,13 +331,15 @@ export default async function SessionDetailPage({
             </Card>
           ) : null}
 
-          <Card>
-            <DocumentList
-              title="Documents de la session"
-              documents={sessionDocuments}
-              emptyMessage="Aucun document n’est encore enregistré pour cette session."
-            />
-          </Card>
+          <div id="documents-session">
+            <Card>
+              <DocumentList
+                title="Documents de la session"
+                documents={sessionDocuments}
+                emptyMessage="Aucun document n’est encore enregistré pour cette session."
+              />
+            </Card>
+          </div>
         </section>
 
         <section className="grid gap-4">
@@ -363,7 +361,7 @@ export default async function SessionDetailPage({
         </section>
       </section>
 
-      <section className="grid gap-4">
+      <section id="candidats-session" className="grid gap-4">
         <div className="px-1">
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Candidats</p>
           <h2 className="mt-2 text-2xl font-bold">{candidates.length} candidat(s)</h2>
