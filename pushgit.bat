@@ -8,8 +8,18 @@ echo Dossier : %cd%
 echo Heure   : %date% %time%
 echo ========================================
 
+for /f "delims=" %%i in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%i"
+if not defined CURRENT_BRANCH (
+  echo.
+  echo Impossible de detecter la branche Git courante.
+  pause
+  exit /b 1
+)
+
+echo Branche : %CURRENT_BRANCH%
+
 echo ========================================
-echo Etape 1/5 - Verification TypeScript
+echo Etape 1/6 - Verification TypeScript
 echo ========================================
 call npm run typecheck
 if errorlevel 1 (
@@ -22,7 +32,7 @@ echo OK - Typecheck termine.
 
 echo.
 echo ========================================
-echo Etape 2/5 - Build de production
+echo Etape 2/6 - Build de production
 echo ========================================
 call npm run build
 if errorlevel 1 (
@@ -35,20 +45,7 @@ echo OK - Build termine.
 
 echo.
 echo ========================================
-echo Etape 3/5 - Synchronisation Git
-echo ========================================
-git pull
-if errorlevel 1 (
-  echo.
-  echo Git pull en echec. Push annule.
-  pause
-  exit /b 1
-)
-echo OK - Git pull termine.
-
-echo.
-echo ========================================
-echo Etape 4/5 - Preparation du commit
+echo Etape 3/6 - Preparation du commit
 echo ========================================
 echo Fichiers modifies detectes :
 git status --short
@@ -73,9 +70,41 @@ if errorlevel 1 (
 
 echo.
 echo ========================================
-echo Etape 5/5 - Envoi vers GitHub
+echo Etape 4/6 - Recuperation des changements distants
 echo ========================================
-git push
+git fetch origin
+if errorlevel 1 (
+  echo.
+  echo Git fetch en echec. Push annule.
+  pause
+  exit /b 1
+)
+echo OK - Git fetch termine.
+
+echo.
+echo ========================================
+echo Etape 5/6 - Rebase local sur origin/%CURRENT_BRANCH%
+echo ========================================
+git rev-parse --verify origin/%CURRENT_BRANCH% >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo Aucune branche distante origin/%CURRENT_BRANCH% detectee. Passage direct au push.
+) else (
+  git rebase origin/%CURRENT_BRANCH%
+  if errorlevel 1 (
+    echo.
+    echo Rebase en echec. Resolvez les conflits puis relancez le script.
+    pause
+    exit /b 1
+  )
+  echo OK - Rebase termine.
+)
+
+echo.
+echo ========================================
+echo Etape 6/6 - Envoi vers GitHub
+echo ========================================
+git push origin %CURRENT_BRANCH%
 if errorlevel 1 (
   echo.
   echo Git push en echec.
