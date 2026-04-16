@@ -50,7 +50,10 @@ export default async function CompanyDetailPage({
       created_at: string;
       updated_at: string;
     };
-    const companyDocumentCount = documents.length;
+    const companyContentDocuments = documents.filter(
+      (document) => document.document_type !== "quote" && document.document_type !== "invoice"
+    );
+    const companyDocumentCount = companyContentDocuments.length;
     const candidateDocumentCount = candidateDocuments.length;
     const openComplaintCount = complaints.filter((complaint) => complaint.status === "open" || complaint.status === "in_progress").length;
 
@@ -256,8 +259,8 @@ export default async function CompanyDetailPage({
         <Card>
           <DocumentList
             title="Documents de la société"
-            documents={documents}
-            emptyMessage="Aucun document n’est encore enregistré pour cette société."
+            documents={companyContentDocuments}
+            emptyMessage="Aucun document hors devis et factures n’est encore enregistré pour cette société."
             allowQuoteDuplication
           />
         </Card>

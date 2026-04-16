@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { CandidateValidationStatus, QuoteStatus } from "@/lib/database.types";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import type {
+  Candidate,
+  CandidateDashboard,
   ClientCompany,
   CompanyComplaintSummary,
   CompanyDashboard,
@@ -1607,4 +1609,85 @@ export async function getDocumentsByCandidateId(candidateId: string) {
 
 export async function getDocumentsBySessionId(sessionId: string) {
   return selectGeneratedDocumentsByForeignKey("session_id", sessionId);
+}
+
+export async function getCandidateById(candidateId: string): Promise<CandidateDashboard | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("candidates")
+    .select(
+      `
+        id,
+        session_id,
+        company_id,
+        first_name,
+        last_name,
+        email,
+        company,
+        phone,
+        job_title,
+        address,
+        postal_code,
+        city,
+        validation_status,
+        validated_at,
+        training_sessions (
+          id,
+          title,
+          start_date,
+          end_date,
+          location,
+          status,
+          source_quote_id,
+          trainer_id,
+          trainer_user_id,
+          trainer_name,
+          duration_hours,
+          created_at
+        )
+      `
+    )
+    .eq("id", candidateId)
+    .maybeSingle();
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'select(candidate with training_sessions).eq("id", candidateId).maybeSingle()',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const session = (Array.isArray(data.training_sessions) ? data.training_sessions[0] : data.training_sessions) as SessionItem | null;
+  const documents = await getDocumentsByCandidateId(candidateId);
+
+  const candidate: Candidate = {
+    id: data.id,
+    session_id: data.session_id,
+    company_id: data.company_id,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    email: data.email,
+    company: data.company,
+    phone: data.phone,
+    job_title: data.job_title,
+    address: data.address,
+    postal_code: data.postal_code,
+    city: data.city,
+    validation_status: data.validation_status,
+    validated_at: data.validated_at
+  };
+
+  return {
+    candidate,
+    session,
+    documents
+  };
 }

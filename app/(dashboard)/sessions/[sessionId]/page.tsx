@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CandidateCard } from "@/components/sessions/candidate-card";
 import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
 import { PrefillCompanyCandidatesForm } from "@/components/sessions/prefill-company-candidates-form";
 import { DocumentList } from "@/components/documents/document-list";
@@ -9,6 +8,7 @@ import { AttendancePanel } from "@/components/sessions/attendance-panel";
 import { ModuleContent } from "@/components/sessions/module-content";
 import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
+import { SessionCandidateBanner } from "@/components/sessions/session-candidate-banner";
 import { getOrCreateDocument } from "@/lib/generated-documents";
 import {
   getCompanyOptions,
@@ -417,10 +417,9 @@ export default async function SessionDetailPage({
                 </div>
               </Card>
               {group.candidates.map((candidateSession) => (
-                <CandidateCard
+                <SessionCandidateBanner
                   key={candidateSession.id}
                   candidateSession={candidateSession}
-                  companies={companies}
                   documents={sessionDocuments.filter((document) => document.candidate_id === candidateSession.candidate.id)}
                 />
               ))}

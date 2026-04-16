@@ -62,7 +62,7 @@ export const createCompanyCandidateSchema = z.object({
 
 export const updateCandidateSchema = z.object({
   candidateId: z.string().uuid(),
-  sessionId: z.string().uuid(),
+  sessionId: z.string().uuid().optional().or(z.literal("")),
   firstName: z.string().min(2, "Le prénom est requis."),
   lastName: z.string().min(2, "Le nom est requis."),
   email: z.string().email("Email invalide.").or(z.literal("")),

@@ -277,8 +277,12 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
     return { error: "Impossible de mettre à jour le candidat." };
   }
 
-  revalidatePath(`/sessions/${parsed.data.sessionId}`);
+  if (parsed.data.sessionId) {
+    revalidatePath(`/sessions/${parsed.data.sessionId}`);
+  }
+  revalidatePath(`/candidates/${parsed.data.candidateId}`);
   revalidatePath("/sessions");
+  revalidatePath("/candidates");
 
   return { success: "Candidat mis à jour." };
 }

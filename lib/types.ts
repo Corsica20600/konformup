@@ -243,6 +243,12 @@ export type CompanyDashboard = {
   complaints: CompanyComplaintSummary[];
 };
 
+export type CandidateDashboard = {
+  candidate: Candidate;
+  session: SessionItem | null;
+  documents: GeneratedDocumentItem[];
+};
+
 export type AttendanceCandidateResponse = {
   id: string;
   candidate_id: string;
