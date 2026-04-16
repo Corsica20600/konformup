@@ -15,10 +15,6 @@ export async function GET(request: Request, context: { params: Promise<{ invoice
     const invoice = await getInvoiceById(invoiceId);
     const complaint = await getInvoiceComplaintByInvoiceId(invoiceId);
 
-    if (!complaint) {
-      return NextResponse.json({ error: "Fiche de reclamation introuvable." }, { status: 404 });
-    }
-
     const organizationSettings = await getOrganizationBranding(new URL(request.url).origin);
     const document = createElement(ComplaintDocument as never, {
       invoice,
@@ -30,7 +26,7 @@ export async function GET(request: Request, context: { params: Promise<{ invoice
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="reclamation-${invoice.invoice_number ?? invoice.id}.pdf"`
+        "Content-Disposition": `inline; filename="fiche-reclamation-${invoice.invoice_number ?? invoice.id}.pdf"`
       }
     });
   } catch (error) {

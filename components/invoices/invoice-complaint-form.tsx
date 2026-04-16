@@ -43,7 +43,8 @@ export function InvoiceComplaintForm({
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Qualite</p>
           <h3 className="mt-2 text-2xl font-bold">Fiche de reclamation et insatisfaction</h3>
           <p className="mt-2 text-sm text-ink/65">
-            Suivi du probleme, analyse des causes et plan d&apos;actions correctives/preventives.
+            Joins une fiche vierge a la facture si besoin, puis renseigne ici le retour client et les mesures
+            correctives lorsqu&apos;il revient.
           </p>
         </div>
       </div>
@@ -165,7 +166,7 @@ export function InvoiceComplaintForm({
           defaultChecked={complaint?.send_with_invoice ?? false}
           className="h-4 w-4 rounded border border-ink/20"
         />
-        Envoyer cette fiche avec la facture
+        Joindre une fiche de reclamation vierge a la facture
       </label>
 
       {complaint?.sent_with_invoice_at ? (

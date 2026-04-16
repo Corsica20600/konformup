@@ -52,19 +52,17 @@ export default async function InvoiceDetailPage({
               <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Suivi client</p>
               <h3 className="mt-2 text-2xl font-bold">Reclamation et mesures correctives</h3>
               <p className="mt-2 text-sm text-ink/65">
-                Fiche interne de gestion d&apos;insatisfaction, avec option d&apos;envoi jointe a la facture.
+                Envoie une fiche vierge avec la facture, puis complete ici le retour client et le traitement interne.
               </p>
             </div>
-            {complaint ? (
-              <Link
-                href={`/api/pdf/complaint/${invoice.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-              >
-                Ouvrir la fiche PDF
-              </Link>
-            ) : null}
+            <Link
+              href={`/api/pdf/complaint/${invoice.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            >
+              Ouvrir la fiche PDF
+            </Link>
           </div>
 
           <InvoiceComplaintForm invoiceId={invoice.id} complaint={complaint} />

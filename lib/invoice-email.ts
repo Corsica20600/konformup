@@ -58,7 +58,7 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
   const body = await buildInvoiceEmailBody(invoice);
   const bodyWithComplaintNote =
     complaint?.send_with_invoice
-      ? `${body}\n\nUne fiche de reclamation / insatisfaction est jointe a cet envoi pour le suivi qualite.`
+      ? `${body}\n\nUne fiche de reclamation / insatisfaction vierge est jointe a cet envoi pour etre completee en cas de retour client.`
       : body;
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",

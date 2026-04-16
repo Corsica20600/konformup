@@ -1305,29 +1305,27 @@ export function ComplaintDocument({
   organizationSettings
 }: {
   invoice: InvoiceDetail;
-  complaint: InvoiceComplaint;
+  complaint: InvoiceComplaint | null;
   organizationSettings: OrganizationBranding;
 }) {
+  const customerSummary = complaint?.dissatisfaction_summary?.trim() ?? "";
+  const customerDetails = complaint?.complaint_details?.trim() ?? "";
+  const customerExpectation = complaint?.customer_expectation?.trim() ?? "";
+  const rootCause = complaint?.root_cause?.trim() ?? "";
+  const correctiveActions = complaint?.corrective_actions?.trim() ?? "";
+  const preventiveActions = complaint?.preventive_actions?.trim() ?? "";
+  const followUpActions = complaint?.follow_up_actions?.trim() ?? "";
+  const internalNotes = complaint?.internal_notes?.trim() ?? "";
+  const hasInternalFollowUp = Boolean(rootCause || correctiveActions || preventiveActions || followUpActions || internalNotes);
   const lines = [
     ["Facture", invoice.invoice_number ?? `FACT-${invoice.id}`],
     ["Societe", invoice.company.company_name],
     ["Devis", invoice.quote.quote_number],
-    ["Statut", complaint.status],
-    ["Niveau", complaint.severity],
-    ["Envoi avec facture", complaint.send_with_invoice ? "Oui" : "Non"],
-    ["Dernier envoi", complaint.sent_with_invoice_at ? formatDate(complaint.sent_with_invoice_at) : "Non envoye"],
-    ["Date de resolution", complaint.resolved_at ? formatDate(complaint.resolved_at) : "Non renseignee"]
-  ] as const;
-
-  const sections = [
-    ["Synthese de l'insatisfaction", complaint.dissatisfaction_summary],
-    ["Reclamation detaillee", complaint.complaint_details],
-    ["Attente du client", complaint.customer_expectation],
-    ["Analyse / cause racine", complaint.root_cause],
-    ["Mesures correctives", complaint.corrective_actions],
-    ["Mesures preventives", complaint.preventive_actions],
-    ["Suivi / verification d'efficacite", complaint.follow_up_actions],
-    ["Notes internes", complaint.internal_notes]
+    ["Statut", complaint?.status ?? "Ouverte / a instruire"],
+    ["Niveau", complaint?.severity ?? "Moyenne"],
+    ["Envoi avec facture", complaint?.send_with_invoice ? "Oui" : "Non"],
+    ["Dernier envoi", complaint?.sent_with_invoice_at ? formatDate(complaint.sent_with_invoice_at) : "Non envoye"],
+    ["Date de resolution", complaint?.resolved_at ? formatDate(complaint.resolved_at) : "Non renseignee"]
   ] as const;
 
   return (
@@ -1357,12 +1355,72 @@ export function ComplaintDocument({
         </View>
 
         <View style={shared.section}>
-          {sections.map(([title, content]) => (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>Cadre a completer par le client</Text>
+            <Text style={[shared.label, { marginTop: 4 }]}>
+              Si vous constatez une insatisfaction ou souhaitez signaler une reclamation, merci de completer les rubriques
+              ci-dessous et de nous retourner cette fiche.
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>1. Synthese de l&apos;insatisfaction</Text>
+            <Text style={[shared.label, { marginTop: 4, color: "#1d2a24", lineHeight: 1.45 }]}>
+              {customerSummary || "................................................................................................................"}
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>2. Reclamation detaillee</Text>
+            <Text style={[shared.label, { marginTop: 4, color: "#1d2a24", lineHeight: 1.45 }]}>
+              {customerDetails || "................................................................................................................"}
+            </Text>
+            <Text style={[shared.label, { color: "#1d2a24", lineHeight: 1.45 }]}>
+              {customerDetails ? "" : "................................................................................................................"}
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>3. Attente du client</Text>
+            <Text style={[shared.label, { marginTop: 4, color: "#1d2a24", lineHeight: 1.45 }]}>
+              {customerExpectation || "................................................................................................................"}
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>4. Coordonnees du retour</Text>
+            <Text style={[shared.label, { marginTop: 4, color: "#1d2a24" }]}>
+              Nom / fonction : .............................................................................................
+            </Text>
+            <Text style={[shared.label, { marginTop: 4, color: "#1d2a24" }]}>
+              Date : ........................................ Signature : ..................................................
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: 12 }}>
+            <Text style={shared.strong}>Traitement interne et mesures correctives</Text>
+            <Text style={[shared.label, { marginTop: 4 }]}>
+              Partie a renseigner apres retour client par l&apos;organisme de formation.
+            </Text>
+          </View>
+
+          {[
+            ["Analyse / cause racine", rootCause],
+            ["Mesures correctives", correctiveActions],
+            ["Mesures preventives", preventiveActions],
+            ["Suivi / verification d'efficacite", followUpActions],
+            ["Notes internes", internalNotes]
+          ].map(([title, content]) => (
             <View key={title} style={{ marginBottom: 12 }}>
               <Text style={shared.strong}>{title}</Text>
               <Text style={[shared.label, { marginTop: 4, color: "#1d2a24", lineHeight: 1.45 }]}>
-                {content?.trim() ? content : "Non renseigne."}
+                {content || (hasInternalFollowUp ? "Non renseigne." : "................................................................................................................")}
               </Text>
+              {!content && !hasInternalFollowUp ? (
+                <Text style={[shared.label, { color: "#1d2a24", lineHeight: 1.45 }]}>
+                  ................................................................................................................
+                </Text>
+              ) : null}
             </View>
           ))}
         </View>
