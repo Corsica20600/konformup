@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { getAttendanceOverviewForSession } from "@/lib/attendance";
 import type { SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
@@ -79,6 +80,16 @@ export async function AttendancePanel({
             Envoi par email d&apos;un lien personnel de confirmation. Le formateur garde ensuite la main sur la cloture
             du creneau.
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/api/pdf/attendance/${session.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+          >
+            Synthese PDF formateur
+          </Link>
         </div>
       </div>
 
