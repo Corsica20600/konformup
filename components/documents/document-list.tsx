@@ -30,6 +30,7 @@ const DOCUMENT_QUOTE_STATUS_OPTIONS: QuoteStatus[] = ["draft", "sent", "accepted
 function documentLabel(type: string) {
   if (type === "quote") return "Devis";
   if (type === "invoice") return "Facture";
+  if (type === "training_agreement") return "Convention de formation";
   if (type === "programme") return "Programme";
   if (type === "aide_memoire") return "Aide memoire sauveteur secouriste du travail";
   if (type === "attestation") return "Attestation";

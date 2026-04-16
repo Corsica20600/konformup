@@ -14,6 +14,10 @@ import {
   updateQuote,
   updateQuoteStatus
 } from "@/lib/quotes";
+import {
+  createTrainingAgreementDocumentForQuote,
+  getTrainingAgreementDocumentByQuoteId
+} from "@/lib/training-agreements";
 import { updateQuoteSchema } from "@/lib/validation";
 
 export type QuoteEditorActionState = {
@@ -256,5 +260,78 @@ export async function generateProgrammePdfAction(
     }
 
     return { error: "Impossible de generer le programme SST." };
+  }
+}
+
+export async function generateTrainingAgreementAction(
+  _: QuoteEditorActionState,
+  formData: FormData
+): Promise<QuoteEditorActionState> {
+  const quoteId = formData.get("quoteId")?.toString().trim();
+
+  if (!quoteId) {
+    return { error: "Devis manquant." };
+  }
+
+  try {
+    const agreement = await createTrainingAgreementDocumentForQuote(quoteId);
+    const quote = await getQuoteForEdit(quoteId);
+
+    revalidatePath(`/quotes/${quote.id}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${quote.company.id}`);
+
+    return {
+      success: "Convention de formation generee.",
+      fileUrl: agreement.fileUrl
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de generer la convention de formation." };
+  }
+}
+
+export async function regenerateTrainingAgreementAction(
+  _: QuoteEditorActionState,
+  formData: FormData
+): Promise<QuoteEditorActionState> {
+  const quoteId = formData.get("quoteId")?.toString().trim();
+
+  if (!quoteId) {
+    return { error: "Devis manquant." };
+  }
+
+  try {
+    const existingAgreement = await getTrainingAgreementDocumentByQuoteId(quoteId);
+    if (!existingAgreement) {
+      const generated = await createTrainingAgreementDocumentForQuote(quoteId);
+      return {
+        success: "Convention de formation generee.",
+        fileUrl: generated.fileUrl
+      };
+    }
+
+    const agreement = await createTrainingAgreementDocumentForQuote(quoteId, { forceRegenerate: true });
+    const quote = await getQuoteForEdit(quoteId);
+
+    revalidatePath(`/quotes/${quote.id}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${quote.company.id}`);
+
+    return {
+      success: "Convention de formation regeneree.",
+      fileUrl: agreement.fileUrl
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de regenerer la convention de formation." };
   }
 }

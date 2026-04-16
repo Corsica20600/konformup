@@ -11,6 +11,7 @@ export type SupportedGeneratedDocumentType =
   | "convocation"
   | "feuille_presence"
   | "invoice"
+  | "training_agreement"
   | "programme"
   | "quote";
 export type GeneratedDocumentRow = Database["public"]["Tables"]["generated_documents"]["Row"];
@@ -63,6 +64,10 @@ const DOCUMENT_CONFIG: Record<
   },
   invoice: {
     prefix: "FACT",
+    requiresCandidate: false
+  },
+  training_agreement: {
+    prefix: "CONV",
     requiresCandidate: false
   },
   programme: {

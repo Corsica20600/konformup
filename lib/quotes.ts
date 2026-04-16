@@ -896,7 +896,7 @@ export async function createSessionFromQuote(quoteId: string, trainerUserId: str
       session_id: session.id,
       updated_at: now
     })
-    .eq("document_type", "quote")
+    .in("document_type", ["quote", "programme", "training_agreement"])
     .contains("metadata", { quote_id: quote.id });
 
   if (documentUpdateError) {

@@ -5,7 +5,9 @@ import { useActionState } from "react";
 import {
   createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
+  generateTrainingAgreementAction,
   generateProgrammePdfAction,
+  regenerateTrainingAgreementAction,
   regenerateQuotePdfAction,
   sendQuoteEmailAction,
   type QuoteEditorActionState,
@@ -23,11 +25,19 @@ type InvoiceSummary = Pick<Database["public"]["Tables"]["invoices"]["Row"], "id"
 export function EditQuoteForm({
   quote,
   invoice,
-  programmeFileUrl
+  programmeFileUrl,
+  trainingAgreement
 }: {
   quote: QuoteEditData;
   invoice: InvoiceSummary;
   programmeFileUrl: string | null;
+  trainingAgreement: {
+    id: string;
+    fileUrl: string | null;
+    documentRef: string;
+    version: number;
+    missingFields: string[];
+  } | null;
 }) {
   const [saveState, saveAction, savePending] = useActionState(updateQuoteAction, initialState);
   const [createSessionState, createSessionAction, createSessionPending] = useActionState(
@@ -38,11 +48,19 @@ export function EditQuoteForm({
     createInvoiceFromQuoteAction,
     initialState
   );
+  const [trainingAgreementState, trainingAgreementAction, trainingAgreementPending] = useActionState(
+    generateTrainingAgreementAction,
+    initialState
+  );
+  const [regenerateTrainingAgreementState, regenerateTrainingAgreementFormAction, regenerateTrainingAgreementPending] =
+    useActionState(regenerateTrainingAgreementAction, initialState);
   const [programmeState, programmeAction, programmePending] = useActionState(generateProgrammePdfAction, initialState);
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
   const canCreateSession = quote.status === "accepted" && !quote.session_id;
   const canCreateInvoice = quote.status === "accepted" && !invoice;
+  const canGenerateTrainingAgreement = quote.status === "accepted";
+  const trainingAgreementFileUrl = trainingAgreement?.fileUrl ?? `/api/pdf/training-agreement/${quote.id}`;
 
   return (
     <div className="grid gap-4">
@@ -111,6 +129,37 @@ export function EditQuoteForm({
               Ouvrir programme
             </Link>
           ) : null}
+          {canGenerateTrainingAgreement ? (
+            <>
+              {!trainingAgreement ? (
+                <form action={trainingAgreementAction}>
+                  <input type="hidden" name="quoteId" value={quote.id} />
+                  <Button type="submit" variant="secondary" disabled={trainingAgreementPending}>
+                    {trainingAgreementPending ? "Generation..." : "Generer convention"}
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <Link
+                    href={trainingAgreementFileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                  >
+                    Voir convention
+                  </Link>
+                  <Link
+                    href={`${trainingAgreementFileUrl}?download=1`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                  >
+                    Telecharger convention
+                  </Link>
+                </>
+              )}
+            </>
+          ) : null}
           <Link
             href={`/api/pdf/quote/${quote.id}`}
             target="_blank"
@@ -142,8 +191,89 @@ export function EditQuoteForm({
                   {pdfPending ? "Regeneration..." : "Regenerer PDF"}
                 </button>
               </form>
+              {canGenerateTrainingAgreement ? (
+                <form action={regenerateTrainingAgreementFormAction}>
+                  <input type="hidden" name="quoteId" value={quote.id} />
+                  <button
+                    type="submit"
+                    disabled={regenerateTrainingAgreementPending}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
+                  >
+                    {regenerateTrainingAgreementPending ? "Regeneration..." : "Regenerer convention"}
+                  </button>
+                </form>
+              ) : null}
             </div>
           </details>
+        </div>
+      </div>
+
+      <div className="grid gap-3 rounded-[24px] border border-ink/10 bg-white/70 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Convention de formation</p>
+            <h3 className="mt-2 text-2xl font-bold">
+              {trainingAgreement ? "Convention generee" : "Convention non generee"}
+            </h3>
+            <p className="mt-2 text-sm text-ink/65">
+              {quote.status === "accepted"
+                ? "La convention est rattachee au devis accepte et peut etre visualisee, telechargee ou regeneree."
+                : "La convention sera generee automatiquement lorsque le devis passera a l'etat accepte."}
+            </p>
+          </div>
+          {trainingAgreement ? (
+            <div className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink">
+              {trainingAgreement.documentRef} • v{trainingAgreement.version}
+            </div>
+          ) : null}
+        </div>
+
+        {trainingAgreement?.missingFields.length ? (
+          <div className="rounded-2xl border border-[#d9c79b] bg-[#fbf5e6] px-4 py-3 text-sm text-ink/80">
+            <p className="font-semibold text-[#6d571f]">Champs a verifier dans la convention :</p>
+            <p className="mt-1">{trainingAgreement.missingFields.join(" • ")}</p>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          {trainingAgreement ? (
+            <>
+              <Link
+                href={trainingAgreementFileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Voir
+              </Link>
+              <Link
+                href={`${trainingAgreementFileUrl}?download=1`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Telecharger
+              </Link>
+            </>
+          ) : null}
+          {canGenerateTrainingAgreement ? (
+            <form action={trainingAgreement ? regenerateTrainingAgreementFormAction : trainingAgreementAction}>
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={trainingAgreement ? regenerateTrainingAgreementPending : trainingAgreementPending}
+              >
+                {trainingAgreement
+                  ? regenerateTrainingAgreementPending
+                    ? "Regeneration..."
+                    : "Regenerer"
+                  : trainingAgreementPending
+                    ? "Generation..."
+                    : "Generer"}
+              </Button>
+            </form>
+          ) : null}
         </div>
       </div>
 
@@ -232,6 +362,35 @@ export function EditQuoteForm({
           <p>{programmeState.success}</p>
           {programmeState.fileUrl ? (
             <Link href={programmeState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
+              Ouvrir le PDF
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {trainingAgreementState.error ? <p className="text-sm text-accent">{trainingAgreementState.error}</p> : null}
+      {trainingAgreementState.success ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-pine">
+          <p>{trainingAgreementState.success}</p>
+          {trainingAgreementState.fileUrl ? (
+            <Link href={trainingAgreementState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
+              Ouvrir le PDF
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {regenerateTrainingAgreementState.error ? (
+        <p className="text-sm text-accent">{regenerateTrainingAgreementState.error}</p>
+      ) : null}
+      {regenerateTrainingAgreementState.success ? (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-pine">
+          <p>{regenerateTrainingAgreementState.success}</p>
+          {regenerateTrainingAgreementState.fileUrl ? (
+            <Link
+              href={regenerateTrainingAgreementState.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-pine"
+            >
               Ouvrir le PDF
             </Link>
           ) : null}

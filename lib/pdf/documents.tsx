@@ -3,6 +3,7 @@ import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/
 import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
+import type { TrainingAgreementPdfData } from "@/lib/training-agreements";
 import { formatCurrency, formatDate, formatDateRange, formatDurationHours, formatPercent } from "@/lib/utils";
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
@@ -2514,5 +2515,422 @@ return (
       </View>
     </Page>
   </Document>
+  );
+}
+
+const trainingAgreementStyles = StyleSheet.create({
+  page: {
+    backgroundColor: "#fffdf8"
+  },
+  topBar: {
+    height: 10,
+    backgroundColor: "#285943",
+    marginBottom: 18
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 18
+  },
+  headerLeft: {
+    maxWidth: 320
+  },
+  headerRight: {
+    maxWidth: 220,
+    alignItems: "flex-end"
+  },
+  title: {
+    fontSize: 21,
+    fontWeight: 700,
+    marginBottom: 5
+  },
+  subtitle: {
+    fontSize: 10.5,
+    color: "#4e5f57",
+    marginBottom: 3
+  },
+  block: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    marginBottom: 14
+  },
+  split: {
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 14
+  },
+  splitCol: {
+    flex: 1
+  },
+  blockTitle: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    color: "#5b655f",
+    marginBottom: 8,
+    letterSpacing: 1
+  },
+  line: {
+    fontSize: 10.5,
+    color: "#1d2a24",
+    marginBottom: 4,
+    lineHeight: 1.35
+  },
+  lineStrong: {
+    fontWeight: 700
+  },
+  bulletRow: {
+    flexDirection: "row",
+    marginBottom: 4
+  },
+  bulletDot: {
+    width: 10,
+    fontSize: 10.5,
+    color: "#285943"
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 10.3,
+    color: "#1d2a24",
+    lineHeight: 1.35
+  },
+  clauseTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 5
+  },
+  clauseText: {
+    fontSize: 10.2,
+    color: "#1d2a24",
+    lineHeight: 1.42
+  },
+  financialTable: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    marginBottom: 14
+  },
+  financialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ece6da"
+  },
+  financialRowLast: {
+    borderBottomWidth: 0,
+    backgroundColor: "#edf5f0"
+  },
+  financialLabel: {
+    fontSize: 10.5,
+    color: "#4e5f57"
+  },
+  financialValue: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  financialTotal: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#174734"
+  },
+  participantItem: {
+    fontSize: 10.2,
+    color: "#1d2a24",
+    marginBottom: 3
+  },
+  warningBox: {
+    borderWidth: 1,
+    borderColor: "#d9c79b",
+    backgroundColor: "#fbf5e6",
+    padding: 12,
+    marginBottom: 14
+  },
+  warningTitle: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    color: "#6d571f",
+    marginBottom: 6,
+    fontWeight: 700
+  },
+  signatureRow: {
+    flexDirection: "row",
+    gap: 14,
+    marginTop: 6
+  },
+  signatureBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    minHeight: 120
+  },
+  signatureTitle: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    color: "#5b655f",
+    marginBottom: 8
+  },
+  signatureName: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 2
+  },
+  signatureRole: {
+    fontSize: 9.5,
+    color: "#4e5f57",
+    marginBottom: 16
+  },
+  signatureLine: {
+    marginTop: 34,
+    borderTopWidth: 1,
+    borderTopColor: "#9da6a1",
+    paddingTop: 6
+  },
+  footer: {
+    marginTop: 14,
+    fontSize: 9,
+    color: "#5b655f",
+    textAlign: "center"
+  }
+});
+
+function AgreementBullet({ children }: { children: string }) {
+  return (
+    <View style={trainingAgreementStyles.bulletRow}>
+      <Text style={trainingAgreementStyles.bulletDot}>•</Text>
+      <Text style={trainingAgreementStyles.bulletText}>{children}</Text>
+    </View>
+  );
+}
+
+export function TrainingAgreementDocument({
+  agreement,
+  organizationSettings
+}: {
+  agreement: TrainingAgreementPdfData;
+  organizationSettings: OrganizationBranding;
+}) {
+  const companyAddress = [agreement.client.address, agreement.client.postalCode, agreement.client.city]
+    .filter(Boolean)
+    .join(" ");
+  const organizationAddress = [agreement.organization.address, agreement.organization.postalCode, agreement.organization.city]
+    .filter(Boolean)
+    .join(" ");
+  const generatedDate = formatDate(agreement.generatedAt);
+  const participantNames = agreement.training.participants.map((participant) =>
+    `${participant.first_name} ${participant.last_name}`.trim()
+  );
+
+  return (
+    <Document>
+      <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <View style={trainingAgreementStyles.topBar} />
+        <View style={trainingAgreementStyles.header}>
+          <View style={trainingAgreementStyles.headerLeft}>
+            <Text style={trainingAgreementStyles.title}>Convention de formation professionnelle</Text>
+            <Text style={trainingAgreementStyles.subtitle}>Reference : {agreement.agreementRef}</Text>
+            <Text style={trainingAgreementStyles.subtitle}>Date d'edition : {generatedDate}</Text>
+          </View>
+          <View style={trainingAgreementStyles.headerRight}>
+            {organizationSettings.resolved_logo_url ? (
+              <Image src={organizationSettings.resolved_logo_url} style={quoteStyles.logo} />
+            ) : null}
+            <OrganizationIdentityBlock organizationSettings={organizationSettings} />
+          </View>
+        </View>
+
+        {agreement.missingFields.length ? (
+          <View style={trainingAgreementStyles.warningBox}>
+            <Text style={trainingAgreementStyles.warningTitle}>Champs a completer / verifier</Text>
+            {agreement.missingFields.map((field) => (
+              <AgreementBullet key={field}>{field}</AgreementBullet>
+            ))}
+          </View>
+        ) : null}
+
+        <View style={trainingAgreementStyles.split}>
+          <View style={[trainingAgreementStyles.block, trainingAgreementStyles.splitCol]}>
+            <Text style={trainingAgreementStyles.blockTitle}>Organisme de formation</Text>
+            <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>{agreement.organization.name}</Text>
+            <Text style={trainingAgreementStyles.line}>{organizationAddress}</Text>
+            <Text style={trainingAgreementStyles.line}>Email : {agreement.organization.email || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>Telephone : {agreement.organization.phone || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>SIRET : {agreement.organization.siret || "Non renseigne"}</Text>
+            <Text style={trainingAgreementStyles.line}>
+              NDA : {agreement.organization.declarationNumber || "Non renseigne"}
+            </Text>
+            <Text style={trainingAgreementStyles.line}>
+              Representant : {agreement.organization.representativeName || "A confirmer"}
+            </Text>
+          </View>
+
+          <View style={[trainingAgreementStyles.block, trainingAgreementStyles.splitCol]}>
+            <Text style={trainingAgreementStyles.blockTitle}>Entreprise cliente</Text>
+            <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>
+              {agreement.client.legalName || agreement.client.companyName}
+            </Text>
+            {agreement.client.legalName && agreement.client.legalName !== agreement.client.companyName ? (
+              <Text style={trainingAgreementStyles.line}>{agreement.client.companyName}</Text>
+            ) : null}
+            <Text style={trainingAgreementStyles.line}>{companyAddress || "Adresse a renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>Contact : {agreement.client.contactName || "A confirmer"}</Text>
+            <Text style={trainingAgreementStyles.line}>Email : {agreement.client.contactEmail || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>Telephone : {agreement.client.contactPhone || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>SIRET : {agreement.client.siret || "Non renseigne"}</Text>
+          </View>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>1. Objet de la convention</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.purpose}</Text>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.blockTitle}>Action de formation</Text>
+          <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>{agreement.training.title}</Text>
+          <Text style={trainingAgreementStyles.line}>Dates : {agreement.training.dateRangeLabel}</Text>
+          <Text style={trainingAgreementStyles.line}>Lieu : {agreement.training.locationLabel}</Text>
+          <Text style={trainingAgreementStyles.line}>Modalites : {agreement.training.modality}</Text>
+          <Text style={trainingAgreementStyles.line}>Duree : {agreement.training.durationLabel}</Text>
+          <Text style={trainingAgreementStyles.line}>Formateur : {agreement.training.trainerName}</Text>
+          <Text style={trainingAgreementStyles.line}>Effectif : {agreement.training.participantLabel}</Text>
+          <Text style={trainingAgreementStyles.line}>Prerequis : {agreement.training.prerequisites}</Text>
+        </View>
+      </Page>
+
+      <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>2. Objectifs de la formation</Text>
+          {agreement.training.objectives.map((objective) => (
+            <AgreementBullet key={objective}>{objective}</AgreementBullet>
+          ))}
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>3. Programme / contenu</Text>
+          {agreement.training.programmeLines.map((line) => (
+            <AgreementBullet key={line}>{line}</AgreementBullet>
+          ))}
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>4. Organisation de l'action de formation</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.organization}</Text>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>5. Moyens pedagogiques et techniques</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.pedagogicalMeans}</Text>
+          <View style={{ marginTop: 8 }}>
+            {agreement.training.pedagogicalMeans.map((line) => (
+              <AgreementBullet key={line}>{line}</AgreementBullet>
+            ))}
+          </View>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>6. Suivi et evaluation</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.followUp}</Text>
+          <View style={{ marginTop: 8 }}>
+            {agreement.training.evaluationMethods.map((line) => (
+              <AgreementBullet key={line}>{line}</AgreementBullet>
+            ))}
+          </View>
+        </View>
+      </Page>
+
+      <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.blockTitle}>Participants concernes</Text>
+          {participantNames.length ? (
+            participantNames.map((participant) => (
+              <Text key={participant} style={trainingAgreementStyles.participantItem}>
+                - {participant}
+              </Text>
+            ))
+          ) : (
+            <Text style={trainingAgreementStyles.line}>Liste des participants a confirmer.</Text>
+          )}
+        </View>
+
+        <View style={trainingAgreementStyles.financialTable}>
+          <View style={trainingAgreementStyles.financialRow}>
+            <Text style={trainingAgreementStyles.financialLabel}>Prix HT</Text>
+            <Text style={trainingAgreementStyles.financialValue}>{formatCurrency(agreement.financial.priceHt)}</Text>
+          </View>
+          <View style={trainingAgreementStyles.financialRow}>
+            <Text style={trainingAgreementStyles.financialLabel}>TVA ({formatPercent(agreement.financial.vatRate)})</Text>
+            <Text style={trainingAgreementStyles.financialValue}>
+              {formatCurrency(agreement.financial.totalTtc - agreement.financial.priceHt)}
+            </Text>
+          </View>
+          <View style={[trainingAgreementStyles.financialRow, trainingAgreementStyles.financialRowLast]}>
+            <Text style={trainingAgreementStyles.financialLabel}>Prix TTC</Text>
+            <Text style={trainingAgreementStyles.financialTotal}>{formatCurrency(agreement.financial.totalTtc)}</Text>
+          </View>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>7. Modalites financieres</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.financialTerms}</Text>
+          <Text style={[trainingAgreementStyles.clauseText, { marginTop: 8 }]}>
+            Modalites de reglement : {agreement.financial.paymentTerms}
+          </Text>
+          {agreement.financial.depositTerms ? (
+            <Text style={[trainingAgreementStyles.clauseText, { marginTop: 6 }]}>
+              Acompte / mention particuliere : {agreement.financial.depositTerms}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>8. Conditions d'annulation / report</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.cancellation}</Text>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>9. Obligations respectives</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.obligations}</Text>
+        </View>
+
+        <View style={trainingAgreementStyles.signatureRow}>
+          <View style={trainingAgreementStyles.signatureBox}>
+            <Text style={trainingAgreementStyles.signatureTitle}>Pour l'organisme de formation</Text>
+            <Text style={trainingAgreementStyles.signatureName}>
+              {agreement.organization.representativeName || agreement.organization.name}
+            </Text>
+            <Text style={trainingAgreementStyles.signatureRole}>
+              {agreement.organization.representativeTitle || "Representant de l'organisme"}
+            </Text>
+            <View style={trainingAgreementStyles.signatureLine}>
+              <Text style={trainingAgreementStyles.line}>Signature et cachet</Text>
+            </View>
+          </View>
+
+          <View style={trainingAgreementStyles.signatureBox}>
+            <Text style={trainingAgreementStyles.signatureTitle}>Pour l'entreprise cliente</Text>
+            <Text style={trainingAgreementStyles.signatureName}>
+              {agreement.client.contactName || agreement.client.companyName}
+            </Text>
+            <Text style={trainingAgreementStyles.signatureRole}>Nom, qualite, signature et cachet</Text>
+            <View style={trainingAgreementStyles.signatureLine}>
+              <Text style={trainingAgreementStyles.line}>Bon pour accord</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={trainingAgreementStyles.footer}>
+          Convention etablie entre {agreement.organization.name} et {agreement.client.companyName}.
+        </Text>
+      </Page>
+    </Document>
   );
 }
