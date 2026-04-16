@@ -32,9 +32,9 @@ function AttendancePdfLink({ sessionId }: { sessionId: string }) {
       href={`/api/pdf/attendance/${sessionId}`}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+      className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pine"
     >
-      Synthese PDF formateur
+      Generer le fichier presences / absences
     </Link>
   );
 }
@@ -100,9 +100,9 @@ export async function AttendancePanel({
             Envoi par email d&apos;un lien personnel de confirmation. Le formateur garde ensuite la main sur la cloture
             du creneau.
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <AttendancePdfLink sessionId={session.id} />
+          <div className="mt-4">
+            <AttendancePdfLink sessionId={session.id} />
+          </div>
         </div>
       </div>
 
