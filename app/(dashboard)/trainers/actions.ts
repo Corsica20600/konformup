@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendTrainerResourceEmail } from "@/lib/trainer-resource-email";
+import { getTrainerResourceBySlug } from "@/lib/trainer-resources";
 import { createTrainerSchema } from "@/lib/validation";
 
 export type TrainerActionState = {
   error?: string;
   success?: string;
+  fileUrl?: string;
 };
 
 export async function createTrainerAction(
@@ -43,4 +46,34 @@ export async function createTrainerAction(
   revalidatePath("/trainers");
   revalidatePath("/sessions");
   return { success: "Formateur cree." };
+}
+
+export async function sendTrainerResourceEmailAction(
+  _: TrainerActionState,
+  formData: FormData
+): Promise<TrainerActionState> {
+  const trainerId = formData.get("trainerId")?.toString().trim();
+  const resourceSlug = formData.get("resourceSlug")?.toString().trim();
+
+  if (!trainerId || !resourceSlug) {
+    return { error: "Ressource formateur manquante." };
+  }
+
+  const resource = getTrainerResourceBySlug(resourceSlug);
+
+  if (!resource) {
+    return { error: "Ressource formateur introuvable." };
+  }
+
+  try {
+    const result = await sendTrainerResourceEmail(trainerId, resource.slug);
+    return {
+      success: "Support formateur envoye par email.",
+      fileUrl: result.fileUrl
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Impossible d'envoyer le support formateur."
+    };
+  }
 }

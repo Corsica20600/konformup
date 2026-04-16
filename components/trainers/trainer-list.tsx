@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { SendTrainerResourceButton } from "@/components/trainers/send-trainer-resource-button";
 import type { TrainerOption } from "@/lib/types";
 
 export function TrainerList({ trainers }: { trainers: TrainerOption[] }) {
@@ -17,12 +18,15 @@ export function TrainerList({ trainers }: { trainers: TrainerOption[] }) {
     <div className="grid gap-4">
       {trainers.map((trainer) => (
         <Card key={trainer.id} className="transition hover:-translate-y-0.5 hover:bg-white">
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl font-bold">
-              {trainer.first_name} {trainer.last_name}
-            </h3>
-            <p className="text-sm text-ink/65">{trainer.email || "Email non renseigne"}</p>
-            <p className="text-sm text-ink/55">{trainer.phone || "Telephone non renseigne"}</p>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-bold">
+                {trainer.first_name} {trainer.last_name}
+              </h3>
+              <p className="text-sm text-ink/65">{trainer.email || "Email non renseigne"}</p>
+              <p className="text-sm text-ink/55">{trainer.phone || "Telephone non renseigne"}</p>
+            </div>
+            <SendTrainerResourceButton trainerId={trainer.id} />
           </div>
         </Card>
       ))}
