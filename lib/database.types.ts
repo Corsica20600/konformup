@@ -544,6 +544,91 @@ export type Database = {
           }
         ];
       };
+      invoice_complaints: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          company_id: string;
+          quote_id: string;
+          status: string;
+          severity: string;
+          dissatisfaction_summary: string;
+          complaint_details: string;
+          customer_expectation: string;
+          root_cause: string;
+          corrective_actions: string;
+          preventive_actions: string;
+          follow_up_actions: string;
+          internal_notes: string;
+          send_with_invoice: boolean;
+          sent_with_invoice_at: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          company_id: string;
+          quote_id: string;
+          status?: string;
+          severity?: string;
+          dissatisfaction_summary?: string;
+          complaint_details?: string;
+          customer_expectation?: string;
+          root_cause?: string;
+          corrective_actions?: string;
+          preventive_actions?: string;
+          follow_up_actions?: string;
+          internal_notes?: string;
+          send_with_invoice?: boolean;
+          sent_with_invoice_at?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          company_id?: string;
+          quote_id?: string;
+          status?: string;
+          severity?: string;
+          dissatisfaction_summary?: string;
+          complaint_details?: string;
+          customer_expectation?: string;
+          root_cause?: string;
+          corrective_actions?: string;
+          preventive_actions?: string;
+          follow_up_actions?: string;
+          internal_notes?: string;
+          send_with_invoice?: boolean;
+          sent_with_invoice_at?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invoice_complaints_invoice_id_fkey";
+            columns: ["invoice_id"];
+            referencedRelation: "invoices";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoice_complaints_company_id_fkey";
+            columns: ["company_id"];
+            referencedRelation: "client_companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoice_complaints_quote_id_fkey";
+            columns: ["quote_id"];
+            referencedRelation: "quotes";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       organization_settings: {
         Row: {
           id: string;

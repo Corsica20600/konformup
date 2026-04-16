@@ -138,3 +138,18 @@ export const updateQuoteSchema = z
       path: ["sessionEndDate"]
     }
   );
+
+export const upsertInvoiceComplaintSchema = z.object({
+  invoiceId: z.string().uuid("La facture est introuvable."),
+  status: z.enum(["open", "in_progress", "resolved", "closed"]),
+  severity: z.enum(["low", "medium", "high"]),
+  dissatisfactionSummary: z.string().optional().default(""),
+  complaintDetails: z.string().optional().default(""),
+  customerExpectation: z.string().optional().default(""),
+  rootCause: z.string().optional().default(""),
+  correctiveActions: z.string().optional().default(""),
+  preventiveActions: z.string().optional().default(""),
+  followUpActions: z.string().optional().default(""),
+  internalNotes: z.string().optional().default(""),
+  sendWithInvoice: z.boolean().default(false)
+});

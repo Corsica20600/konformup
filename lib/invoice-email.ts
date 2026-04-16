@@ -1,5 +1,6 @@
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getInvoiceById, type InvoiceDetail } from "@/lib/invoices";
+import { getInvoiceComplaintByInvoiceId, markInvoiceComplaintSentWithInvoice } from "@/lib/invoice-complaints";
 import { getOrganizationSettings } from "@/lib/organization";
 
 function requireEnv(name: string) {
@@ -51,7 +52,14 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
   const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
   const pdfPath = `/api/pdf/invoice/${invoice.id}`;
   const pdf = await fetchExistingPdf(pdfPath);
+  const complaint = await getInvoiceComplaintByInvoiceId(invoice.id);
+  const complaintPdfPath = complaint?.send_with_invoice ? `/api/pdf/complaint/${invoice.id}` : null;
+  const complaintPdf = complaintPdfPath ? await fetchExistingPdf(complaintPdfPath) : null;
   const body = await buildInvoiceEmailBody(invoice);
+  const bodyWithComplaintNote =
+    complaint?.send_with_invoice
+      ? `${body}\n\nUne fiche de reclamation / insatisfaction est jointe a cet envoi pour le suivi qualite.`
+      : body;
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -71,12 +79,20 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
         }
       ],
       subject: buildInvoiceEmailSubject(invoice.invoice_number ?? `FACT-${invoice.id}`),
-      textContent: body,
+      textContent: bodyWithComplaintNote,
       attachment: [
         {
           name: `facture-${invoice.invoice_number ?? invoice.id}.pdf`,
           content: Buffer.from(pdf.buffer).toString("base64")
-        }
+        },
+        ...(complaintPdf
+          ? [
+              {
+                name: `fiche-reclamation-${invoice.invoice_number ?? invoice.id}.pdf`,
+                content: Buffer.from(complaintPdf.buffer).toString("base64")
+              }
+            ]
+          : [])
       ]
     })
   });
@@ -84,6 +100,10 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
   if (!response.ok) {
     const errorText = await response.text().catch(() => "");
     throw new Error(`Brevo a refuse l'envoi de la facture. ${errorText}`.trim());
+  }
+
+  if (complaint?.send_with_invoice) {
+    await markInvoiceComplaintSentWithInvoice(invoice.id);
   }
 
   return {

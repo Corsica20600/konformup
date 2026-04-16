@@ -5,6 +5,7 @@ import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import { formatCurrency, formatDate, formatDateRange, formatDurationHours, formatPercent } from "@/lib/utils";
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
+import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 
 const TRAINING_TITLE = "Sauveteur Secouriste du Travail (SST)";
 
@@ -1293,6 +1294,78 @@ export function AttendanceDocument({
           Document interne de suivi de presence. En mode numerique, les confirmations sont horodatees via un lien
           personnel, puis consolidees dans le registre de session.
         </Text>
+      </Page>
+    </Document>
+  );
+}
+
+export function ComplaintDocument({
+  invoice,
+  complaint,
+  organizationSettings
+}: {
+  invoice: InvoiceDetail;
+  complaint: InvoiceComplaint;
+  organizationSettings: OrganizationBranding;
+}) {
+  const lines = [
+    ["Facture", invoice.invoice_number ?? `FACT-${invoice.id}`],
+    ["Societe", invoice.company.company_name],
+    ["Devis", invoice.quote.quote_number],
+    ["Statut", complaint.status],
+    ["Niveau", complaint.severity],
+    ["Envoi avec facture", complaint.send_with_invoice ? "Oui" : "Non"],
+    ["Dernier envoi", complaint.sent_with_invoice_at ? formatDate(complaint.sent_with_invoice_at) : "Non envoye"],
+    ["Date de resolution", complaint.resolved_at ? formatDate(complaint.resolved_at) : "Non renseignee"]
+  ] as const;
+
+  const sections = [
+    ["Synthese de l'insatisfaction", complaint.dissatisfaction_summary],
+    ["Reclamation detaillee", complaint.complaint_details],
+    ["Attente du client", complaint.customer_expectation],
+    ["Analyse / cause racine", complaint.root_cause],
+    ["Mesures correctives", complaint.corrective_actions],
+    ["Mesures preventives", complaint.preventive_actions],
+    ["Suivi / verification d'efficacite", complaint.follow_up_actions],
+    ["Notes internes", complaint.internal_notes]
+  ] as const;
+
+  return (
+    <Document>
+      <Page size="A4" style={shared.page}>
+        <View style={attendanceStyles.header}>
+          <View>
+            <Text style={shared.title}>Fiche de reclamation / insatisfaction</Text>
+            <Text style={shared.subtitle}>
+              {invoice.quote.title} • {invoice.company.company_name}
+            </Text>
+          </View>
+          {organizationSettings.resolved_logo_url ? (
+            <Image src={organizationSettings.resolved_logo_url} style={attendanceStyles.logo} />
+          ) : null}
+        </View>
+
+        <View style={attendanceStyles.summaryCard}>
+          <OrganizationIdentityBlock organizationSettings={organizationSettings} align="left" />
+          <View style={attendanceStyles.summaryGrid}>
+            {lines.map(([label, value]) => (
+              <Text key={label} style={attendanceStyles.summaryChip}>
+                {label} : {value}
+              </Text>
+            ))}
+          </View>
+        </View>
+
+        <View style={shared.section}>
+          {sections.map(([title, content]) => (
+            <View key={title} style={{ marginBottom: 12 }}>
+              <Text style={shared.strong}>{title}</Text>
+              <Text style={[shared.label, { marginTop: 4, color: "#1d2a24", lineHeight: 1.45 }]}>
+                {content?.trim() ? content : "Non renseigne."}
+              </Text>
+            </View>
+          ))}
+        </View>
       </Page>
     </Document>
   );

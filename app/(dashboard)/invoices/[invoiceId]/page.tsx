@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { InvoiceActions } from "@/components/invoices/invoice-actions";
+import { InvoiceComplaintForm } from "@/components/invoices/invoice-complaint-form";
 import { Card } from "@/components/ui/card";
 import { getInvoiceById, InvoiceError } from "@/lib/invoices";
+import { getInvoiceComplaintByInvoiceId } from "@/lib/invoice-complaints";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +17,10 @@ export default async function InvoiceDetailPage({
   const { invoiceId } = await params;
 
   try {
-    const invoice = await getInvoiceById(invoiceId);
+    const [invoice, complaint] = await Promise.all([
+      getInvoiceById(invoiceId),
+      getInvoiceComplaintByInvoiceId(invoiceId)
+    ]);
 
     return (
       <main className="grid gap-4">
@@ -38,6 +44,30 @@ export default async function InvoiceDetailPage({
             <p>Montant TVA : {invoice.tax_amount.toFixed(2)} EUR</p>
             <p className="md:col-span-2">Montant TTC : {invoice.total_ttc.toFixed(2)} EUR</p>
           </div>
+        </Card>
+
+        <Card>
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Suivi client</p>
+              <h3 className="mt-2 text-2xl font-bold">Reclamation et mesures correctives</h3>
+              <p className="mt-2 text-sm text-ink/65">
+                Fiche interne de gestion d&apos;insatisfaction, avec option d&apos;envoi jointe a la facture.
+              </p>
+            </div>
+            {complaint ? (
+              <Link
+                href={`/api/pdf/complaint/${invoice.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+              >
+                Ouvrir la fiche PDF
+              </Link>
+            ) : null}
+          </div>
+
+          <InvoiceComplaintForm invoiceId={invoice.id} complaint={complaint} />
         </Card>
       </main>
     );
