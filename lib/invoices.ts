@@ -28,11 +28,14 @@ type InvoiceBaseRow = Omit<InvoiceRow, "subtotal" | "tax_rate" | "tax_amount" | 
 type InvoiceCompanyRow = {
   id: string;
   company_name: string;
+  legal_name: string | null;
+  contact_name: string | null;
   contact_email: string | null;
-  address: string | null;
+  contact_phone: string | null;
+  billing_address: string | null;
   postal_code: string | null;
   city: string | null;
-  country: string | null;
+  siret: string | null;
 };
 
 type InvoiceQuoteRow = {
@@ -404,11 +407,14 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
       client_companies (
         id,
         company_name,
+        legal_name,
+        contact_name,
         contact_email,
-        address,
+        contact_phone,
+        billing_address,
         postal_code,
         city,
-        country
+        siret
       ),
       quotes (
         id,
@@ -454,11 +460,14 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         client_companies (
           id,
           company_name,
+          legal_name,
+          contact_name,
           contact_email,
-          address,
+          contact_phone,
+          billing_address,
           postal_code,
           city,
-          country
+          siret
         ),
         quotes (
           id,
@@ -578,7 +587,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
 
   const companySelect = await supabase
     .from("client_companies")
-    .select("id, company_name, contact_email, address, postal_code, city, country")
+    .select("id, company_name, legal_name, contact_name, contact_email, contact_phone, billing_address, postal_code, city, siret")
     .eq("id", invoice.company_id)
     .maybeSingle<InvoiceCompanyRow>();
 

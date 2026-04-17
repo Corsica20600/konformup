@@ -46,9 +46,19 @@ export const defaultOrganizationSettings: OrganizationSettings = {
   address: "Adresse a configurer",
   postal_code: null,
   city: null,
+  country: null,
   siret: null,
   training_declaration_number: null,
   qualiopi_mention: null,
+  legal_form: null,
+  share_capital: null,
+  vat_number: null,
+  contact_email: null,
+  contact_phone: null,
+  payment_terms: null,
+  late_penalty_terms: null,
+  collection_fee_terms: null,
+  vat_exemption_text: null,
   logo_url: DEFAULT_LOGO_PATH,
   signature_url: DEFAULT_SIGNATURE_PATH,
   certificate_signatory_name: null,
@@ -137,6 +147,19 @@ export async function getOrganizationSettings() {
     return defaultOrganizationSettings;
   }
 
+  const record = data as Record<string, unknown>;
+  const getString = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = record[key];
+
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    return null;
+  };
+
   return {
     ...defaultOrganizationSettings,
     id: typeof data.id === "string" ? data.id : undefined,
@@ -154,6 +177,7 @@ export async function getOrganizationSettings() {
       (typeof data.town === "string" && data.town.trim()) ||
       (typeof data.locality === "string" && data.locality.trim()) ||
       null,
+    country: getString("country"),
     siret: (typeof data.siret === "string" && data.siret.trim()) || null,
     training_declaration_number:
       (typeof data.training_declaration_number === "string" && data.training_declaration_number.trim()
@@ -165,6 +189,31 @@ export async function getOrganizationSettings() {
       (typeof data.qualiopi_mention === "string" && data.qualiopi_mention.trim()) ||
       (typeof data.qualiopi_label === "string" && data.qualiopi_label.trim()) ||
       null,
+    legal_form: getString("legal_form", "company_legal_form", "forme_juridique"),
+    share_capital: getString("share_capital", "capital_social", "capital"),
+    vat_number: getString("vat_number", "vat_intracom", "intracom_vat_number", "tva_intracom", "tva_number"),
+    contact_email: getString("contact_email", "email", "billing_email"),
+    contact_phone: getString("contact_phone", "phone", "telephone", "billing_phone"),
+    payment_terms: getString("payment_terms", "invoice_payment_terms", "terms_of_payment", "conditions_reglement"),
+    late_penalty_terms: getString(
+      "late_penalty_terms",
+      "late_payment_penalties",
+      "penalties",
+      "penalites_retard"
+    ),
+    collection_fee_terms: getString(
+      "collection_fee_terms",
+      "collection_fee_notice",
+      "indemnite_recouvrement",
+      "recovery_fee_terms"
+    ),
+    vat_exemption_text: getString(
+      "vat_exemption_text",
+      "vat_exemption_notice",
+      "tva_exemption_text",
+      "tva_exoneration",
+      "tax_exemption_text"
+    ),
     logo_url: normalizeConfiguredAssetUrl(data.logo_url) ?? defaultOrganizationSettings.logo_url,
     signature_url: normalizeConfiguredAssetUrl(data.signature_url) ?? defaultOrganizationSettings.signature_url,
     certificate_signatory_name:

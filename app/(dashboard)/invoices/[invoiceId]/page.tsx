@@ -5,7 +5,7 @@ import { InvoiceComplaintForm } from "@/components/invoices/invoice-complaint-fo
 import { Card } from "@/components/ui/card";
 import { getInvoiceById, InvoiceError } from "@/lib/invoices";
 import { getInvoiceComplaintByInvoiceId } from "@/lib/invoice-complaints";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,7 @@ export default async function InvoiceDetailPage({
       getInvoiceById(invoiceId),
       getInvoiceComplaintByInvoiceId(invoiceId)
     ]);
+    const statusLabel = invoice.status === "sent" ? "Emise" : invoice.status === "draft" ? "En preparation" : invoice.status;
 
     return (
       <main className="grid gap-4">
@@ -39,10 +40,11 @@ export default async function InvoiceDetailPage({
           <div className="mt-6 grid gap-3 text-sm text-ink/75 md:grid-cols-2">
             <p>Reference devis : {invoice.quote.quote_number}</p>
             <p>Objet : {invoice.quote.title}</p>
-            <p>Montant HT : {invoice.subtotal.toFixed(2)} EUR</p>
+            <p>Statut : {statusLabel}</p>
+            <p>Montant HT : {formatCurrency(invoice.subtotal)}</p>
             <p>TVA : {invoice.tax_rate.toFixed(2)} %</p>
-            <p>Montant TVA : {invoice.tax_amount.toFixed(2)} EUR</p>
-            <p className="md:col-span-2">Montant TTC : {invoice.total_ttc.toFixed(2)} EUR</p>
+            <p>Montant TVA : {formatCurrency(invoice.tax_amount)}</p>
+            <p className="md:col-span-2">Montant TTC : {formatCurrency(invoice.total_ttc)}</p>
           </div>
         </Card>
 

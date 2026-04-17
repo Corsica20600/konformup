@@ -35,7 +35,19 @@ export function formatCurrency(value: number | null | undefined) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR"
-  }).format(amount);
+  })
+    .format(amount)
+    .replace(/[\u00A0\u202F]/g, " ");
+}
+
+export function formatDateShort(value: string | null | undefined) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
 }
 
 export function formatPercent(value: number | null | undefined) {

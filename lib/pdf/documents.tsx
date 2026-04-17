@@ -4,7 +4,7 @@ import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import type { TrainingAgreementPdfData } from "@/lib/training-agreements";
-import { formatCurrency, formatDate, formatDateRange, formatDurationHours, formatPercent } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateRange, formatDateShort, formatDurationHours, formatPercent } from "@/lib/utils";
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 
@@ -752,16 +752,21 @@ const invoiceStyles = StyleSheet.create({
   page: {
     backgroundColor: "#fffdf8"
   },
+  topBar: {
+    height: 10,
+    backgroundColor: "#285943",
+    marginBottom: 18
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 24
+    marginBottom: 20
   },
   headerLeft: {
-    maxWidth: 320
+    maxWidth: 300
   },
   headerRight: {
-    maxWidth: 220,
+    maxWidth: 230,
     alignItems: "flex-end"
   },
   logo: {
@@ -774,18 +779,221 @@ const invoiceStyles = StyleSheet.create({
     fontSize: 10,
     textTransform: "uppercase",
     color: "#5b655f",
-    letterSpacing: 1.2,
-    marginBottom: 8
+    letterSpacing: 1.4,
+    marginBottom: 6
   },
   invoiceTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 700,
-    marginBottom: 6
+    marginBottom: 8
   },
   invoiceMeta: {
     fontSize: 10,
     color: "#4e5f57",
     marginBottom: 3
+  },
+  metaCard: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 12
+  },
+  metaGrid: {
+    flexDirection: "row",
+    gap: 10,
+    flexWrap: "wrap"
+  },
+  metaCell: {
+    minWidth: 110,
+    paddingRight: 8
+  },
+  metaLabel: {
+    fontSize: 8.8,
+    textTransform: "uppercase",
+    letterSpacing: 0.9,
+    color: "#5b655f",
+    marginBottom: 4
+  },
+  metaValue: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  sectionRow: {
+    flexDirection: "row",
+    gap: 14,
+    marginTop: 16,
+    marginBottom: 16
+  },
+  card: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    minHeight: 146
+  },
+  cardTitle: {
+    fontSize: 9.5,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#5b655f",
+    marginBottom: 9
+  },
+  cardPrimary: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 4
+  },
+  cardLine: {
+    fontSize: 10,
+    color: "#4e5f57",
+    marginBottom: 3,
+    lineHeight: 1.35
+  },
+  itemsTable: {
+    borderWidth: 1,
+    borderColor: "#d8d0c2",
+    backgroundColor: "#ffffff",
+    marginBottom: 16
+  },
+  itemsHeader: {
+    flexDirection: "row",
+    backgroundColor: "#edf4ef",
+    borderBottomWidth: 1,
+    borderBottomColor: "#d8d0c2",
+    paddingTop: 8,
+    paddingBottom: 8
+  },
+  itemsHeaderText: {
+    fontSize: 8.8,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    color: "#335746"
+  },
+  itemRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ece6da",
+    minHeight: 44,
+    alignItems: "center"
+  },
+  itemRowLast: {
+    borderBottomWidth: 0
+  },
+  designationCol: {
+    width: "48%",
+    paddingTop: 9,
+    paddingRight: 10,
+    paddingBottom: 9,
+    paddingLeft: 12
+  },
+  quantityCol: {
+    width: "12%",
+    paddingTop: 9,
+    paddingRight: 10,
+    paddingBottom: 9,
+    textAlign: "center"
+  },
+  unitCol: {
+    width: "20%",
+    paddingTop: 9,
+    paddingRight: 10,
+    paddingBottom: 9,
+    textAlign: "right"
+  },
+  totalCol: {
+    width: "20%",
+    paddingTop: 9,
+    paddingRight: 12,
+    paddingBottom: 9,
+    textAlign: "right"
+  },
+  itemTitle: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 2
+  },
+  itemDescription: {
+    fontSize: 9.3,
+    color: "#5b655f",
+    lineHeight: 1.35
+  },
+  itemValue: {
+    fontSize: 10.2,
+    color: "#1d2a24"
+  },
+  totalsWrap: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 16
+  },
+  totalsCard: {
+    width: 250,
+    borderWidth: 1,
+    borderColor: "#d8d0c2",
+    backgroundColor: "#ffffff"
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 10,
+    paddingRight: 12,
+    paddingBottom: 10,
+    paddingLeft: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ece6da"
+  },
+  totalRowLast: {
+    borderBottomWidth: 0,
+    backgroundColor: "#edf5f0"
+  },
+  totalLabel: {
+    fontSize: 10.2,
+    color: "#4e5f57"
+  },
+  totalValue: {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "#1d2a24"
+  },
+  totalValueStrong: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#174734"
+  },
+  notesBlock: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14,
+    marginBottom: 14
+  },
+  notesText: {
+    fontSize: 10,
+    color: "#1d2a24",
+    lineHeight: 1.45
+  },
+  footer: {
+    borderWidth: 1,
+    borderColor: "#ddd6c8",
+    backgroundColor: "#ffffff",
+    padding: 14
+  },
+  footerTitle: {
+    fontSize: 9.5,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    color: "#5b655f",
+    marginBottom: 8
+  },
+  footerLine: {
+    fontSize: 9.3,
+    color: "#4e5f57",
+    lineHeight: 1.4,
+    marginBottom: 4
   }
 });
 
@@ -1711,6 +1919,80 @@ function QuoteInfoLine({ value }: { value: string | null | undefined }) {
   return <Text style={quoteStyles.infoLine}>{value}</Text>;
 }
 
+function InvoiceInfoLine({ value }: { value: string | null | undefined }) {
+  if (!value) {
+    return null;
+  }
+
+  return <Text style={invoiceStyles.cardLine}>{value}</Text>;
+}
+
+function normalizeMultilineText(value: string | null | undefined) {
+  return value
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function getClientAddressLines(invoice: InvoiceDetail) {
+  const primaryAddress = normalizeMultilineText(invoice.company.billing_address);
+  const locationLine = [invoice.company.postal_code, invoice.company.city].filter(Boolean).join(" ").trim();
+
+  return [primaryAddress, locationLine].filter(Boolean);
+}
+
+function getOrganizationLegalLines(organizationSettings: OrganizationBranding) {
+  return [
+    organizationSettings.legal_form ? `Forme juridique : ${organizationSettings.legal_form}` : null,
+    organizationSettings.share_capital ? `Capital social : ${organizationSettings.share_capital}` : null,
+    organizationSettings.siret ? `SIRET : ${organizationSettings.siret}` : null,
+    organizationSettings.training_declaration_number
+      ? `NDA : ${formatTrainingDeclarationNumber(organizationSettings.training_declaration_number)}`
+      : null,
+    organizationSettings.vat_number ? `TVA intracommunautaire : ${organizationSettings.vat_number}` : null,
+    organizationSettings.contact_email ? `Email : ${organizationSettings.contact_email}` : null,
+    organizationSettings.contact_phone ? `Telephone : ${organizationSettings.contact_phone}` : null
+  ].filter(Boolean);
+}
+
+function getInvoiceStatusLabel(status: string | null | undefined) {
+  const normalized = status?.trim().toLowerCase();
+
+  if (normalized === "sent") {
+    return "Emise";
+  }
+
+  if (normalized === "paid") {
+    return "Reglee";
+  }
+
+  if (normalized === "overdue") {
+    return "En retard";
+  }
+
+  return null;
+}
+
+function getInvoiceVatNotice(invoice: InvoiceDetail, organizationSettings: OrganizationBranding) {
+  const hasVat = Number(invoice.tax_rate) > 0 && Number(invoice.tax_amount) > 0;
+
+  if (hasVat) {
+    return `TVA applicable au taux de ${formatPercent(invoice.tax_rate)} sur la presente facture.`;
+  }
+
+  if (organizationSettings.vat_exemption_text) {
+    return organizationSettings.vat_exemption_text;
+  }
+
+  if (organizationSettings.training_declaration_number) {
+    return "Exoneration de TVA applicable aux organismes de formation (art. 261-4-4 du CGI).";
+  }
+
+  return "TVA non applicable.";
+}
+
 export function QuoteDocument({
   quote,
   organizationSettings
@@ -1810,23 +2092,38 @@ export function InvoiceDocument({
   invoice: InvoiceDetail;
   organizationSettings: OrganizationBranding;
 }) {
-  const companyAddress = [invoice.company.address, invoice.company.postal_code, invoice.company.city, invoice.company.country]
-    .filter(Boolean)
-    .join(" ");
   const issueDate = invoice.issue_date || invoice.created_at;
+  const clientAddressLines = getClientAddressLines(invoice);
+  const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
+  const organizationLegalLines = getOrganizationLegalLines(organizationSettings);
+  const clientName = invoice.company.legal_name || invoice.company.company_name;
+  const clientContact = invoice.company.contact_name;
+  const designation = invoice.quote.title?.trim() || "Prestation de formation";
+  const description = `Facturation liee au devis ${invoice.quote.quote_number}`;
+  const statusLabel = getInvoiceStatusLabel(invoice.status);
+  const paymentTerms =
+    organizationSettings.payment_terms ||
+    (invoice.due_date ? `Paiement a echeance au ${formatDateShort(invoice.due_date)}.` : "Paiement comptant a reception de facture.");
+  const dueDateLabel = invoice.due_date ? `Date limite de paiement : ${formatDateShort(invoice.due_date)}.` : null;
+  const latePenaltyTerms =
+    organizationSettings.late_penalty_terms ||
+    "Penalites de retard exigibles en cas de paiement apres la date d'echeance, selon le taux applicable en vigueur.";
+  const collectionFeeTerms =
+    organizationSettings.collection_fee_terms || "Indemnite forfaitaire pour frais de recouvrement : 40,00 €.";
+  const vatNotice = getInvoiceVatNotice(invoice, organizationSettings);
 
   return (
     <Document>
       <Page size="A4" style={[shared.page, invoiceStyles.page]}>
+        <View style={invoiceStyles.topBar} />
         <View style={invoiceStyles.header}>
           <View style={invoiceStyles.headerLeft}>
             {organizationSettings.resolved_logo_url ? (
               <Image src={organizationSettings.resolved_logo_url} style={invoiceStyles.logo} />
             ) : null}
             <Text style={invoiceStyles.overline}>Facture</Text>
-            <Text style={invoiceStyles.invoiceTitle}>{invoice.invoice_number}</Text>
-            <Text style={invoiceStyles.invoiceMeta}>Date d&apos;emission : {formatDate(issueDate)}</Text>
-            <Text style={invoiceStyles.invoiceMeta}>Reference devis : {invoice.quote.quote_number}</Text>
+            <Text style={invoiceStyles.invoiceTitle}>FACTURE</Text>
+            <Text style={invoiceStyles.invoiceMeta}>Document client</Text>
           </View>
 
           <View style={invoiceStyles.headerRight}>
@@ -1834,43 +2131,110 @@ export function InvoiceDocument({
           </View>
         </View>
 
-        <View style={quoteStyles.twoCols}>
-          <View style={quoteStyles.infoCard}>
-            <Text style={quoteStyles.infoTitle}>Client</Text>
-            <QuoteInfoLine value={invoice.company.company_name} />
-            <QuoteInfoLine value={companyAddress} />
-            <QuoteInfoLine value={invoice.company.contact_email} />
-          </View>
-
-          <View style={quoteStyles.infoCard}>
-            <Text style={quoteStyles.infoTitle}>Facturation</Text>
-            <QuoteInfoLine value={`Statut : ${invoice.status}`} />
-            <QuoteInfoLine value={`Objet : ${invoice.quote.title}`} />
-            <QuoteInfoLine value={invoice.due_date ? `Echeance : ${formatDate(invoice.due_date)}` : null} />
+        <View style={invoiceStyles.metaCard}>
+          <View style={invoiceStyles.metaGrid}>
+            <View style={invoiceStyles.metaCell}>
+              <Text style={invoiceStyles.metaLabel}>Numero</Text>
+              <Text style={invoiceStyles.metaValue}>{invoice.invoice_number || "Facture"}</Text>
+            </View>
+            <View style={invoiceStyles.metaCell}>
+              <Text style={invoiceStyles.metaLabel}>Date d'emission</Text>
+              <Text style={invoiceStyles.metaValue}>{formatDateShort(issueDate)}</Text>
+            </View>
+            <View style={invoiceStyles.metaCell}>
+              <Text style={invoiceStyles.metaLabel}>Reference devis</Text>
+              <Text style={invoiceStyles.metaValue}>{invoice.quote.quote_number}</Text>
+            </View>
+            {statusLabel ? (
+              <View style={invoiceStyles.metaCell}>
+                <Text style={invoiceStyles.metaLabel}>Statut</Text>
+                <Text style={invoiceStyles.metaValue}>{statusLabel}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
-        <View style={quoteStyles.priceTable}>
-          <View style={quoteStyles.priceRow}>
-            <Text style={quoteStyles.priceLabel}>Montant HT</Text>
-            <Text style={quoteStyles.priceValue}>{formatCurrency(invoice.subtotal)}</Text>
+        <View style={invoiceStyles.sectionRow}>
+          <View style={invoiceStyles.card}>
+            <Text style={invoiceStyles.cardTitle}>Emetteur</Text>
+            <Text style={invoiceStyles.cardPrimary}>{organizationSettings.organization_name}</Text>
+            {organizationAddressLines.map((line) => (
+              <InvoiceInfoLine key={line} value={line} />
+            ))}
+            {organizationLegalLines.map((line) => (
+              <InvoiceInfoLine key={line} value={line} />
+            ))}
           </View>
-          <View style={quoteStyles.priceRow}>
-            <Text style={quoteStyles.priceLabel}>TVA ({formatPercent(invoice.tax_rate)})</Text>
-            <Text style={quoteStyles.priceValue}>{formatCurrency(invoice.tax_amount)}</Text>
+
+          <View style={invoiceStyles.card}>
+            <Text style={invoiceStyles.cardTitle}>Client</Text>
+            <Text style={invoiceStyles.cardPrimary}>{clientName}</Text>
+            {invoice.company.legal_name && invoice.company.legal_name !== invoice.company.company_name ? (
+              <InvoiceInfoLine value={invoice.company.company_name} />
+            ) : null}
+            {clientAddressLines.map((line) => (
+              <InvoiceInfoLine key={line} value={line} />
+            ))}
+            <InvoiceInfoLine value={clientContact ? `Contact : ${clientContact}` : null} />
+            <InvoiceInfoLine value={invoice.company.contact_email ? `Email : ${invoice.company.contact_email}` : null} />
+            <InvoiceInfoLine value={invoice.company.contact_phone ? `Telephone : ${invoice.company.contact_phone}` : null} />
+            <InvoiceInfoLine value={invoice.company.siret ? `SIRET : ${invoice.company.siret}` : null} />
           </View>
-          <View style={[quoteStyles.priceRow, quoteStyles.priceRowLast]}>
-            <Text style={quoteStyles.priceLabel}>Total TTC</Text>
-            <Text style={quoteStyles.totalValue}>{formatCurrency(invoice.total_ttc)}</Text>
+        </View>
+
+        <View style={invoiceStyles.itemsTable}>
+          <View style={invoiceStyles.itemsHeader}>
+            <Text style={[invoiceStyles.itemsHeaderText, invoiceStyles.designationCol]}>Designation</Text>
+            <Text style={[invoiceStyles.itemsHeaderText, invoiceStyles.quantityCol]}>Quantite</Text>
+            <Text style={[invoiceStyles.itemsHeaderText, invoiceStyles.unitCol]}>Prix unitaire HT</Text>
+            <Text style={[invoiceStyles.itemsHeaderText, invoiceStyles.totalCol]}>Total HT</Text>
+          </View>
+
+          <View style={[invoiceStyles.itemRow, invoiceStyles.itemRowLast]}>
+            <View style={invoiceStyles.designationCol}>
+              <Text style={invoiceStyles.itemTitle}>{designation}</Text>
+              <Text style={invoiceStyles.itemDescription}>{description}</Text>
+            </View>
+            <Text style={[invoiceStyles.itemValue, invoiceStyles.quantityCol]}>1</Text>
+            <Text style={[invoiceStyles.itemValue, invoiceStyles.unitCol]}>{formatCurrency(invoice.subtotal)}</Text>
+            <Text style={[invoiceStyles.itemValue, invoiceStyles.totalCol]}>{formatCurrency(invoice.subtotal)}</Text>
+          </View>
+        </View>
+
+        <View style={invoiceStyles.totalsWrap}>
+          <View style={invoiceStyles.totalsCard}>
+            <View style={invoiceStyles.totalRow}>
+              <Text style={invoiceStyles.totalLabel}>Total HT</Text>
+              <Text style={invoiceStyles.totalValue}>{formatCurrency(invoice.subtotal)}</Text>
+            </View>
+            <View style={invoiceStyles.totalRow}>
+              <Text style={invoiceStyles.totalLabel}>
+                {Number(invoice.tax_rate) > 0 ? `TVA (${formatPercent(invoice.tax_rate)})` : "TVA"}
+              </Text>
+              <Text style={invoiceStyles.totalValue}>{formatCurrency(invoice.tax_amount)}</Text>
+            </View>
+            <View style={[invoiceStyles.totalRow, invoiceStyles.totalRowLast]}>
+              <Text style={invoiceStyles.totalLabel}>Total TTC</Text>
+              <Text style={invoiceStyles.totalValueStrong}>{formatCurrency(invoice.total_ttc)}</Text>
+            </View>
           </View>
         </View>
 
         {invoice.notes ? (
-          <View style={quoteStyles.notesCard}>
-            <Text style={quoteStyles.infoTitle}>Notes</Text>
-            <Text style={quoteStyles.descriptionText}>{invoice.notes}</Text>
+          <View style={invoiceStyles.notesBlock}>
+            <Text style={invoiceStyles.footerTitle}>Notes</Text>
+            <Text style={invoiceStyles.notesText}>{invoice.notes}</Text>
           </View>
         ) : null}
+
+        <View style={invoiceStyles.footer}>
+          <Text style={invoiceStyles.footerTitle}>Mentions legales et reglement</Text>
+          <Text style={invoiceStyles.footerLine}>{paymentTerms}</Text>
+          {dueDateLabel ? <Text style={invoiceStyles.footerLine}>{dueDateLabel}</Text> : null}
+          <Text style={invoiceStyles.footerLine}>{latePenaltyTerms}</Text>
+          <Text style={invoiceStyles.footerLine}>{collectionFeeTerms}</Text>
+          <Text style={invoiceStyles.footerLine}>{vatNotice}</Text>
+        </View>
       </Page>
     </Document>
   );
