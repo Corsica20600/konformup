@@ -58,3 +58,98 @@ export function formatPercent(value: number | null | undefined) {
 export function initials(firstName?: string | null, lastName?: string | null) {
   return [firstName?.[0], lastName?.[0]].filter(Boolean).join("").toUpperCase() || "?";
 }
+
+function cleanAddressPart(value: string | null | undefined) {
+  const trimmed = value?.replace(/\s+/g, " ").trim();
+  return trimmed ? trimmed : null;
+}
+
+function toDisplayCase(value: string) {
+  return value
+    .toLocaleLowerCase("fr-FR")
+    .replace(/(^|[\s'-])(\p{L})/gu, (_, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase("fr-FR")}`);
+}
+
+function normalizeCountry(value: string | null | undefined) {
+  const country = cleanAddressPart(value);
+
+  if (!country) {
+    return null;
+  }
+
+  const normalized = country.toLocaleLowerCase("fr-FR");
+
+  if (normalized === "fr" || normalized === "france") {
+    return "France";
+  }
+
+  return toDisplayCase(country);
+}
+
+function normalizeCity(value: string | null | undefined) {
+  const city = cleanAddressPart(value);
+  return city ? toDisplayCase(city) : null;
+}
+
+function isFrenchAddress(postalCode: string | null, country: string | null) {
+  if (country === "France") {
+    return true;
+  }
+
+  if (!country && postalCode && /^\d{5}$/.test(postalCode)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function formatAddressLines({
+  address,
+  postalCode,
+  city,
+  country
+}: {
+  address: string | null | undefined;
+  postalCode?: string | null | undefined;
+  city?: string | null | undefined;
+  country?: string | null | undefined;
+}) {
+  const streetLine = cleanAddressPart(address);
+  const normalizedPostalCode = cleanAddressPart(postalCode);
+  const normalizedCity = normalizeCity(city);
+  const normalizedCountry = normalizeCountry(country);
+  const frenchAddress = isFrenchAddress(normalizedPostalCode, normalizedCountry);
+
+  const localityLine = [
+    normalizedPostalCode,
+    normalizedCity ? normalizedCity : null
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (!streetLine && !localityLine && !normalizedCountry) {
+    return [];
+  }
+
+  const lines = [streetLine].filter((line): line is string => Boolean(line));
+
+  if (frenchAddress) {
+    if (localityLine) {
+      lines.push(localityLine);
+    }
+
+    lines.push("France");
+    return Array.from(new Set(lines));
+  }
+
+  const foreignLocality = [localityLine || null, normalizedCountry || null].filter(Boolean).join(" - ").trim();
+
+  if (foreignLocality) {
+    lines.push(foreignLocality);
+  } else if (normalizedCountry) {
+    lines.push(normalizedCountry);
+  }
+
+  return lines;
+}

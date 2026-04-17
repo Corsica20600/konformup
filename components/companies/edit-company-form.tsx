@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateCompanyAction, type CompanyActionState } from "@/app/(dashboard)/companies/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatAddressLines } from "@/lib/utils";
 
 type ClientCompanyRecord = {
   id: string;
@@ -27,6 +28,12 @@ const initialState: CompanyActionState = {};
 export function EditCompanyForm({ company }: { company: ClientCompanyRecord }) {
   const [isEditing, setIsEditing] = useState(false);
   const [state, formAction, pending] = useActionState(updateCompanyAction, initialState);
+  const addressLines = formatAddressLines({
+    address: company.address,
+    postalCode: company.postal_code,
+    city: company.city,
+    country: company.country
+  });
 
   return isEditing ? (
     <form action={formAction} className="grid gap-4 md:grid-cols-2">
@@ -92,7 +99,7 @@ export function EditCompanyForm({ company }: { company: ClientCompanyRecord }) {
 
       <div className="mt-4 space-y-2 text-sm text-ink/65">
         {company.siret ? <p>SIRET : {company.siret}</p> : null}
-        <p>Adresse : {[company.address, company.postal_code, company.city, company.country].filter(Boolean).join(", ") || "Non renseignée"}</p>
+        <p>Adresse : {addressLines.length ? addressLines.join(" • ") : "Non renseignee"}</p>
         <p>
           Contact : {[company.contact_first_name, company.contact_last_name].filter(Boolean).join(" ") || "Non renseigné"}
         </p>

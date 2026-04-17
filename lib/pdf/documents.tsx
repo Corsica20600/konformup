@@ -4,7 +4,15 @@ import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import type { TrainingAgreementPdfData } from "@/lib/training-agreements";
-import { formatCurrency, formatDate, formatDateRange, formatDateShort, formatDurationHours, formatPercent } from "@/lib/utils";
+import {
+  formatAddressLines,
+  formatCurrency,
+  formatDate,
+  formatDateRange,
+  formatDateShort,
+  formatDurationHours,
+  formatPercent
+} from "@/lib/utils";
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 
@@ -1203,29 +1211,12 @@ function DetailRow({
 }
 
 function getOrganizationAddressLines(organizationSettings: OrganizationBranding) {
-  const rawAddress = organizationSettings.address?.trim() || "";
-  const explicitCityLine = [organizationSettings.postal_code, organizationSettings.city].filter(Boolean).join(" ").trim();
-
-  if (explicitCityLine) {
-    return [rawAddress || null, explicitCityLine].filter(Boolean);
-  }
-
-  const normalizedAddress = rawAddress.replace(/\s+/g, " ").trim();
-  const addressMatch = normalizedAddress.match(/^(.*?)(?:,\s*|\s+)(\d{5}\s+.+)$/);
-
-  if (addressMatch) {
-    return [addressMatch[1].trim(), addressMatch[2].trim()].filter(Boolean);
-  }
-
-  const trailingPostalCityMatch = normalizedAddress.match(/^(.*?)(\d{5}\s+.+)$/);
-
-  if (trailingPostalCityMatch) {
-    return [trailingPostalCityMatch[1].trim().replace(/[,-]\s*$/, ""), trailingPostalCityMatch[2].trim()].filter(Boolean);
-  }
-
-  const addressLines = [rawAddress || null].filter(Boolean);
-
-  return addressLines;
+  return formatAddressLines({
+    address: organizationSettings.address,
+    postalCode: organizationSettings.postal_code,
+    city: organizationSettings.city,
+    country: organizationSettings.country
+  });
 }
 
 function OrganizationIdentityBlock({
@@ -1937,10 +1928,11 @@ function normalizeMultilineText(value: string | null | undefined) {
 }
 
 function getClientAddressLines(invoice: InvoiceDetail) {
-  const primaryAddress = normalizeMultilineText(invoice.company.billing_address);
-  const locationLine = [invoice.company.postal_code, invoice.company.city].filter(Boolean).join(" ").trim();
-
-  return [primaryAddress, locationLine].filter(Boolean);
+  return formatAddressLines({
+    address: normalizeMultilineText(invoice.company.billing_address),
+    postalCode: invoice.company.postal_code,
+    city: invoice.company.city
+  });
 }
 
 function getOrganizationLegalLines(organizationSettings: OrganizationBranding) {
@@ -2001,9 +1993,11 @@ export function QuoteDocument({
   organizationSettings: OrganizationBranding;
 }) {
   const vatAmount = computeQuoteVatAmount(quote.price_ht, quote.vat_rate);
-  const companyAddress = [quote.company.billing_address, quote.company.postal_code, quote.company.city]
-    .filter(Boolean)
-    .join(" ");
+  const companyAddressLines = formatAddressLines({
+    address: quote.company.billing_address,
+    postalCode: quote.company.postal_code,
+    city: quote.company.city
+  });
   const sessionLabel = quote.session?.title || "Session non planifiee";
 
   return (
@@ -2032,7 +2026,9 @@ export function QuoteDocument({
             {quote.company.legal_name && quote.company.legal_name !== quote.company.company_name ? (
               <QuoteInfoLine value={quote.company.company_name} />
             ) : null}
-            <QuoteInfoLine value={companyAddress} />
+            {companyAddressLines.map((line) => (
+              <QuoteInfoLine key={line} value={line} />
+            ))}
             <QuoteInfoLine value={quote.company.contact_name} />
             <QuoteInfoLine value={quote.company.contact_email} />
             <QuoteInfoLine value={quote.company.contact_phone} />
@@ -3113,12 +3109,16 @@ export function TrainingAgreementDocument({
   agreement: TrainingAgreementPdfData;
   organizationSettings: OrganizationBranding;
 }) {
-  const companyAddress = [agreement.client.address, agreement.client.postalCode, agreement.client.city]
-    .filter(Boolean)
-    .join(" ");
-  const organizationAddress = [agreement.organization.address, agreement.organization.postalCode, agreement.organization.city]
-    .filter(Boolean)
-    .join(" ");
+  const companyAddressLines = formatAddressLines({
+    address: agreement.client.address,
+    postalCode: agreement.client.postalCode,
+    city: agreement.client.city
+  });
+  const organizationAddressLines = formatAddressLines({
+    address: agreement.organization.address,
+    postalCode: agreement.organization.postalCode,
+    city: agreement.organization.city
+  });
   const generatedDate = formatDate(agreement.generatedAt);
   const participantNames = agreement.training.participants.map((participant) =>
     `${participant.first_name} ${participant.last_name}`.trim()
@@ -3155,7 +3155,11 @@ export function TrainingAgreementDocument({
           <View style={[trainingAgreementStyles.block, trainingAgreementStyles.splitCol]}>
             <Text style={trainingAgreementStyles.blockTitle}>Organisme de formation</Text>
             <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>{agreement.organization.name}</Text>
-            <Text style={trainingAgreementStyles.line}>{organizationAddress}</Text>
+            {organizationAddressLines.map((line) => (
+              <Text key={line} style={trainingAgreementStyles.line}>
+                {line}
+              </Text>
+            ))}
             <Text style={trainingAgreementStyles.line}>Email : {agreement.organization.email || "A renseigner"}</Text>
             <Text style={trainingAgreementStyles.line}>Telephone : {agreement.organization.phone || "A renseigner"}</Text>
             <Text style={trainingAgreementStyles.line}>SIRET : {agreement.organization.siret || "Non renseigne"}</Text>
@@ -3175,7 +3179,15 @@ export function TrainingAgreementDocument({
             {agreement.client.legalName && agreement.client.legalName !== agreement.client.companyName ? (
               <Text style={trainingAgreementStyles.line}>{agreement.client.companyName}</Text>
             ) : null}
-            <Text style={trainingAgreementStyles.line}>{companyAddress || "Adresse a renseigner"}</Text>
+            {companyAddressLines.length ? (
+              companyAddressLines.map((line) => (
+                <Text key={line} style={trainingAgreementStyles.line}>
+                  {line}
+                </Text>
+              ))
+            ) : (
+              <Text style={trainingAgreementStyles.line}>Adresse a renseigner</Text>
+            )}
             <Text style={trainingAgreementStyles.line}>Contact : {agreement.client.contactName || "A confirmer"}</Text>
             <Text style={trainingAgreementStyles.line}>Email : {agreement.client.contactEmail || "A renseigner"}</Text>
             <Text style={trainingAgreementStyles.line}>Telephone : {agreement.client.contactPhone || "A renseigner"}</Text>
