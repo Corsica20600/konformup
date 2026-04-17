@@ -2914,6 +2914,19 @@ const trainingAgreementStyles = StyleSheet.create({
     color: "#4e5f57",
     marginBottom: 3
   },
+  continuationHeader: {
+    marginBottom: 16
+  },
+  continuationTitle: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: "#1d2a24",
+    marginBottom: 4
+  },
+  continuationSubtitle: {
+    fontSize: 10,
+    color: "#5b655f"
+  },
   block: {
     borderWidth: 1,
     borderColor: "#ddd6c8",
@@ -3075,6 +3088,24 @@ function AgreementBullet({ children }: { children: string }) {
   );
 }
 
+function TrainingAgreementContinuationHeader({
+  title,
+  subtitle
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <>
+      <View style={trainingAgreementStyles.topBar} />
+      <View style={trainingAgreementStyles.continuationHeader}>
+        <Text style={trainingAgreementStyles.continuationTitle}>{title}</Text>
+        <Text style={trainingAgreementStyles.continuationSubtitle}>{subtitle}</Text>
+      </View>
+    </>
+  );
+}
+
 export function TrainingAgreementDocument({
   agreement,
   organizationSettings
@@ -3171,6 +3202,11 @@ export function TrainingAgreementDocument({
       </Page>
 
       <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <TrainingAgreementContinuationHeader
+          title="Convention de formation professionnelle"
+          subtitle={`Suite - ${agreement.agreementRef}`}
+        />
+
         <View style={trainingAgreementStyles.block}>
           <Text style={trainingAgreementStyles.clauseTitle}>2. Objectifs de la formation</Text>
           {agreement.training.objectives.map((objective) => (
@@ -3212,6 +3248,11 @@ export function TrainingAgreementDocument({
       </Page>
 
       <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <TrainingAgreementContinuationHeader
+          title="Conditions financieres et participants"
+          subtitle={`Reference - ${agreement.agreementRef}`}
+        />
+
         <View style={trainingAgreementStyles.block}>
           <Text style={trainingAgreementStyles.blockTitle}>Participants concernes</Text>
           {participantNames.length ? (
@@ -3259,13 +3300,20 @@ export function TrainingAgreementDocument({
           <Text style={trainingAgreementStyles.clauseTitle}>8. Conditions d'annulation / report</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.cancellation}</Text>
         </View>
+      </Page>
+
+      <Page size="A4" style={[shared.page, trainingAgreementStyles.page]}>
+        <TrainingAgreementContinuationHeader
+          title="Validation et signatures"
+          subtitle={`Reference - ${agreement.agreementRef}`}
+        />
 
         <View style={trainingAgreementStyles.block}>
           <Text style={trainingAgreementStyles.clauseTitle}>9. Obligations respectives</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.obligations}</Text>
         </View>
 
-        <View style={trainingAgreementStyles.signatureRow}>
+        <View style={trainingAgreementStyles.signatureRow} wrap={false}>
           <View style={trainingAgreementStyles.signatureBox}>
             <Text style={trainingAgreementStyles.signatureTitle}>Pour l'organisme de formation</Text>
             <Text style={trainingAgreementStyles.signatureName}>

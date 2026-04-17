@@ -133,6 +133,103 @@ function isLegacySchemaInsertError(error: { message?: string | null; details?: s
   );
 }
 
+function isMissingColumnError(error: { code?: string | null; message?: string | null } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    error.message?.toLowerCase().includes("column") === true
+  );
+}
+
+function normalizeInvoiceCompanyRow(
+  row: Partial<{
+    id: string;
+    company_name: string;
+    legal_name: string | null;
+    contact_name: string | null;
+    contact_first_name: string | null;
+    contact_last_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    billing_address: string | null;
+    address: string | null;
+    postal_code: string | null;
+    city: string | null;
+    siret: string | null;
+  }>
+): InvoiceCompanyRow {
+  const splitContact = (row.contact_name ?? "").trim().split(/\s+/).filter(Boolean);
+  const resolvedContactName =
+    row.contact_name?.trim() ||
+    [row.contact_first_name?.trim(), row.contact_last_name?.trim()].filter(Boolean).join(" ").trim() ||
+    (splitContact.length ? splitContact.join(" ") : null);
+
+  return {
+    id: row.id ?? "",
+    company_name: row.company_name ?? "Societe",
+    legal_name: row.legal_name ?? null,
+    contact_name: resolvedContactName || null,
+    contact_email: row.contact_email ?? null,
+    contact_phone: row.contact_phone ?? null,
+    billing_address: row.billing_address ?? row.address ?? null,
+    postal_code: row.postal_code ?? null,
+    city: row.city ?? null,
+    siret: row.siret ?? null
+  };
+}
+
+async function selectInvoiceCompanyById(companyId: string): Promise<InvoiceCompanyRow | null> {
+  const supabase = await createClient();
+
+  const primary = await supabase
+    .from("client_companies")
+    .select(
+      "id, company_name, legal_name, contact_name, contact_email, contact_phone, billing_address, postal_code, city, siret"
+    )
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (!primary.error) {
+    return primary.data ? normalizeInvoiceCompanyRow(primary.data) : null;
+  }
+
+  if (!isMissingColumnError(primary.error)) {
+    throw primary.error;
+  }
+
+  const fallback = await supabase
+    .from("client_companies")
+    .select(
+      "id, company_name, address, postal_code, city, siret, contact_first_name, contact_last_name, contact_email, contact_phone"
+    )
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (!fallback.error) {
+    return fallback.data ? normalizeInvoiceCompanyRow(fallback.data) : null;
+  }
+
+  if (!isMissingColumnError(fallback.error)) {
+    throw fallback.error;
+  }
+
+  const legacyFallback = await supabase
+    .from("client_companies")
+    .select("id, company_name, billing_address, postal_code, city, siret, contact_name, contact_email, contact_phone")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (legacyFallback.error) {
+    throw legacyFallback.error;
+  }
+
+  return legacyFallback.data ? normalizeInvoiceCompanyRow(legacyFallback.data) : null;
+}
+
 async function selectInvoiceByQuoteId(quoteId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -404,18 +501,6 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
       notes,
       created_at,
       updated_at,
-      client_companies (
-        id,
-        company_name,
-        legal_name,
-        contact_name,
-        contact_email,
-        contact_phone,
-        billing_address,
-        postal_code,
-        city,
-        siret
-      ),
       quotes (
         id,
         quote_number,
@@ -426,12 +511,11 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
     .eq("id", invoiceId)
     .maybeSingle<
       InvoiceRow & {
-        client_companies: InvoiceCompanyRow | InvoiceCompanyRow[] | null;
         quotes: InvoiceQuoteRow | InvoiceQuoteRow[] | null;
       }
     >();
 
-  let data = modernSelect.data as (InvoiceRow & InvoiceRelations) | null;
+  let data = modernSelect.data as (InvoiceRow & Omit<InvoiceRelations, "client_companies">) | null;
   let error = modernSelect.error;
 
   if (error) {
@@ -457,18 +541,6 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         total_ttc,
         created_at,
         updated_at,
-        client_companies (
-          id,
-          company_name,
-          legal_name,
-          contact_name,
-          contact_email,
-          contact_phone,
-          billing_address,
-          postal_code,
-          city,
-          siret
-        ),
         quotes (
           id,
           quote_number,
@@ -477,9 +549,9 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         )
       `)
       .eq("id", invoiceId)
-      .maybeSingle<LegacyInvoiceRow & InvoiceRelations>();
+      .maybeSingle<LegacyInvoiceRow & Omit<InvoiceRelations, "client_companies">>();
 
-    data = legacySelect.data as unknown as (InvoiceRow & InvoiceRelations) | null;
+    data = legacySelect.data as unknown as (InvoiceRow & Omit<InvoiceRelations, "client_companies">) | null;
     error = legacySelect.error;
 
     if (error) {
@@ -494,8 +566,8 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
   }
 
   if (!error && data) {
-    const company = Array.isArray(data.client_companies) ? data.client_companies[0] : data.client_companies;
     const quote = Array.isArray(data.quotes) ? data.quotes[0] : data.quotes;
+    const company = await selectInvoiceCompanyById(data.company_id);
 
     if (!company || !quote) {
       logInvoiceRead("join-query-incomplete", {
@@ -585,25 +657,24 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
     throw new InvoiceError("Facture introuvable.");
   }
 
-  const companySelect = await supabase
-    .from("client_companies")
-    .select("id, company_name, legal_name, contact_name, contact_email, contact_phone, billing_address, postal_code, city, siret")
-    .eq("id", invoice.company_id)
-    .maybeSingle<InvoiceCompanyRow>();
+  let company: InvoiceCompanyRow | null = null;
 
-  if (companySelect.error) {
+  try {
+    company = await selectInvoiceCompanyById(invoice.company_id);
+  } catch (error) {
+    const companyError = error as { code?: string; message?: string; details?: string; hint?: string };
     logInvoiceRead("company-select-error", {
       invoiceId,
       companyId: invoice.company_id,
-      code: companySelect.error.code,
-      message: companySelect.error.message,
-      details: companySelect.error.details,
-      hint: companySelect.error.hint
+      code: companyError.code,
+      message: companyError.message,
+      details: companyError.details,
+      hint: companyError.hint
     });
-    throw new InvoiceError(`Impossible de charger la societe de la facture: ${companySelect.error.message}`);
+    throw new InvoiceError(`Impossible de charger la societe de la facture: ${companyError.message}`);
   }
 
-  if (!companySelect.data) {
+  if (!company) {
     throw new InvoiceError("Facture chargee mais societe introuvable.");
   }
 
@@ -637,7 +708,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
 
   return {
     ...normalizeInvoiceRow(invoice as InvoiceRow),
-    company: companySelect.data,
+    company,
     quote: quoteSelect.data
   };
 }
