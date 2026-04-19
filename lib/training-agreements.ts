@@ -169,12 +169,49 @@ function buildDepositTerms(notes: string | null | undefined) {
   return null;
 }
 
+async function getTrainerDisplayName(trainerId: string | null | undefined) {
+  const normalizedTrainerId = safeTrim(trainerId);
+
+  if (!normalizedTrainerId) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select("first_name, last_name")
+    .eq("id", normalizedTrainerId)
+    .maybeSingle<{ first_name: string; last_name: string }>();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return [data.first_name, data.last_name].map((value) => value.trim()).filter(Boolean).join(" ") || null;
+}
+
+async function resolveAgreementTrainerName(params: {
+  trainerId?: string | null;
+  trainerName?: string | null;
+}) {
+  const trainerFromRelation = await getTrainerDisplayName(params.trainerId);
+
+  if (trainerFromRelation) {
+    return trainerFromRelation;
+  }
+
+  return safeTrim(params.trainerName) || "Formateur a confirmer";
+}
+
 async function getSessionAgreementContext(quote: QuotePdfData) {
   if (!quote.session?.id) {
     return {
       modules: [] as string[],
       participants: [] as TrainingAgreementParticipant[],
-      trainerName: quote.session?.trainer_name || "Formateur a confirmer",
+      trainerName: await resolveAgreementTrainerName({
+        trainerId: quote.session?.trainer_id,
+        trainerName: quote.session?.trainer_name
+      }),
       durationHours: quote.session?.duration_hours ?? null
     };
   }
@@ -195,7 +232,10 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         email: candidateSession.candidate.email,
         company: candidateSession.candidate.company
       })),
-      trainerName: sessionData.session.trainer_name || quote.session?.trainer_name || "Formateur a confirmer",
+      trainerName: await resolveAgreementTrainerName({
+        trainerId: sessionData.session.trainer_id ?? quote.session?.trainer_id,
+        trainerName: sessionData.session.trainer_name || quote.session?.trainer_name
+      }),
       durationHours: sessionData.session.duration_hours ?? quote.session?.duration_hours ?? null
     };
   } catch (error) {
@@ -203,7 +243,10 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
       return {
         modules: [] as string[],
         participants: [] as TrainingAgreementParticipant[],
-        trainerName: quote.session?.trainer_name || "Formateur a confirmer",
+        trainerName: await resolveAgreementTrainerName({
+          trainerId: quote.session?.trainer_id,
+          trainerName: quote.session?.trainer_name
+        }),
         durationHours: quote.session?.duration_hours ?? null
       };
     }
@@ -275,8 +318,11 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
 export async function buildTrainingAgreementPdfData(quoteId: string, agreementRef?: string): Promise<TrainingAgreementPdfData> {
   const [quote, organizationSettings] = await Promise.all([getQuoteById(quoteId), getOrganizationSettings()]);
   const sessionContext = await getSessionAgreementContext(quote);
-  const organizationEmail = safeTrim(process.env.ORGANIZATION_EMAIL) || safeTrim(process.env.BREVO_SENDER_EMAIL);
-  const organizationPhone = safeTrim(process.env.ORGANIZATION_PHONE);
+  const organizationEmail =
+    safeTrim(organizationSettings.contact_email) ||
+    safeTrim(process.env.ORGANIZATION_EMAIL) ||
+    safeTrim(process.env.BREVO_SENDER_EMAIL);
+  const organizationPhone = safeTrim(organizationSettings.contact_phone) || safeTrim(process.env.ORGANIZATION_PHONE);
   const representativeName =
     safeTrim(organizationSettings.certificate_signatory_name) || safeTrim(process.env.ORGANIZATION_REPRESENTATIVE_NAME);
   const representativeTitle =

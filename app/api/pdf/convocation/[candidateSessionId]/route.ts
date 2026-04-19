@@ -34,6 +34,7 @@ export async function GET(request: Request, context: { params: Promise<{ candida
           end_date,
           location,
           status,
+          trainer_id,
           trainer_user_id,
           trainer_name,
           duration_hours,
@@ -61,6 +62,21 @@ export async function GET(request: Request, context: { params: Promise<{ candida
 
   if (!session) {
     return NextResponse.json({ message: "Session introuvable." }, { status: 404 });
+  }
+
+  if (!session.trainer_name && session.trainer_id) {
+    const { data: trainer } = await supabase
+      .from("trainers")
+      .select("first_name, last_name")
+      .eq("id", session.trainer_id)
+      .maybeSingle<{ first_name: string; last_name: string }>();
+
+    if (trainer) {
+      session.trainer_name = [trainer.first_name, trainer.last_name]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(" ");
+    }
   }
 
   const candidateSession: SessionCandidate = {

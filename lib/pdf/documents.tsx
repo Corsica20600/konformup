@@ -2932,11 +2932,16 @@ const trainingAgreementStyles = StyleSheet.create({
   },
   split: {
     flexDirection: "row",
-    gap: 14,
     marginBottom: 14
   },
   splitCol: {
     flex: 1
+  },
+  splitColFirst: {
+    marginRight: 7
+  },
+  splitColLast: {
+    marginLeft: 7
   },
   blockTitle: {
     fontSize: 10,
@@ -3033,7 +3038,6 @@ const trainingAgreementStyles = StyleSheet.create({
   },
   signatureRow: {
     flexDirection: "row",
-    gap: 14,
     marginTop: 6
   },
   signatureBox: {
@@ -3043,6 +3047,12 @@ const trainingAgreementStyles = StyleSheet.create({
     backgroundColor: "#ffffff",
     padding: 14,
     minHeight: 120
+  },
+  signatureBoxFirst: {
+    marginRight: 7
+  },
+  signatureBoxLast: {
+    marginLeft: 7
   },
   signatureTitle: {
     fontSize: 10,
@@ -3152,7 +3162,13 @@ export function TrainingAgreementDocument({
         ) : null}
 
         <View style={trainingAgreementStyles.split}>
-          <View style={[trainingAgreementStyles.block, trainingAgreementStyles.splitCol]}>
+          <View
+            style={[
+              trainingAgreementStyles.block,
+              trainingAgreementStyles.splitCol,
+              trainingAgreementStyles.splitColFirst
+            ]}
+          >
             <Text style={trainingAgreementStyles.blockTitle}>Organisme de formation</Text>
             <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>{agreement.organization.name}</Text>
             {organizationAddressLines.map((line) => (
@@ -3171,7 +3187,13 @@ export function TrainingAgreementDocument({
             </Text>
           </View>
 
-          <View style={[trainingAgreementStyles.block, trainingAgreementStyles.splitCol]}>
+          <View
+            style={[
+              trainingAgreementStyles.block,
+              trainingAgreementStyles.splitCol,
+              trainingAgreementStyles.splitColLast
+            ]}
+          >
             <Text style={trainingAgreementStyles.blockTitle}>Entreprise cliente</Text>
             <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>
               {agreement.client.legalName || agreement.client.companyName}
@@ -3326,7 +3348,7 @@ export function TrainingAgreementDocument({
         </View>
 
         <View style={trainingAgreementStyles.signatureRow} wrap={false}>
-          <View style={trainingAgreementStyles.signatureBox}>
+          <View style={[trainingAgreementStyles.signatureBox, trainingAgreementStyles.signatureBoxFirst]}>
             <Text style={trainingAgreementStyles.signatureTitle}>Pour l'organisme de formation</Text>
             <Text style={trainingAgreementStyles.signatureName}>
               {agreement.organization.representativeName || agreement.organization.name}
@@ -3339,7 +3361,7 @@ export function TrainingAgreementDocument({
             </View>
           </View>
 
-          <View style={trainingAgreementStyles.signatureBox}>
+          <View style={[trainingAgreementStyles.signatureBox, trainingAgreementStyles.signatureBoxLast]}>
             <Text style={trainingAgreementStyles.signatureTitle}>Pour l'entreprise cliente</Text>
             <Text style={trainingAgreementStyles.signatureName}>
               {agreement.client.contactName || agreement.client.companyName}

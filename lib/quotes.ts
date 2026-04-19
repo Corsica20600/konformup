@@ -48,6 +48,7 @@ type QuoteSessionRow = {
   start_date: string;
   end_date: string;
   location: string;
+  trainer_id: string | null;
   trainer_name: string | null;
   duration_hours: number | null;
 };
@@ -131,7 +132,7 @@ async function selectSessionForQuote(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, trainer_name, duration_hours")
+    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours")
     .eq("id", sessionId)
     .maybeSingle<QuoteSessionRow>();
 
@@ -141,7 +142,7 @@ async function selectSessionForQuote(sessionId: string) {
 
   const fallback = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, trainer_name, duration_hours")
+    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours")
     .eq("id", sessionId)
     .maybeSingle();
 
