@@ -203,8 +203,61 @@ async function resolveAgreementTrainerName(params: {
   return safeTrim(params.trainerName) || "Formateur a confirmer";
 }
 
+async function resolveAgreementSessionId(quote: QuotePdfData) {
+  if (quote.session?.id) {
+    return quote.session.id;
+  }
+
+  const supabase = await createClient();
+
+  const bySourceQuote = await supabase
+    .from("training_sessions")
+    .select("id")
+    .eq("source_quote_id", quote.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (bySourceQuote.data?.id) {
+    return bySourceQuote.data.id;
+  }
+
+  const hasDateRange = Boolean(quote.session_start_date && quote.session_end_date);
+  const hasLocation = Boolean(safeTrim(quote.location));
+
+  if (!hasDateRange && !hasLocation) {
+    return null;
+  }
+
+  let query = supabase
+    .from("training_sessions")
+    .select("id, source_quote_id, start_date, end_date, location, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (quote.session_start_date) {
+    query = query.eq("start_date", quote.session_start_date);
+  }
+
+  if (quote.session_end_date) {
+    query = query.eq("end_date", quote.session_end_date);
+  }
+
+  const normalizedLocation = safeTrim(quote.location);
+
+  if (normalizedLocation) {
+    query = query.eq("location", normalizedLocation);
+  }
+
+  const { data } = await query;
+
+  return data?.[0]?.id ?? null;
+}
+
 async function getSessionAgreementContext(quote: QuotePdfData) {
-  if (!quote.session?.id) {
+  const resolvedSessionId = await resolveAgreementSessionId(quote);
+
+  if (!resolvedSessionId) {
     return {
       modules: [] as string[],
       participants: [] as TrainingAgreementParticipant[],
@@ -217,7 +270,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
   }
 
   try {
-    const sessionData = await getSessionById(quote.session.id);
+    const sessionData = await getSessionById(resolvedSessionId);
     const companyParticipants = sessionData.candidates.filter(
       (candidateSession) => candidateSession.candidate.company_id === quote.company.id
     );
