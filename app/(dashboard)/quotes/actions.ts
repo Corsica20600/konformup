@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireUser } from "@/lib/auth";
 import { createInvoiceFromQuote, InvoiceError } from "@/lib/invoices";
 import { sendQuoteEmail } from "@/lib/quote-email";
@@ -38,6 +39,7 @@ export async function updateQuoteAction(
     sessionStartDate: formData.get("sessionStartDate"),
     sessionEndDate: formData.get("sessionEndDate"),
     location: formData.get("location"),
+    trainerName: formData.get("trainerName"),
     priceHt: formData.get("priceHt"),
     vatRate: formData.get("vatRate"),
     notes: formData.get("notes")
@@ -161,6 +163,10 @@ export async function createSessionFromQuoteAction(
 
     redirect(`/sessions/${session.id}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     if (error instanceof Error) {
       return { error: error.message };
     }

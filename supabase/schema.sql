@@ -228,6 +228,7 @@ create table if not exists public.quotes (
   session_start_date date,
   session_end_date date,
   location text,
+  trainer_name text,
   price_ht numeric(10,2) not null,
   vat_rate numeric(5,2) not null default 20,
   total_ttc numeric(10,2) generated always as (round((price_ht * (1 + (vat_rate / 100)))::numeric, 2)) stored,
@@ -245,6 +246,9 @@ create table if not exists public.quotes (
     or session_end_date >= session_start_date
   )
 );
+
+alter table public.quotes
+  add column if not exists trainer_name text;
 
 create table if not exists public.invoices (
   id uuid primary key default gen_random_uuid(),

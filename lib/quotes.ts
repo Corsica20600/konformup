@@ -24,6 +24,7 @@ type CreateQuoteInput = {
   title: string;
   description: string;
   candidateCount: number;
+  trainerName?: string;
   priceHt: number;
   vatRate: number;
   notes: string;
@@ -353,6 +354,7 @@ async function insertQuote({
   title,
   description,
   candidateCount,
+  trainerName,
   priceHt,
   vatRate,
   notes
@@ -377,6 +379,7 @@ async function insertQuote({
       session_start_date: session?.start_date ?? null,
       session_end_date: session?.end_date ?? null,
       location: session?.location ?? null,
+      trainer_name: session?.trainer_name ?? (trainerName?.trim() || null),
       price_ht: roundCurrency(priceHt),
       vat_rate: roundCurrency(vatRate),
       notes: notes.trim() || null,
@@ -397,7 +400,7 @@ async function selectQuoteById(quoteId: string): Promise<QuoteBaseRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, status, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
+    .select("id, quote_number, status, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -554,6 +557,7 @@ export async function duplicateQuote(quoteId: string) {
       session_start_date: sourceQuote.session_start_date,
       session_end_date: sourceQuote.session_end_date,
       location: sourceQuote.location,
+      trainer_name: sourceQuote.trainer_name,
       price_ht: roundCurrency(sourceQuote.price_ht),
       vat_rate: roundCurrency(sourceQuote.vat_rate),
       notes: sourceQuote.notes,
@@ -714,6 +718,7 @@ export async function updateQuote({
   sessionStartDate,
   sessionEndDate,
   location,
+  trainerName,
   priceHt,
   vatRate,
   notes
@@ -725,6 +730,7 @@ export async function updateQuote({
   sessionStartDate: string;
   sessionEndDate: string;
   location: string;
+  trainerName: string;
   priceHt: number;
   vatRate: number;
   notes: string;
@@ -739,6 +745,7 @@ export async function updateQuote({
       session_start_date: sessionStartDate || null,
       session_end_date: sessionEndDate || null,
       location: location.trim() || null,
+      trainer_name: trainerName.trim() || null,
       price_ht: roundCurrency(priceHt),
       vat_rate: roundCurrency(vatRate),
       notes: notes.trim() || null,
@@ -889,7 +896,7 @@ export async function createSessionFromQuote(quoteId: string, trainerUserId: str
     status: "draft",
     source_quote_id: quote.id,
     trainer_user_id: trainerUserId,
-    trainer_name: null,
+    trainer_name: quote.trainer_name,
     duration_hours: null
   };
 

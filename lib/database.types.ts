@@ -420,6 +420,7 @@ export type Database = {
           session_start_date: string | null;
           session_end_date: string | null;
           location: string | null;
+          trainer_name: string | null;
           price_ht: number;
           vat_rate: number;
           total_ttc: number;
@@ -439,6 +440,7 @@ export type Database = {
           session_start_date?: string | null;
           session_end_date?: string | null;
           location?: string | null;
+          trainer_name?: string | null;
           price_ht: number;
           vat_rate?: number;
           total_ttc?: number;
@@ -458,6 +460,7 @@ export type Database = {
           session_start_date?: string | null;
           session_end_date?: string | null;
           location?: string | null;
+          trainer_name?: string | null;
           price_ht?: number;
           vat_rate?: number;
           total_ttc?: number;

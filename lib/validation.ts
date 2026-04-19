@@ -121,6 +121,7 @@ export const updateQuoteSchema = z
     sessionStartDate: z.string().optional().default(""),
     sessionEndDate: z.string().optional().default(""),
     location: z.string().optional().default(""),
+    trainerName: z.string().optional().default(""),
     priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
     vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
     notes: z.string().optional().default("")

@@ -304,6 +304,7 @@ export function EditQuoteForm({
           required
         />
         <Input label="Lieu" name="location" defaultValue={quote.location ?? ""} />
+        <Input label="Formateur" name="trainerName" defaultValue={quote.trainer_name ?? ""} />
         <Input label="Date de debut" name="sessionStartDate" type="date" defaultValue={quote.session_start_date ?? ""} />
         <Input label="Date de fin" name="sessionEndDate" type="date" defaultValue={quote.session_end_date ?? ""} />
         <Input

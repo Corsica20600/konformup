@@ -263,7 +263,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
       participants: [] as TrainingAgreementParticipant[],
       trainerName: await resolveAgreementTrainerName({
         trainerId: quote.session?.trainer_id,
-        trainerName: quote.session?.trainer_name
+        trainerName: quote.session?.trainer_name || quote.trainer_name
       }),
       durationHours: quote.session?.duration_hours ?? null
     };
@@ -287,7 +287,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
       })),
       trainerName: await resolveAgreementTrainerName({
         trainerId: sessionData.session.trainer_id ?? quote.session?.trainer_id,
-        trainerName: sessionData.session.trainer_name || quote.session?.trainer_name
+        trainerName: sessionData.session.trainer_name || quote.session?.trainer_name || quote.trainer_name
       }),
       durationHours: sessionData.session.duration_hours ?? quote.session?.duration_hours ?? null
     };
@@ -298,7 +298,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         participants: [] as TrainingAgreementParticipant[],
         trainerName: await resolveAgreementTrainerName({
           trainerId: quote.session?.trainer_id,
-          trainerName: quote.session?.trainer_name
+          trainerName: quote.session?.trainer_name || quote.trainer_name
         }),
         durationHours: quote.session?.duration_hours ?? null
       };
