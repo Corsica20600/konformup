@@ -5,6 +5,7 @@ import { ConvocationDocument } from "@/lib/pdf/documents";
 import { getOrganizationBranding } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionCandidate, SessionItem } from "@/lib/types";
+import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
 
 export const runtime = "nodejs";
 
@@ -102,10 +103,16 @@ export async function GET(request: Request, context: { params: Promise<{ candida
   };
 
   const organizationSettings = await getOrganizationBranding(origin);
+  const welcomePack = await ensureWelcomePackDocument({
+    sessionId: session.id,
+    candidateId: candidateRow.id
+  });
+  const welcomePackUrl = welcomePack.file_url ? new URL(welcomePack.file_url, origin).toString() : null;
   const document = createElement(ConvocationDocument as never, {
     session,
     candidateSession,
-    organizationSettings
+    organizationSettings,
+    welcomePackUrl
   });
   const buffer = await renderToBuffer(document as never);
 

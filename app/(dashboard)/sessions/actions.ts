@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { createCandidateSchema, createQuoteSchema, createSessionSchema, updateCandidateSchema, updateSessionSchema } from "@/lib/validation";
+import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
 
 export type ActionState = {
   error?: string;
@@ -204,24 +205,35 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
   const supabase = await createClient();
   const companyLabel = await resolveCandidateCompanyLabel(parsed.data.companyId || null, parsed.data.company || null);
 
-  const { error: candidateInsertError } = await supabase.from("candidates").insert({
-    session_id: parsed.data.sessionId || null,
-    company_id: parsed.data.companyId || null,
-    first_name: parsed.data.firstName,
-    last_name: parsed.data.lastName,
-    email: parsed.data.email || null,
-    company: companyLabel,
-    phone: parsed.data.phone || null,
-    job_title: parsed.data.jobTitle || null,
-    address: parsed.data.address || null,
-    postal_code: parsed.data.postalCode || null,
-    city: parsed.data.city || null,
-    validation_status: parsed.data.validationStatus,
-    validated_at: parsed.data.validationStatus === "validated" ? new Date().toISOString() : null
-  });
+  const { data: candidate, error: candidateInsertError } = await supabase
+    .from("candidates")
+    .insert({
+      session_id: parsed.data.sessionId || null,
+      company_id: parsed.data.companyId || null,
+      first_name: parsed.data.firstName,
+      last_name: parsed.data.lastName,
+      email: parsed.data.email || null,
+      company: companyLabel,
+      phone: parsed.data.phone || null,
+      job_title: parsed.data.jobTitle || null,
+      address: parsed.data.address || null,
+      postal_code: parsed.data.postalCode || null,
+      city: parsed.data.city || null,
+      validation_status: parsed.data.validationStatus,
+      validated_at: parsed.data.validationStatus === "validated" ? new Date().toISOString() : null
+    })
+    .select("id, session_id")
+    .maybeSingle<{ id: string; session_id: string | null }>();
 
   if (candidateInsertError) {
     return { error: "Impossible d'ajouter le candidat à la session." };
+  }
+
+  if (candidate?.id && candidate.session_id) {
+    await ensureWelcomePackDocument({
+      sessionId: candidate.session_id,
+      candidateId: candidate.id
+    });
   }
 
   if (parsed.data.sessionId) {
@@ -275,6 +287,13 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
 
   if (error) {
     return { error: "Impossible de mettre à jour le candidat." };
+  }
+
+  if (parsed.data.sessionId) {
+    await ensureWelcomePackDocument({
+      sessionId: parsed.data.sessionId,
+      candidateId: parsed.data.candidateId
+    });
   }
 
   if (parsed.data.sessionId) {
@@ -821,11 +840,25 @@ export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, fo
     return { success: "Tous les candidats de la societe sont deja rattaches a cette session." };
   }
 
-  const { error: insertError } = await supabase.from("candidates").insert(candidatesToInsert);
+  const { data: insertedCandidates, error: insertError } = await supabase
+    .from("candidates")
+    .insert(candidatesToInsert)
+    .select("id, session_id");
 
   if (insertError) {
     return { error: "Impossible de pre-remplir les candidats de la societe." };
   }
+
+  await Promise.all(
+    (insertedCandidates ?? []).map((candidate) =>
+      candidate.session_id
+        ? ensureWelcomePackDocument({
+            sessionId: candidate.session_id,
+            candidateId: candidate.id
+          })
+        : Promise.resolve(null)
+    )
+  );
 
   revalidatePath(`/sessions/${session.id}`);
   revalidatePath(`/quotes/${quote.id}`);

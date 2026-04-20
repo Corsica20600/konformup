@@ -31,6 +31,7 @@ export default async function CandidateDetailPage({
   }
 
   const { candidate, session, documents } = candidateDashboard;
+  const welcomePack = documents.find((document) => document.document_type === "welcome_pack") ?? null;
   const candidateSession: SessionCandidate = {
     id: candidate.id,
     session_id: candidate.session_id ?? "",
@@ -77,6 +78,24 @@ export default async function CandidateDetailPage({
           <div className="flex flex-wrap gap-2">
             {session ? (
               <>
+                {welcomePack?.file_url ? (
+                  <>
+                    <Link
+                      href={welcomePack.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                    >
+                      Voir livret
+                    </Link>
+                    <Link
+                      href={`/api/documents/generated/${welcomePack.id}?download=1`}
+                      className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                    >
+                      Télécharger
+                    </Link>
+                  </>
+                ) : null}
                 <SendCandidateSessionDocumentsButton
                   candidateId={candidate.id}
                   sessionId={session.id}

@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Image, Link as PdfLink, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
@@ -1796,11 +1796,13 @@ export function CertificateDocument({
 export function ConvocationDocument({
   session,
   candidateSession,
-  organizationSettings
+  organizationSettings,
+  welcomePackUrl
 }: {
   session: SessionItem;
   candidateSession: SessionCandidate;
   organizationSettings: OrganizationBranding;
+  welcomePackUrl?: string | null;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
   const addressLine = [session.location, session.start_date ? formatDateRange(session.start_date, session.end_date) : null]
@@ -1847,6 +1849,15 @@ export function ConvocationDocument({
             <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
               Le programme pedagogique detaille de la formation est joint aux pages suivantes.
             </Text>
+            {welcomePackUrl ? (
+              <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
+                Livret d&apos;accueil et reglement interieur :
+                {" "}
+                <PdfLink src={welcomePackUrl} style={{ color: "#285943", textDecoration: "none" }}>
+                  consulter le document
+                </PdfLink>
+              </Text>
+            ) : null}
           </View>
 
           <View style={certificateStyles.footer}>

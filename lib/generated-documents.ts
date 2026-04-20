@@ -14,7 +14,8 @@ export type SupportedGeneratedDocumentType =
   | "invoice"
   | "training_agreement"
   | "programme"
-  | "quote";
+  | "quote"
+  | "welcome_pack";
 export type GeneratedDocumentRow = Database["public"]["Tables"]["generated_documents"]["Row"];
 
 type CreateGeneratedDocumentRecordInput = {
@@ -40,6 +41,8 @@ const DOCUMENT_CONFIG: Record<
   {
     prefix: string;
     buildPath?: (params: { sessionId: string; candidateId: string | null }) => string;
+    storageBucket?: string;
+    buildStoragePath?: (params: { sessionId: string; candidateId: string | null }) => string | null;
     requiresCandidate: boolean;
   }
 > = {
@@ -78,6 +81,14 @@ const DOCUMENT_CONFIG: Record<
   quote: {
     prefix: "DEVIS",
     requiresCandidate: false
+  },
+  welcome_pack: {
+    prefix: "PACK",
+    buildPath: ({ candidateId }) => `/api/pdf/welcome-pack/${candidateId}`,
+    storageBucket: "documents",
+    buildStoragePath: ({ candidateId }) =>
+      candidateId ? `welcome_pack/${candidateId}/livret_reglement.pdf` : null,
+    requiresCandidate: true
   }
 };
 
@@ -503,6 +514,7 @@ export async function createDocument({
           ref: documentRef
         })
       : null;
+    const storageObjectPath = config.buildStoragePath?.({ sessionId, candidateId }) ?? null;
 
     if (!filePath) {
       throw new DocumentGenerationError(
@@ -551,7 +563,9 @@ export async function createDocument({
 
     await persistGeneratedDocumentPdfToStorage({
       documentId: generatedDocument.id,
-      sourcePath: filePath
+      sourcePath: filePath,
+      storageBucket: config.storageBucket,
+      storageObjectPath: storageObjectPath ?? undefined
     });
 
     const supabase = await createClient();

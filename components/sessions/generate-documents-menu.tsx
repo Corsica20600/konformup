@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 const initialState: ActionState = {};
 
 const documentOptions = [
+  { value: "welcome_pack", label: "Livret + reglement" },
   { value: "aide_memoire", label: "Aide memoire SST" },
   { value: "attestation", label: "Attestation" },
   { value: "certificat", label: "Certificat" },

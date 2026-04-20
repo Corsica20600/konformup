@@ -78,6 +78,27 @@ function buildStorageObjectPath(document: GeneratedDocumentStorageRow) {
   return `${basePath}/${fileName}`;
 }
 
+function resolveExistingStorageTarget(metadata: unknown) {
+  if (!isRecordObject(metadata)) {
+    return null;
+  }
+
+  const storage = isRecordObject(metadata.storage) ? metadata.storage : null;
+
+  if (!storage) {
+    return null;
+  }
+
+  const bucket = typeof storage.bucket === "string" && storage.bucket.length > 0 ? storage.bucket : null;
+  const path = typeof storage.path === "string" && storage.path.length > 0 ? storage.path : null;
+
+  if (!bucket || !path) {
+    return null;
+  }
+
+  return { bucket, path };
+}
+
 export function buildGeneratedDocumentDeliveryUrl(documentId: string) {
   return `/api/documents/generated/${documentId}`;
 }
@@ -85,6 +106,8 @@ export function buildGeneratedDocumentDeliveryUrl(documentId: string) {
 export async function persistGeneratedDocumentPdfToStorage(params: {
   documentId: string;
   sourcePath: string;
+  storageBucket?: string;
+  storageObjectPath?: string;
 }) {
   const supabase = await createClient();
   const { data: document, error } = await supabase
@@ -98,9 +121,11 @@ export async function persistGeneratedDocumentPdfToStorage(params: {
   }
 
   const pdf = await fetchExistingPdf(params.sourcePath);
-  const objectPath = buildStorageObjectPath(document);
+  const existingStorageTarget = resolveExistingStorageTarget(document.metadata);
+  const storageBucket = params.storageBucket || existingStorageTarget?.bucket || GENERATED_DOCUMENTS_BUCKET;
+  const objectPath = params.storageObjectPath || existingStorageTarget?.path || buildStorageObjectPath(document);
   const upload = await supabase.storage
-    .from(GENERATED_DOCUMENTS_BUCKET)
+    .from(storageBucket)
     .upload(objectPath, pdf.buffer, {
       contentType: "application/pdf",
       upsert: true
@@ -111,7 +136,7 @@ export async function persistGeneratedDocumentPdfToStorage(params: {
   }
 
   const storageMetadata = {
-    bucket: GENERATED_DOCUMENTS_BUCKET,
+    bucket: storageBucket,
     path: objectPath,
     source_path: params.sourcePath,
     persisted_at: new Date().toISOString()

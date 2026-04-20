@@ -11,6 +11,7 @@ import {
 import { sendInvoiceEmailAction, type InvoiceActionState } from "@/app/(dashboard)/invoices/actions";
 import {
   duplicateQuoteAction,
+  regenerateGeneratedDocumentAction,
   sendCandidateDocumentEmailAction,
   type ActionState,
   updateQuoteStatusAction
@@ -33,6 +34,7 @@ function documentLabel(type: string) {
   if (type === "training_agreement") return "Convention de formation";
   if (type === "programme") return "Programme";
   if (type === "aide_memoire") return "Aide memoire sauveteur secouriste du travail";
+  if (type === "welcome_pack") return "Livret d'accueil + reglement interieur";
   if (type === "attestation") return "Attestation";
   if (type === "certificat") return "Certificat";
   if (type === "convocation") return "Convocation";
@@ -63,6 +65,10 @@ function DocumentRow({
   );
   const [sendCandidateDocumentState, sendCandidateDocumentFormAction, sendCandidateDocumentPending] = useActionState(
     sendCandidateDocumentEmailAction,
+    initialStatusState
+  );
+  const [regenerateState, regenerateFormAction, regeneratePending] = useActionState(
+    regenerateGeneratedDocumentAction,
     initialStatusState
   );
   const [quoteStatusState, quoteStatusFormAction, quoteStatusPending] = useActionState(
@@ -181,6 +187,14 @@ function DocumentRow({
               </Button>
             </form>
           ) : null}
+          {document.file_url && document.document_type !== "aide_memoire" ? (
+            <form action={regenerateFormAction}>
+              <input type="hidden" name="documentId" value={document.id} />
+              <Button type="submit" variant="secondary" disabled={regeneratePending}>
+                {regeneratePending ? "Regeneration..." : "Regenerer"}
+              </Button>
+            </form>
+          ) : null}
           {document.file_url ? (
             <Link
               href={document.file_url}
@@ -247,6 +261,17 @@ function DocumentRow({
           <p>{sendCandidateDocumentState.success}</p>
           {sendCandidateDocumentState.fileUrl ? (
             <Link href={sendCandidateDocumentState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
+              Ouvrir le PDF
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+      {regenerateState.error ? <p className="mt-2 text-sm text-accent">{regenerateState.error}</p> : null}
+      {regenerateState.success ? (
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-pine">
+          <p>{regenerateState.success}</p>
+          {regenerateState.fileUrl ? (
+            <Link href={regenerateState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
               Ouvrir le PDF
             </Link>
           ) : null}

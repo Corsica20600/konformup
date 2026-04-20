@@ -14,6 +14,7 @@ function requireEnv(name: string) {
 
 function buildDocumentLabel(type: string) {
   if (type === "aide_memoire") return "aide memoire SST";
+  if (type === "welcome_pack") return "livret d'accueil et reglement interieur";
   if (type === "attestation") return "attestation de fin de formation";
   if (type === "certificat") return "certificat";
   if (type === "convocation") return "convocation";
@@ -23,6 +24,10 @@ function buildDocumentLabel(type: string) {
 function buildAttachmentName(type: string, ref: string) {
   if (type === "aide_memoire") {
     return "aide-memoire-sauveteur-secouriste-du-travail.pdf";
+  }
+
+  if (type === "welcome_pack") {
+    return "livret_reglement.pdf";
   }
 
   return `${type}-${ref}.pdf`;
