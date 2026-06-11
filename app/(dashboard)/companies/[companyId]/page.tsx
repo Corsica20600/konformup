@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { CompanyQuoteList } from "@/components/companies/company-quote-list";
 import { CreateCompanyCandidateForm } from "@/components/companies/create-company-candidate-form";
 import { DocumentList } from "@/components/documents/document-list";
 import { EditCompanyForm } from "@/components/companies/edit-company-form";
@@ -173,22 +174,8 @@ export default async function CompanyDetailPage({
           <div className="mt-6 grid gap-6 xl:grid-cols-2">
             <div>
               <p className="text-sm font-semibold text-ink">Devis</p>
-              <div className="mt-3 grid gap-3">
-                {quotes.length ? (
-                  quotes.map((quote) => (
-                    <Link key={quote.id} href={`/quotes/${quote.id}`}>
-                      <div className="rounded-2xl border border-ink/10 bg-canvas/60 px-4 py-4 transition hover:bg-white">
-                        <p className="font-semibold text-ink">{quote.quote_number}</p>
-                        <p className="mt-1 text-sm text-ink/65">{quote.title}</p>
-                        <p className="mt-2 text-sm text-ink/55">
-                          Cree le {formatDate(quote.created_at)} • {quote.total_ttc.toFixed(2)} EUR
-                        </p>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-ink/65">Aucun devis pour cette societe.</p>
-                )}
+              <div className="mt-3">
+                <CompanyQuoteList quotes={quotes} invoices={invoices} />
               </div>
             </div>
             <div>

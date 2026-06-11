@@ -194,6 +194,7 @@ export type CompanyQuoteSummary = {
   id: string;
   quote_number: string;
   status: QuoteStatus;
+  session_id: string | null;
   title: string;
   total_ttc: number;
   created_at: string;

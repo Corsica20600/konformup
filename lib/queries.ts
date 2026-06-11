@@ -619,14 +619,14 @@ async function selectQuotesByCompanyId(companyId: string): Promise<CompanyQuoteS
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, status, title, total_ttc, created_at, session_start_date, session_end_date")
+    .select("id, quote_number, status, session_id, title, total_ttc, created_at, session_start_date, session_end_date")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "quotes",
-    query: 'select("id, quote_number, status, title, total_ttc, created_at, session_start_date, session_end_date").eq("company_id", companyId).order("created_at")',
+    query: 'select("id, quote_number, status, session_id, title, total_ttc, created_at, session_start_date, session_end_date").eq("company_id", companyId).order("created_at")',
     error
   });
 
@@ -653,6 +653,7 @@ async function selectQuotesByCompanyId(companyId: string): Promise<CompanyQuoteS
         id: quote.id,
         quote_number: quote.quote_number,
         status: quote.status as QuoteStatus,
+        session_id: null,
         title: quote.quote_number,
         total_ttc: 0,
         created_at: quote.created_at,
