@@ -17,13 +17,20 @@ import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreemen
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { deriveCandidateValidationStatus, deriveEvaluationStatusFromResult } from "@/lib/evaluations";
+import {
+  calculateSessionClosureSummary,
+  getForprevStatusForCandidate,
+  getSessionClosureReadiness
+} from "@/lib/session-closure";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
+import { getSessionById } from "@/lib/queries";
 import {
   createCandidateSchema,
   createQuoteSchema,
   createSessionSchema,
   updateCandidateSchema,
   updateSessionSchema,
+  updateSessionClosureSchema,
   upsertCandidateEvaluationSchema
 } from "@/lib/validation";
 import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
@@ -432,6 +439,76 @@ export async function upsertCandidateEvaluationAction(_: ActionState, formData: 
   return { success: "Évaluation enregistrée." };
 }
 
+export async function updateSessionClosureAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const { profile } = await requireUser();
+  const parsed = updateSessionClosureSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    closureStatus: formData.get("closureStatus"),
+    trainerReport: formData.get("trainerReport"),
+    administrativeObservations: formData.get("administrativeObservations")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  const sessionData = await getSessionById(parsed.data.sessionId);
+  const summary = calculateSessionClosureSummary(sessionData.candidates);
+  const readiness = getSessionClosureReadiness(sessionData.candidates);
+  const closureStatus = parsed.data.closureStatus;
+
+  if (closureStatus === "closed" && !readiness.canClose) {
+    return {
+      error: `Clôture impossible : ${readiness.missingGlobalEvaluationCount} candidat(s) sans résultat global renseigné.`
+    };
+  }
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("training_sessions")
+    .update({
+      closure_status: closureStatus,
+      status: closureStatus === "closed" ? "completed" : sessionData.session.status,
+      closed_at: closureStatus === "closed" ? now : sessionData.session.closed_at,
+      closed_by: closureStatus === "closed" ? profile.id : sessionData.session.closed_by,
+      trainer_report: parsed.data.trainerReport.trim() || null,
+      administrative_observations: parsed.data.administrativeObservations.trim() || null,
+      final_registered_count: summary.registeredCount,
+      final_present_count: summary.presentCount,
+      final_admitted_count: summary.admittedCount,
+      final_not_admitted_count: summary.notAdmittedCount,
+      final_absent_count: summary.absentCount
+    })
+    .eq("id", parsed.data.sessionId)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (error) {
+    return { error: "Impossible de mettre à jour la clôture de session." };
+  }
+
+  await Promise.all(
+    sessionData.candidates.map((candidate) =>
+      supabase
+        .from("candidates")
+        .update({
+          forprev_registration_status: getForprevStatusForCandidate(sessionData.session.training_type, candidate)
+        })
+        .eq("id", candidate.candidate.id)
+        .eq("session_id", parsed.data.sessionId)
+    )
+  );
+
+  revalidatePath(`/sessions/${parsed.data.sessionId}`);
+  revalidatePath("/sessions");
+  revalidatePath("/dashboard");
+
+  return {
+    success: closureStatus === "closed" ? "Session clôturée." : "Session marquée prête à clôturer."
+  };
+}
+
 export async function toggleSessionModuleAction(formData: FormData) {
   await requireUser();
 
@@ -482,12 +559,16 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
   const candidateId = formData.get("candidateId")?.toString();
   const type = formData.get("type")?.toString();
 
-  if (!sessionId || !candidateId || !type) {
+  if (!sessionId || !type) {
     return { error: "Paramètres de génération manquants." };
   }
 
   try {
     if (type === "aide_memoire") {
+      if (!candidateId) {
+        return { error: "Le candidat est requis pour attacher l'aide memoire." };
+      }
+
       const supabase = await createClient();
       const existingDocument = await supabase
         .from("generated_documents")
@@ -532,7 +613,7 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
 
     const document = await createDocument({
       sessionId,
-      candidateId,
+      candidateId: candidateId || null,
       type: type as SupportedGeneratedDocumentType
     });
 

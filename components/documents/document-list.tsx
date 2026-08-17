@@ -18,6 +18,7 @@ import {
 } from "@/app/(dashboard)/sessions/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 import { getQuoteStatusTone, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import type { QuoteStatus } from "@/lib/database.types";
 import type { GeneratedDocumentItem } from "@/lib/types";
@@ -29,17 +30,7 @@ const initialStatusState: ActionState = {};
 const DOCUMENT_QUOTE_STATUS_OPTIONS: QuoteStatus[] = ["draft", "sent", "accepted"];
 
 function documentLabel(type: string) {
-  if (type === "quote") return "Devis";
-  if (type === "invoice") return "Facture";
-  if (type === "training_agreement") return "Convention de formation";
-  if (type === "programme") return "Programme";
-  if (type === "aide_memoire") return "Aide memoire sauveteur secouriste du travail";
-  if (type === "welcome_pack") return "Livret d'accueil + reglement interieur";
-  if (type === "attestation") return "Attestation";
-  if (type === "certificat") return "Certificat";
-  if (type === "convocation") return "Convocation";
-  if (type === "feuille_presence") return "Feuille de présence";
-  return type;
+  return getGeneratedDocumentLabel(type);
 }
 
 function DocumentRow({

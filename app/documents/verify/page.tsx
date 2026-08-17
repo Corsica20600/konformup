@@ -1,5 +1,6 @@
 import { formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
+import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 
 type VerifyPageProps = {
   searchParams: Promise<{
@@ -7,24 +8,7 @@ type VerifyPageProps = {
   }>;
 };
 
-function getCandidateName(document: {
-  candidate: { first_name: string | null; last_name: string | null }[] | null;
-  metadata: unknown;
-}) {
-  const linkedCandidate = Array.isArray(document.candidate) ? document.candidate[0] : null;
-
-  if (linkedCandidate) {
-    return [linkedCandidate.first_name, linkedCandidate.last_name].filter(Boolean).join(" ") || "-";
-  }
-
-  if (document.metadata && typeof document.metadata === "object" && "candidate" in document.metadata) {
-    const candidate = (document.metadata as { candidate?: { first_name?: string | null; last_name?: string | null } })
-      .candidate;
-    return [candidate?.first_name, candidate?.last_name].filter(Boolean).join(" ") || "-";
-  }
-
-  return "-";
-}
+const publicVerifiableDocumentTypes = ["attestation", "certificat", "certificat_realisation"] as const;
 
 export default async function VerifyDocumentPage({ searchParams }: VerifyPageProps) {
   const params = await searchParams;
@@ -34,19 +18,18 @@ export default async function VerifyDocumentPage({ searchParams }: VerifyPagePro
   const { data: document } = ref
     ? await supabase
         .from("generated_documents")
-        .select("document_ref, status, created_at, metadata, candidate:candidates(first_name, last_name)")
+        .select("document_ref, document_type, status, created_at")
         .eq("document_ref", ref)
+        .in("document_type", publicVerifiableDocumentTypes)
         .maybeSingle()
     : { data: null };
-
-  const candidateName = document ? getCandidateName(document) : null;
 
   return (
     <main className="min-h-screen bg-stone-100 px-6 py-12 text-stone-900">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6">
           <p className="text-xs uppercase tracking-[0.35em] text-stone-500">Verification documentaire</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Attestation SST</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Verification d&apos;un document de formation</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
             Controle de reference d&apos;une attestation interne de fin de formation.
           </p>
@@ -61,8 +44,8 @@ export default async function VerifyDocumentPage({ searchParams }: VerifyPagePro
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Candidat</p>
-                  <p className="mt-2 text-xl font-semibold text-stone-900">{candidateName}</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-stone-500">Document</p>
+                  <p className="mt-2 text-xl font-semibold text-stone-900">{getGeneratedDocumentLabel(document.document_type)}</p>
                 </div>
 
                 <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">

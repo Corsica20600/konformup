@@ -6,7 +6,9 @@ import type {
   CandidateEvaluationStatus,
   CandidateEvaluationType,
   CandidateValidationStatus,
+  ForprevRegistrationStatus,
   QuoteStatus,
+  SessionClosureStatus,
   TrainingType
 } from "@/lib/database.types";
 
@@ -38,6 +40,16 @@ export type SessionItem = {
   accessibility_details: string | null;
   mac_previous_certificate_date: string | null;
   mac_previous_certificate_ref: string | null;
+  closure_status: SessionClosureStatus;
+  closed_at: string | null;
+  closed_by: string | null;
+  trainer_report: string | null;
+  administrative_observations: string | null;
+  final_registered_count: number;
+  final_present_count: number;
+  final_admitted_count: number;
+  final_not_admitted_count: number;
+  final_absent_count: number;
   created_at: string;
 };
 
@@ -56,6 +68,10 @@ export type Candidate = {
   city: string | null;
   validation_status: CandidateValidationStatus;
   validated_at: string | null;
+  sst_certificate_ref: string | null;
+  sst_certificate_obtained_at: string | null;
+  sst_certificate_expires_at: string | null;
+  forprev_registration_status: ForprevRegistrationStatus;
 };
 
 export type CandidateEvaluation = {

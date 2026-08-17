@@ -1689,6 +1689,7 @@ export function CertificateDocument({
       : certificateStyles.validationBadgeText;
   const trainerName = session.trainer_name || "Formateur non renseigne";
   const trainingTitle = getSessionTrainingTitle(session);
+  const isSstTraining = session.training_family === "sst";
   const attestationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
   const attestationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
   const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
@@ -1749,15 +1750,16 @@ export function CertificateDocument({
             {globalEvaluation?.trainer_notes ? (
               <Text style={certificateStyles.validationHint}>Notes pedagogiques internes : {globalEvaluation.trainer_notes}</Text>
             ) : null}
-            {candidateSession.candidate.validation_status === "validated" ? (
+            {candidateSession.candidate.validation_status === "validated" && isSstTraining ? (
               <Text style={certificateStyles.validationHint}>
                 Validite indicative : 24 mois, sous reserve d&apos;enregistrement et de delivrance du certificat officiel
                 dans le dispositif applicable.
               </Text>
             ) : null}
             <Text style={certificateStyles.validationHint}>
-              Cette attestation reste un document interne de fin de formation et ne vaut pas certificat officiel SST /
-              FORPREV.
+              {isSstTraining
+                ? "Cette attestation reste un document interne de fin de formation et ne vaut pas certificat officiel SST / FORPREV."
+                : "Cette attestation reste un document interne de fin de formation."}
             </Text>
           </View>
 
@@ -1798,10 +1800,12 @@ export function CertificateDocument({
                 </Text>
               ))}
               <Text style={certificateStyles.legalText}>Formation suivie : {trainingTitle}</Text>
-              <Text style={certificateStyles.legalFootnote}>
-                Cette attestation interne de fin de formation ne se substitue pas au certificat officiel delivre dans le
-                cadre du dispositif SST / FORPREV lorsque celui-ci est applicable.
-              </Text>
+              {isSstTraining ? (
+                <Text style={certificateStyles.legalFootnote}>
+                  Cette attestation interne de fin de formation ne se substitue pas au certificat officiel delivre dans le
+                  cadre du dispositif SST / FORPREV lorsque celui-ci est applicable.
+                </Text>
+              ) : null}
             </View>
 
             <View style={certificateStyles.signatureBlockTransparent}>

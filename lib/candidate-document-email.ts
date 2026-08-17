@@ -1,4 +1,5 @@
 import { fetchExistingPdf } from "@/lib/generated-documents";
+import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 import { getOrganizationSettings } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,12 +14,7 @@ function requireEnv(name: string) {
 }
 
 function buildDocumentLabel(type: string) {
-  if (type === "aide_memoire") return "aide memoire SST";
-  if (type === "welcome_pack") return "livret d'accueil et reglement interieur";
-  if (type === "attestation") return "attestation de fin de formation";
-  if (type === "certificat") return "certificat";
-  if (type === "convocation") return "convocation";
-  return "document";
+  return getGeneratedDocumentLabel(type).toLocaleLowerCase("fr-FR");
 }
 
 function buildAttachmentName(type: string, ref: string) {

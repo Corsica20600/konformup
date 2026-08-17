@@ -7,6 +7,7 @@ import { CandidateEvaluationForm } from "@/components/sessions/candidate-evaluat
 import { GenerateDocumentsMenu } from "@/components/sessions/generate-documents-menu";
 import { SendCandidateSessionDocumentsButton } from "@/components/sessions/send-candidate-session-documents-button";
 import { getGlobalEvaluation, resolveCandidateWorkflowLabel } from "@/lib/evaluations";
+import type { TrainingType } from "@/lib/database.types";
 import type { GeneratedDocumentItem, SessionCandidate } from "@/lib/types";
 import { initials } from "@/lib/utils";
 
@@ -18,10 +19,12 @@ const validationLabel = {
 
 export function SessionCandidateBanner({
   candidateSession,
-  documents
+  documents,
+  trainingType
 }: {
   candidateSession: SessionCandidate;
   documents: GeneratedDocumentItem[];
+  trainingType: TrainingType;
 }) {
   const { candidate } = candidateSession;
   const evaluation = getGlobalEvaluation(candidateSession.evaluations);
@@ -72,7 +75,7 @@ export function SessionCandidateBanner({
             sessionId={candidateSession.session_id}
             disabled={!documents.length}
           />
-          <GenerateDocumentsMenu sessionId={candidateSession.session_id} candidateId={candidate.id} />
+          <GenerateDocumentsMenu sessionId={candidateSession.session_id} candidateId={candidate.id} trainingType={trainingType} />
         </div>
       </div>
 

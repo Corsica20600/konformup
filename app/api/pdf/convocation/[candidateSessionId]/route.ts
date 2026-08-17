@@ -40,6 +40,10 @@ export async function GET(request: Request, context: { params: Promise<{ candida
         phone,
         validation_status,
         validated_at,
+        sst_certificate_ref,
+        sst_certificate_obtained_at,
+        sst_certificate_expires_at,
+        forprev_registration_status,
         created_at,
         training_sessions (
           id,
@@ -120,7 +124,11 @@ export async function GET(request: Request, context: { params: Promise<{ candida
       postal_code: null,
       city: null,
       validation_status: candidateRow.validation_status,
-      validated_at: candidateRow.validated_at
+      validated_at: candidateRow.validated_at,
+      sst_certificate_ref: candidateRow.sst_certificate_ref ?? null,
+      sst_certificate_obtained_at: candidateRow.sst_certificate_obtained_at ?? null,
+      sst_certificate_expires_at: candidateRow.sst_certificate_expires_at ?? null,
+      forprev_registration_status: candidateRow.forprev_registration_status ?? "non_applicable"
     }
   };
 

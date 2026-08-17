@@ -4,6 +4,7 @@ const trainingTypeSchema = z.enum(["sst_initial", "mac_sst", "hygiene"]);
 const candidateEvaluationTypeSchema = z.enum(["theorique", "pratique", "globale"]);
 const candidateEvaluationStatusSchema = z.enum(["non_evalue", "en_cours", "acquis", "non_acquis", "absent"]);
 const candidateEvaluationResultSchema = z.enum(["admis", "non_admis", "absent", "partiel", "non_renseigne"]);
+const sessionClosureStatusSchema = z.enum(["ready", "closed"]);
 
 export const loginSchema = z.object({
   email: z.string().email("Email invalide."),
@@ -103,6 +104,13 @@ export const upsertCandidateEvaluationSchema = z.object({
   result: candidateEvaluationResultSchema.default("non_renseigne"),
   trainerNotes: z.string().optional().default(""),
   evaluatedAt: z.string().optional().default("")
+});
+
+export const updateSessionClosureSchema = z.object({
+  sessionId: z.string().uuid("La session est introuvable."),
+  closureStatus: sessionClosureStatusSchema.default("ready"),
+  trainerReport: z.string().optional().default(""),
+  administrativeObservations: z.string().optional().default("")
 });
 
 export const createCompanySchema = z.object({

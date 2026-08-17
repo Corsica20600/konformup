@@ -57,6 +57,33 @@ type SessionModuleRow = {
     | null;
 };
 
+const SESSION_CLOSURE_SELECT =
+  "closure_status, closed_at, closed_by, trainer_report, administrative_observations, final_registered_count, final_present_count, final_admitted_count, final_not_admitted_count, final_absent_count";
+
+function getDefaultSessionClosureFields() {
+  return {
+    closure_status: "open" as const,
+    closed_at: null,
+    closed_by: null,
+    trainer_report: null,
+    administrative_observations: null,
+    final_registered_count: 0,
+    final_present_count: 0,
+    final_admitted_count: 0,
+    final_not_admitted_count: 0,
+    final_absent_count: 0
+  };
+}
+
+function getDefaultCandidateFinalFields() {
+  return {
+    sst_certificate_ref: null,
+    sst_certificate_obtained_at: null,
+    sst_certificate_expires_at: null,
+    forprev_registration_status: "non_applicable" as const
+  };
+}
+
 export class SessionNotFoundError extends Error {
   constructor(sessionId: string) {
     super(`Session ${sessionId} not found`);
@@ -305,6 +332,10 @@ async function selectCompanyCandidatesByCompanyIdWithFallback(companyId: string)
       city,
       validation_status,
       validated_at,
+      sst_certificate_ref,
+      sst_certificate_obtained_at,
+      sst_certificate_expires_at,
+      forprev_registration_status,
       created_at,
       training_sessions (
         id,
@@ -318,7 +349,7 @@ async function selectCompanyCandidatesByCompanyIdWithFallback(companyId: string)
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "candidates",
-    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, training_sessions(id, title, start_date)").eq("company_id", companyId).order("created_at")',
+    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, final certificate fields, created_at, training_sessions(id, title, start_date)").eq("company_id", companyId).order("created_at")',
     error: primary.error
   });
 
@@ -350,6 +381,7 @@ async function selectCompanyCandidatesByCompanyIdWithFallback(companyId: string)
   return {
     data: (fallback.data ?? []).map((candidate) => ({
       ...candidate,
+      ...getDefaultCandidateFinalFields(),
       training_sessions: null
     })),
     error: fallback.error
@@ -897,13 +929,13 @@ async function selectSessionsWithFallback() {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at")
+    .select(`id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, ${SESSION_CLOSURE_SELECT}, created_at`)
     .order("start_date", { ascending: false });
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at").order("start_date")',
+    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, closure fields, created_at").order("start_date")',
     error: primary.error
   });
 
@@ -935,7 +967,8 @@ async function selectSessionsWithFallback() {
         programme_outline: null,
         accessibility_details: null,
         mac_previous_certificate_date: null,
-        mac_previous_certificate_ref: null
+        mac_previous_certificate_ref: null,
+        ...getDefaultSessionClosureFields()
       })),
       error: fallbackWithTrainer.error
     };
@@ -967,7 +1000,8 @@ async function selectSessionsWithFallback() {
       programme_outline: null,
       accessibility_details: null,
       mac_previous_certificate_date: null,
-      mac_previous_certificate_ref: null
+      mac_previous_certificate_ref: null,
+      ...getDefaultSessionClosureFields()
     })),
     error: fallback.error
   };
@@ -977,14 +1011,14 @@ async function selectSessionByIdWithFallback(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at")
+    .select(`id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, ${SESSION_CLOSURE_SELECT}, created_at`)
     .eq("id", sessionId)
     .maybeSingle<SessionItem>();
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at").eq("id", sessionId).maybeSingle()',
+    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, closure fields, created_at").eq("id", sessionId).maybeSingle()',
     error: primary.error
   });
 
@@ -1018,7 +1052,8 @@ async function selectSessionByIdWithFallback(sessionId: string) {
             programme_outline: null,
             accessibility_details: null,
             mac_previous_certificate_date: null,
-            mac_previous_certificate_ref: null
+            mac_previous_certificate_ref: null,
+            ...getDefaultSessionClosureFields()
           }
         : null,
       error: fallbackWithTrainer.error
@@ -1053,7 +1088,8 @@ async function selectSessionByIdWithFallback(sessionId: string) {
           programme_outline: null,
           accessibility_details: null,
           mac_previous_certificate_date: null,
-          mac_previous_certificate_ref: null
+          mac_previous_certificate_ref: null,
+          ...getDefaultSessionClosureFields()
         }
       : null,
     error: fallback.error
@@ -1205,6 +1241,10 @@ async function selectCandidatesBySessionIdWithFallback(sessionId: string) {
       city,
       validation_status,
       validated_at,
+      sst_certificate_ref,
+      sst_certificate_obtained_at,
+      sst_certificate_expires_at,
+      forprev_registration_status,
       created_at,
       client_companies (
         company_name
@@ -1216,10 +1256,44 @@ async function selectCandidatesBySessionIdWithFallback(sessionId: string) {
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "candidates",
-    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, client_companies(company_name)").eq("session_id", sessionId).order("created_at")',
+    query: 'select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, final certificate fields, created_at, client_companies(company_name)").eq("session_id", sessionId).order("created_at")',
     error: primary.error
   });
-  return primary;
+
+  if (!primary.error) {
+    return primary;
+  }
+
+  if (!isMissingColumnError(primary.error) && primary.error.code !== "42703") {
+    return primary;
+  }
+
+  const fallback = await supabase
+    .from("candidates")
+    .select(
+      "id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, client_companies(company_name)"
+    )
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'fallback select("id, session_id, company_id, first_name, last_name, email, company, phone, job_title, address, postal_code, city, validation_status, validated_at, created_at, client_companies(company_name)").eq("session_id", sessionId).order("created_at")',
+    error: fallback.error
+  });
+
+  if (fallback.error) {
+    return fallback;
+  }
+
+  return {
+    data: (fallback.data ?? []).map((candidate) => ({
+      ...candidate,
+      ...getDefaultCandidateFinalFields()
+    })),
+    error: fallback.error
+  };
 }
 
 async function selectCandidateEvaluationsBySessionId(sessionId: string) {
@@ -1418,7 +1492,11 @@ export async function getSessionById(sessionId: string) {
       postal_code: candidate.postal_code,
       city: candidate.city,
       validation_status: candidate.validation_status,
-      validated_at: candidate.validated_at
+      validated_at: candidate.validated_at,
+      sst_certificate_ref: candidate.sst_certificate_ref ?? null,
+      sst_certificate_obtained_at: candidate.sst_certificate_obtained_at ?? null,
+      sst_certificate_expires_at: candidate.sst_certificate_expires_at ?? null,
+      forprev_registration_status: candidate.forprev_registration_status ?? "non_applicable"
     },
     evaluations: evaluationsByCandidateId.get(candidate.id) ?? []
   })) as SessionCandidate[];
@@ -1633,6 +1711,10 @@ export async function getClientCompanyById(companyId: string): Promise<CompanyDa
     city: string | null;
     validation_status: CandidateValidationStatus;
     validated_at: string | null;
+    sst_certificate_ref: string | null;
+    sst_certificate_obtained_at: string | null;
+    sst_certificate_expires_at: string | null;
+    forprev_registration_status: "non_applicable" | "a_saisir" | "saisi" | "transmis" | "erreur";
     created_at: string;
     training_sessions:
       | {
@@ -1701,6 +1783,10 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
         city,
         validation_status,
         validated_at,
+        sst_certificate_ref,
+        sst_certificate_obtained_at,
+        sst_certificate_expires_at,
+        forprev_registration_status,
         training_sessions (
           id,
           title,
@@ -1752,7 +1838,11 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
     postal_code: data.postal_code,
     city: data.city,
     validation_status: data.validation_status,
-    validated_at: data.validated_at
+    validated_at: data.validated_at,
+    sst_certificate_ref: data.sst_certificate_ref ?? null,
+    sst_certificate_obtained_at: data.sst_certificate_obtained_at ?? null,
+    sst_certificate_expires_at: data.sst_certificate_expires_at ?? null,
+    forprev_registration_status: data.forprev_registration_status ?? "non_applicable"
   };
 
   return {

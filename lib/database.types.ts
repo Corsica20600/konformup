@@ -11,6 +11,8 @@ export type CandidateValidationStatus = "pending" | "validated" | "not_validated
 export type CandidateEvaluationType = "theorique" | "pratique" | "globale";
 export type CandidateEvaluationStatus = "non_evalue" | "en_cours" | "acquis" | "non_acquis" | "absent";
 export type CandidateEvaluationResult = "admis" | "non_admis" | "absent" | "partiel" | "non_renseigne";
+export type SessionClosureStatus = "open" | "ready" | "closed";
+export type ForprevRegistrationStatus = "non_applicable" | "a_saisir" | "saisi" | "transmis" | "erreur";
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived";
 export type TrainingType = "sst_initial" | "mac_sst" | "hygiene";
@@ -43,6 +45,16 @@ export type Database = {
           accessibility_details: string | null;
           mac_previous_certificate_date: string | null;
           mac_previous_certificate_ref: string | null;
+          closure_status: SessionClosureStatus;
+          closed_at: string | null;
+          closed_by: string | null;
+          trainer_report: string | null;
+          administrative_observations: string | null;
+          final_registered_count: number;
+          final_present_count: number;
+          final_admitted_count: number;
+          final_not_admitted_count: number;
+          final_absent_count: number;
           created_at: string;
         };
         Insert: {
@@ -65,6 +77,16 @@ export type Database = {
           accessibility_details?: string | null;
           mac_previous_certificate_date?: string | null;
           mac_previous_certificate_ref?: string | null;
+          closure_status?: SessionClosureStatus;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          trainer_report?: string | null;
+          administrative_observations?: string | null;
+          final_registered_count?: number;
+          final_present_count?: number;
+          final_admitted_count?: number;
+          final_not_admitted_count?: number;
+          final_absent_count?: number;
           created_at?: string;
         };
         Update: {
@@ -87,6 +109,16 @@ export type Database = {
           accessibility_details?: string | null;
           mac_previous_certificate_date?: string | null;
           mac_previous_certificate_ref?: string | null;
+          closure_status?: SessionClosureStatus;
+          closed_at?: string | null;
+          closed_by?: string | null;
+          trainer_report?: string | null;
+          administrative_observations?: string | null;
+          final_registered_count?: number;
+          final_present_count?: number;
+          final_admitted_count?: number;
+          final_not_admitted_count?: number;
+          final_absent_count?: number;
           created_at?: string;
         };
         Relationships: [
@@ -150,6 +182,10 @@ export type Database = {
           city: string | null;
           validation_status: CandidateValidationStatus;
           validated_at: string | null;
+          sst_certificate_ref: string | null;
+          sst_certificate_obtained_at: string | null;
+          sst_certificate_expires_at: string | null;
+          forprev_registration_status: ForprevRegistrationStatus;
           created_at: string;
         };
         Insert: {
@@ -167,6 +203,10 @@ export type Database = {
           city?: string | null;
           validation_status?: CandidateValidationStatus;
           validated_at?: string | null;
+          sst_certificate_ref?: string | null;
+          sst_certificate_obtained_at?: string | null;
+          sst_certificate_expires_at?: string | null;
+          forprev_registration_status?: ForprevRegistrationStatus;
           created_at?: string;
         };
         Update: {
@@ -184,6 +224,10 @@ export type Database = {
           city?: string | null;
           validation_status?: CandidateValidationStatus;
           validated_at?: string | null;
+          sst_certificate_ref?: string | null;
+          sst_certificate_obtained_at?: string | null;
+          sst_certificate_expires_at?: string | null;
+          forprev_registration_status?: ForprevRegistrationStatus;
           created_at?: string;
         };
         Relationships: [

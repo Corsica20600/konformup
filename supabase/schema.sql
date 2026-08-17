@@ -42,12 +42,30 @@ create table if not exists public.training_sessions (
   accessibility_details text,
   mac_previous_certificate_date date,
   mac_previous_certificate_ref text,
+  closure_status text not null default 'open',
+  closed_at timestamptz,
+  closed_by uuid references auth.users(id) on delete set null,
+  trainer_report text,
+  administrative_observations text,
+  final_registered_count integer not null default 0,
+  final_present_count integer not null default 0,
+  final_admitted_count integer not null default 0,
+  final_not_admitted_count integer not null default 0,
+  final_absent_count integer not null default 0,
   created_at timestamptz not null default timezone('utc', now()),
   constraint training_sessions_title_not_blank check (btrim(title) <> ''),
   constraint training_sessions_location_not_blank check (btrim(location) <> ''),
   constraint training_sessions_dates_valid check (end_date >= start_date),
   constraint training_sessions_duration_hours_positive check (duration_hours is null or duration_hours > 0),
-  constraint training_sessions_training_type_allowed check (training_type in ('sst_initial', 'mac_sst', 'hygiene'))
+  constraint training_sessions_training_type_allowed check (training_type in ('sst_initial', 'mac_sst', 'hygiene')),
+  constraint training_sessions_closure_status_allowed check (closure_status in ('open', 'ready', 'closed')),
+  constraint training_sessions_final_counts_positive check (
+    final_registered_count >= 0
+    and final_present_count >= 0
+    and final_admitted_count >= 0
+    and final_not_admitted_count >= 0
+    and final_absent_count >= 0
+  )
 );
 
 alter table public.training_sessions
@@ -58,6 +76,18 @@ alter table public.training_sessions
 
 alter table public.training_sessions
   add column if not exists source_quote_id uuid references public.quotes(id) on delete set null;
+
+alter table public.training_sessions
+  add column if not exists closure_status text not null default 'open',
+  add column if not exists closed_at timestamptz,
+  add column if not exists closed_by uuid references auth.users(id) on delete set null,
+  add column if not exists trainer_report text,
+  add column if not exists administrative_observations text,
+  add column if not exists final_registered_count integer not null default 0,
+  add column if not exists final_present_count integer not null default 0,
+  add column if not exists final_admitted_count integer not null default 0,
+  add column if not exists final_not_admitted_count integer not null default 0,
+  add column if not exists final_absent_count integer not null default 0;
 
 create table if not exists public.client_companies (
   id uuid primary key default gen_random_uuid(),
@@ -101,6 +131,10 @@ create table if not exists public.candidates (
   phone text,
   validation_status public.candidate_validation_status not null default 'pending',
   validated_at timestamptz,
+  sst_certificate_ref text,
+  sst_certificate_obtained_at date,
+  sst_certificate_expires_at date,
+  forprev_registration_status text not null default 'non_applicable',
   created_at timestamptz not null default timezone('utc', now()),
   constraint candidates_first_name_not_blank check (btrim(first_name) <> ''),
   constraint candidates_last_name_not_blank check (btrim(last_name) <> ''),
@@ -127,6 +161,12 @@ alter table public.candidates
 
 alter table public.candidates
   add column if not exists city text;
+
+alter table public.candidates
+  add column if not exists sst_certificate_ref text,
+  add column if not exists sst_certificate_obtained_at date,
+  add column if not exists sst_certificate_expires_at date,
+  add column if not exists forprev_registration_status text not null default 'non_applicable';
 
 create table if not exists public.candidate_evaluations (
   id uuid primary key default gen_random_uuid(),
@@ -374,6 +414,9 @@ create index if not exists idx_invoices_created_at on public.invoices(created_at
 create index if not exists idx_training_sessions_source_quote_id on public.training_sessions(source_quote_id);
 create index if not exists idx_quotes_training_type on public.quotes(training_type);
 create index if not exists idx_training_sessions_training_type on public.training_sessions(training_type);
+create index if not exists idx_training_sessions_closure_status on public.training_sessions(closure_status);
+create index if not exists idx_training_sessions_closed_by on public.training_sessions(closed_by);
+create index if not exists idx_candidates_forprev_registration_status on public.candidates(forprev_registration_status);
 
 create or replace function public.get_attendance_response_by_token(p_token text)
 returns table (

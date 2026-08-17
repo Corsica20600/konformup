@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { generateDocumentAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
+import type { TrainingType } from "@/lib/database.types";
+import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 
 const initialState: ActionState = {};
 
 const documentOptions = [
   { value: "welcome_pack", label: "Livret + reglement" },
   { value: "aide_memoire", label: "Aide memoire SST" },
-  { value: "attestation", label: "Attestation" },
-  { value: "certificat", label: "Certificat" },
+  { value: "attestation", label: getGeneratedDocumentLabel("attestation") },
+  { value: "certificat_realisation", label: "Certificat de realisation" },
   { value: "convocation", label: "Convocation" }
 ] as const;
 
@@ -21,6 +23,7 @@ export function GenerateDocumentsMenu({
 }: {
   sessionId: string;
   candidateId: string;
+  trainingType?: TrainingType;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction, pending] = useActionState(generateDocumentAction, initialState);

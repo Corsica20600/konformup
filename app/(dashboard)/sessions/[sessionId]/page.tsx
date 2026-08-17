@@ -8,6 +8,7 @@ import { ModuleContent } from "@/components/sessions/module-content";
 import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
 import { SessionCandidateBanner } from "@/components/sessions/session-candidate-banner";
+import { SessionClosurePanel } from "@/components/sessions/session-closure-panel";
 import { getOrCreateDocument } from "@/lib/generated-documents";
 import {
   getDocumentsBySessionId,
@@ -343,6 +344,10 @@ export default async function SessionDetailPage({
               />
             </Card>
           </div>
+
+          <Card>
+            <SessionClosurePanel session={session} candidates={candidates} />
+          </Card>
         </section>
 
         <section className="grid gap-4">
@@ -421,6 +426,7 @@ export default async function SessionDetailPage({
                 <SessionCandidateBanner
                   key={candidateSession.id}
                   candidateSession={candidateSession}
+                  trainingType={session.training_type}
                   documents={sessionDocuments.filter((document) => document.candidate_id === candidateSession.candidate.id)}
                 />
               ))}
