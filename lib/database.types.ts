@@ -10,6 +10,7 @@ export type TrainingSessionStatus = "draft" | "scheduled" | "in_progress" | "com
 export type CandidateValidationStatus = "pending" | "validated" | "not_validated";
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived";
+export type TrainingType = "sst_initial" | "mac_sst" | "hygiene";
 export type AttendanceSlotStatus = "draft" | "sent" | "open" | "closed";
 export type AttendanceDeliveryChannel = "email" | "sms";
 export type AttendanceDeliveryStatus = "pending" | "sent" | "failed";
@@ -26,11 +27,19 @@ export type Database = {
           end_date: string;
           location: string;
           status: TrainingSessionStatus;
+          training_type: TrainingType;
+          training_family: string;
           source_quote_id: string | null;
           trainer_id: string | null;
           trainer_user_id: string | null;
           trainer_name: string | null;
           duration_hours: number | null;
+          prerequisites: string | null;
+          objectives: string | null;
+          programme_outline: string | null;
+          accessibility_details: string | null;
+          mac_previous_certificate_date: string | null;
+          mac_previous_certificate_ref: string | null;
           created_at: string;
         };
         Insert: {
@@ -40,11 +49,19 @@ export type Database = {
           end_date: string;
           location: string;
           status?: TrainingSessionStatus;
+          training_type?: TrainingType;
+          training_family?: string;
           source_quote_id?: string | null;
           trainer_id?: string | null;
           trainer_user_id?: string | null;
           trainer_name?: string | null;
           duration_hours?: number | null;
+          prerequisites?: string | null;
+          objectives?: string | null;
+          programme_outline?: string | null;
+          accessibility_details?: string | null;
+          mac_previous_certificate_date?: string | null;
+          mac_previous_certificate_ref?: string | null;
           created_at?: string;
         };
         Update: {
@@ -54,11 +71,19 @@ export type Database = {
           end_date?: string;
           location?: string;
           status?: TrainingSessionStatus;
+          training_type?: TrainingType;
+          training_family?: string;
           source_quote_id?: string | null;
           trainer_id?: string | null;
           trainer_user_id?: string | null;
           trainer_name?: string | null;
           duration_hours?: number | null;
+          prerequisites?: string | null;
+          objectives?: string | null;
+          programme_outline?: string | null;
+          accessibility_details?: string | null;
+          mac_previous_certificate_date?: string | null;
+          mac_previous_certificate_ref?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -412,6 +437,8 @@ export type Database = {
           id: string;
           quote_number: string;
           status: QuoteStatus;
+          training_type: TrainingType;
+          training_family: string;
           session_id: string | null;
           company_id: string;
           title: string;
@@ -421,6 +448,13 @@ export type Database = {
           session_end_date: string | null;
           location: string | null;
           trainer_name: string | null;
+          duration_hours: number | null;
+          prerequisites: string | null;
+          objectives: string | null;
+          programme_outline: string | null;
+          accessibility_details: string | null;
+          mac_previous_certificate_date: string | null;
+          mac_previous_certificate_ref: string | null;
           price_ht: number;
           vat_rate: number;
           total_ttc: number;
@@ -432,6 +466,8 @@ export type Database = {
           id?: string;
           quote_number: string;
           status?: QuoteStatus;
+          training_type?: TrainingType;
+          training_family?: string;
           session_id?: string | null;
           company_id: string;
           title: string;
@@ -441,6 +477,13 @@ export type Database = {
           session_end_date?: string | null;
           location?: string | null;
           trainer_name?: string | null;
+          duration_hours?: number | null;
+          prerequisites?: string | null;
+          objectives?: string | null;
+          programme_outline?: string | null;
+          accessibility_details?: string | null;
+          mac_previous_certificate_date?: string | null;
+          mac_previous_certificate_ref?: string | null;
           price_ht: number;
           vat_rate?: number;
           total_ttc?: number;
@@ -452,6 +495,8 @@ export type Database = {
           id?: string;
           quote_number?: string;
           status?: QuoteStatus;
+          training_type?: TrainingType;
+          training_family?: string;
           session_id?: string | null;
           company_id?: string;
           title?: string;
@@ -461,6 +506,13 @@ export type Database = {
           session_end_date?: string | null;
           location?: string | null;
           trainer_name?: string | null;
+          duration_hours?: number | null;
+          prerequisites?: string | null;
+          objectives?: string | null;
+          programme_outline?: string | null;
+          accessibility_details?: string | null;
+          mac_previous_certificate_date?: string | null;
+          mac_previous_certificate_ref?: string | null;
           price_ht?: number;
           vat_rate?: number;
           total_ttc?: number;

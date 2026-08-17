@@ -37,6 +37,14 @@ export async function updateQuoteAction(
     quoteId: formData.get("quoteId"),
     title: formData.get("title"),
     description: formData.get("description"),
+    trainingType: formData.get("trainingType"),
+    durationHours: formData.get("durationHours"),
+    prerequisites: formData.get("prerequisites"),
+    objectives: formData.get("objectives"),
+    programmeOutline: formData.get("programmeOutline"),
+    accessibilityDetails: formData.get("accessibilityDetails"),
+    macPreviousCertificateDate: formData.get("macPreviousCertificateDate"),
+    macPreviousCertificateRef: formData.get("macPreviousCertificateRef"),
     candidateCount: formData.get("candidateCount"),
     sessionStartDate: formData.get("sessionStartDate"),
     sessionEndDate: formData.get("sessionEndDate"),
@@ -267,7 +275,7 @@ export async function generateProgrammePdfAction(
     revalidatePath(`/companies/${quote.company.id}`);
 
     return {
-      success: "Programme SST genere.",
+      success: "Programme genere.",
       fileUrl: programme.fileUrl
     };
   } catch (error) {
@@ -275,7 +283,7 @@ export async function generateProgrammePdfAction(
       return { error: error.message };
     }
 
-    return { error: "Impossible de generer le programme SST." };
+    return { error: "Impossible de generer le programme." };
   }
 }
 

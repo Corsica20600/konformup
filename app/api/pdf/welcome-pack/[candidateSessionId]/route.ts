@@ -7,6 +7,7 @@ import { WelcomePackDocument } from "@/lib/pdf/welcome-pack";
 import { getOrganizationBranding } from "@/lib/organization";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import { getTrainingProgramDefaults, splitProgrammeText } from "@/lib/training-programs";
 
 export const runtime = "nodejs";
 
@@ -53,9 +54,14 @@ export async function GET(request: Request, context: { params: Promise<{ candida
     }
 
     const organizationSettings = await getOrganizationBranding(origin);
-    const programmeLines = sessionData.modules.length
+    const defaults = getTrainingProgramDefaults(sessionData.session.training_type);
+    const moduleFallback = sessionData.modules.length
       ? sessionData.modules.map((module) => module.title)
       : DEFAULT_PROGRAMME_LINES;
+    const programmeLines = splitProgrammeText(
+      sessionData.session.programme_outline,
+      moduleFallback.length ? moduleFallback : defaults.programmeLines
+    );
 
     const document = createElement(WelcomePackDocument as never, {
       session: sessionData.session,

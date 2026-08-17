@@ -1,9 +1,8 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { getTrainingProgramDefaults, getTrainingTypeLabel, splitObjectivesText } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
-
-const TRAINING_TITLE = "Sauveteur Secouriste du Travail (SST)";
 
 const styles = StyleSheet.create({
   page: {
@@ -204,19 +203,17 @@ export function WelcomePackDocument({
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`.trim();
   const organizationLines = formatAddressLines(organizationSettings);
-  const objectives = [
-    "Situer le role du sauveteur secouriste du travail dans l'entreprise et dans l'organisation des secours.",
-    "Adopter les bons reflexes face a une situation d'accident du travail et proteger les personnes exposees.",
-    "Mettre en oeuvre les gestes de premiers secours adaptes et contribuer a la prevention des risques professionnels."
-  ];
+  const trainingTitle = getTrainingTypeLabel(session.training_type);
+  const trainingDefaults = getTrainingProgramDefaults(session.training_type);
+  const objectives = splitObjectivesText(session.objectives, trainingDefaults.objectives);
   const pedagogicalMeans = [
     "Apports theoriques, demonstrations commentees et echanges avec le formateur.",
-    "Exercices pratiques, mises en situation et materiel adapte a la formation SST.",
+    "Exercices pratiques, mises en situation et materiel adapte a la formation.",
     "Support remis aux participants et documents de reference transmis avec la convocation."
   ];
   const evaluationMethods = [
     "Evaluation formative continue pendant les ateliers et les mises en situation.",
-    "Evaluation certificative selon le referentiel SST en vigueur.",
+    "Evaluation selon les modalites prevues au programme de formation.",
     "Traçabilite via emargements, supports remis et documents remis au stagiaire."
   ];
   const practicalInfo = [
@@ -225,10 +222,12 @@ export function WelcomePackDocument({
     `Dates : ${formatDateRange(session.start_date, session.end_date)}`,
     `Lieu : ${session.location}`,
     `Formateur : ${session.trainer_name || "Formateur communique sur convocation"}`,
-    `Duree indicative : ${formatDurationHours(session.duration_hours)}`
+    `Duree indicative : ${formatDurationHours(session.duration_hours ?? trainingDefaults.durationHours)}`,
+    `Prerequis : ${session.prerequisites || trainingDefaults.prerequisites}`
   ];
   const accessibility = [
-    "L'organisme etudie toute situation de handicap ou besoin specifique afin d'adapter l'accueil, le rythme ou les supports.",
+    session.accessibility_details ||
+      "L'organisme etudie toute situation de handicap ou besoin specifique afin d'adapter l'accueil, le rythme ou les supports.",
     organizationSettings.contact_email
       ? `Contact accessibilite : ${organizationSettings.contact_email}`
       : "Contact accessibilite : a demander a l'organisme avant l'entree en formation."
@@ -263,7 +262,7 @@ export function WelcomePackDocument({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>Livret d&apos;accueil</Text>
-            <Text style={styles.subtitle}>{TRAINING_TITLE}</Text>
+            <Text style={styles.subtitle}>{trainingTitle}</Text>
             <Text style={styles.subtitle}>Document remis avec la convocation du stagiaire</Text>
           </View>
           <View style={styles.headerRight}>
@@ -286,7 +285,7 @@ export function WelcomePackDocument({
         </View>
 
         <View style={styles.introCard}>
-          <Text style={styles.introTitle}>Bienvenue en formation SST</Text>
+          <Text style={styles.introTitle}>Bienvenue en formation {trainingTitle}</Text>
           <Text style={styles.introText}>
             Ce livret d&apos;accueil rassemble les informations essentielles pour preparer votre entree en formation, comprendre le deroulement pedagogique de la session et connaitre les regles applicables pendant votre presence.
           </Text>
@@ -352,7 +351,7 @@ export function WelcomePackDocument({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>Reglement interieur</Text>
-            <Text style={styles.subtitle}>{TRAINING_TITLE}</Text>
+            <Text style={styles.subtitle}>{trainingTitle}</Text>
             <Text style={styles.subtitle}>Regles applicables pendant l&apos;action de formation</Text>
           </View>
           <View style={styles.headerRight}>

@@ -31,14 +31,23 @@ create table if not exists public.training_sessions (
   end_date date not null,
   location text not null,
   status public.training_session_status not null default 'draft',
+  training_type text not null default 'sst_initial',
+  training_family text not null default 'sst',
   trainer_user_id uuid,
   trainer_name text,
   duration_hours numeric(5,2),
+  prerequisites text,
+  objectives text,
+  programme_outline text,
+  accessibility_details text,
+  mac_previous_certificate_date date,
+  mac_previous_certificate_ref text,
   created_at timestamptz not null default timezone('utc', now()),
   constraint training_sessions_title_not_blank check (btrim(title) <> ''),
   constraint training_sessions_location_not_blank check (btrim(location) <> ''),
   constraint training_sessions_dates_valid check (end_date >= start_date),
-  constraint training_sessions_duration_hours_positive check (duration_hours is null or duration_hours > 0)
+  constraint training_sessions_duration_hours_positive check (duration_hours is null or duration_hours > 0),
+  constraint training_sessions_training_type_allowed check (training_type in ('sst_initial', 'mac_sst', 'hygiene'))
 );
 
 alter table public.training_sessions
@@ -220,6 +229,8 @@ create table if not exists public.quotes (
   id uuid primary key default gen_random_uuid(),
   quote_number text not null unique,
   status public.quote_status not null default 'draft',
+  training_type text not null default 'sst_initial',
+  training_family text not null default 'sst',
   session_id uuid references public.training_sessions(id) on delete set null,
   company_id uuid not null references public.client_companies(id),
   title text not null,
@@ -229,6 +240,13 @@ create table if not exists public.quotes (
   session_end_date date,
   location text,
   trainer_name text,
+  duration_hours numeric(5,2),
+  prerequisites text,
+  objectives text,
+  programme_outline text,
+  accessibility_details text,
+  mac_previous_certificate_date date,
+  mac_previous_certificate_ref text,
   price_ht numeric(10,2) not null,
   vat_rate numeric(5,2) not null default 20,
   total_ttc numeric(10,2) generated always as (round((price_ht * (1 + (vat_rate / 100)))::numeric, 2)) stored,
@@ -240,6 +258,7 @@ create table if not exists public.quotes (
   constraint quotes_candidate_count_positive check (candidate_count >= 0),
   constraint quotes_price_ht_positive check (price_ht >= 0),
   constraint quotes_vat_rate_positive check (vat_rate >= 0),
+  constraint quotes_training_type_allowed check (training_type in ('sst_initial', 'mac_sst', 'hygiene')),
   constraint quotes_dates_valid check (
     session_start_date is null
     or session_end_date is null
@@ -328,6 +347,8 @@ create index if not exists idx_invoices_quote_id on public.invoices(quote_id);
 create index if not exists idx_invoices_company_id on public.invoices(company_id);
 create index if not exists idx_invoices_created_at on public.invoices(created_at desc);
 create index if not exists idx_training_sessions_source_quote_id on public.training_sessions(source_quote_id);
+create index if not exists idx_quotes_training_type on public.quotes(training_type);
+create index if not exists idx_training_sessions_training_type on public.training_sessions(training_type);
 
 create or replace function public.get_attendance_response_by_token(p_token text)
 returns table (

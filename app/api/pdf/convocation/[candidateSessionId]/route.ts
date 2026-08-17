@@ -48,10 +48,19 @@ export async function GET(request: Request, context: { params: Promise<{ candida
           end_date,
           location,
           status,
+          training_type,
+          training_family,
+          source_quote_id,
           trainer_id,
           trainer_user_id,
           trainer_name,
           duration_hours,
+          prerequisites,
+          objectives,
+          programme_outline,
+          accessibility_details,
+          mac_previous_certificate_date,
+          mac_previous_certificate_ref,
           created_at
         )
       `

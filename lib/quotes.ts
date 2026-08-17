@@ -14,6 +14,10 @@ import {
 } from "@/lib/quote-utils";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getTrainingProgramDefaults,
+  normalizeTrainingType
+} from "@/lib/training-programs";
 
 export type QuoteRow = Database["public"]["Tables"]["quotes"]["Row"];
 
@@ -23,6 +27,14 @@ type CreateQuoteInput = {
   candidateId?: string | null;
   title: string;
   description: string;
+  trainingType?: Database["public"]["Tables"]["quotes"]["Insert"]["training_type"];
+  durationHours?: number | null;
+  prerequisites?: string;
+  objectives?: string;
+  programmeOutline?: string;
+  accessibilityDetails?: string;
+  macPreviousCertificateDate?: string;
+  macPreviousCertificateRef?: string;
   candidateCount: number;
   trainerName?: string;
   priceHt: number;
@@ -52,6 +64,14 @@ type QuoteSessionRow = {
   trainer_id: string | null;
   trainer_name: string | null;
   duration_hours: number | null;
+  training_type: Database["public"]["Tables"]["training_sessions"]["Row"]["training_type"];
+  training_family: string;
+  prerequisites: string | null;
+  objectives: string | null;
+  programme_outline: string | null;
+  accessibility_details: string | null;
+  mac_previous_certificate_date: string | null;
+  mac_previous_certificate_ref: string | null;
 };
 
 type QuoteBaseRow = Omit<QuoteRow, "price_ht" | "vat_rate" | "total_ttc"> & {
@@ -133,7 +153,7 @@ async function selectSessionForQuote(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours")
+    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours, training_type, training_family, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref")
     .eq("id", sessionId)
     .maybeSingle<QuoteSessionRow>();
 
@@ -148,7 +168,19 @@ async function selectSessionForQuote(sessionId: string) {
     .maybeSingle();
 
   return {
-    data: (fallback.data ?? null) as QuoteSessionRow | null,
+    data: fallback.data
+      ? ({
+          ...fallback.data,
+          training_type: "sst_initial",
+          training_family: "sst",
+          prerequisites: null,
+          objectives: null,
+          programme_outline: null,
+          accessibility_details: null,
+          mac_previous_certificate_date: null,
+          mac_previous_certificate_ref: null
+        } as QuoteSessionRow)
+      : null,
     error: fallback.error
   };
 }
@@ -353,6 +385,14 @@ async function insertQuote({
   companyId,
   title,
   description,
+  trainingType,
+  durationHours,
+  prerequisites,
+  objectives,
+  programmeOutline,
+  accessibilityDetails,
+  macPreviousCertificateDate,
+  macPreviousCertificateRef,
   candidateCount,
   trainerName,
   priceHt,
@@ -365,12 +405,25 @@ async function insertQuote({
 }) {
   const supabase = await createClient();
   const now = new Date().toISOString();
+  const resolvedTrainingType = normalizeTrainingType(trainingType ?? session?.training_type);
+  const defaults = getTrainingProgramDefaults(resolvedTrainingType);
+  const resolvedDurationHours = durationHours ?? session?.duration_hours ?? defaults.durationHours;
+  const resolvedPrerequisites = prerequisites?.trim() || session?.prerequisites || defaults.prerequisites;
+  const resolvedObjectives = objectives?.trim() || session?.objectives || defaults.objectives.join("\n");
+  const resolvedProgrammeOutline =
+    programmeOutline?.trim() || session?.programme_outline || defaults.programmeLines.join("\n");
+  const resolvedAccessibility =
+    accessibilityDetails?.trim() || session?.accessibility_details || defaults.accessibility;
+  const resolvedMacDate = macPreviousCertificateDate?.trim() || session?.mac_previous_certificate_date || null;
+  const resolvedMacRef = macPreviousCertificateRef?.trim() || session?.mac_previous_certificate_ref || null;
 
   const { data, error } = await supabase
     .from("quotes")
     .insert({
       quote_number: quoteNumber,
       status: "draft",
+      training_type: resolvedTrainingType,
+      training_family: defaults.family,
       session_id: session?.id ?? null,
       company_id: companyId,
       title: title.trim(),
@@ -380,6 +433,13 @@ async function insertQuote({
       session_end_date: session?.end_date ?? null,
       location: session?.location ?? null,
       trainer_name: session?.trainer_name ?? (trainerName?.trim() || null),
+      duration_hours: resolvedDurationHours,
+      prerequisites: resolvedPrerequisites,
+      objectives: resolvedObjectives,
+      programme_outline: resolvedProgrammeOutline,
+      accessibility_details: resolvedAccessibility,
+      mac_previous_certificate_date: resolvedTrainingType === "mac_sst" ? resolvedMacDate : null,
+      mac_previous_certificate_ref: resolvedTrainingType === "mac_sst" ? resolvedMacRef : null,
       price_ht: roundCurrency(priceHt),
       vat_rate: roundCurrency(vatRate),
       notes: notes.trim() || null,
@@ -400,7 +460,7 @@ async function selectQuoteById(quoteId: string): Promise<QuoteBaseRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, status, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
+    .select("id, quote_number, status, training_type, training_family, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -414,7 +474,10 @@ async function selectQuoteById(quoteId: string): Promise<QuoteBaseRow | null> {
 
   return {
     ...data,
+    training_type: normalizeTrainingType(data.training_type),
+    training_family: data.training_family || getTrainingProgramDefaults(data.training_type).family,
     price_ht: Number(data.price_ht),
+    duration_hours: data.duration_hours == null ? null : Number(data.duration_hours),
     vat_rate: Number(data.vat_rate),
     total_ttc: Number(data.total_ttc)
   };
@@ -499,6 +562,10 @@ export async function createQuote(input: CreateQuoteInput) {
         company_name: context.company.company_name,
         resolution_source: context.resolutionSource
       },
+      training: {
+        type: quote.training_type,
+        family: quote.training_family
+      },
       session: context.session
         ? {
             id: context.session.id,
@@ -553,11 +620,20 @@ export async function duplicateQuote(quoteId: string) {
       company_id: sourceQuote.company_id,
       title: sourceQuote.title,
       description: sourceQuote.description,
+      training_type: sourceQuote.training_type,
+      training_family: sourceQuote.training_family,
       candidate_count: sourceQuote.candidate_count,
       session_start_date: sourceQuote.session_start_date,
       session_end_date: sourceQuote.session_end_date,
       location: sourceQuote.location,
       trainer_name: sourceQuote.trainer_name,
+      duration_hours: sourceQuote.duration_hours,
+      prerequisites: sourceQuote.prerequisites,
+      objectives: sourceQuote.objectives,
+      programme_outline: sourceQuote.programme_outline,
+      accessibility_details: sourceQuote.accessibility_details,
+      mac_previous_certificate_date: sourceQuote.mac_previous_certificate_date,
+      mac_previous_certificate_ref: sourceQuote.mac_previous_certificate_ref,
       price_ht: roundCurrency(sourceQuote.price_ht),
       vat_rate: roundCurrency(sourceQuote.vat_rate),
       notes: sourceQuote.notes,
@@ -587,6 +663,10 @@ export async function duplicateQuote(quoteId: string) {
       company: {
         id: company.id,
         company_name: company.company_name
+      },
+      training: {
+        type: duplicatedQuote.training_type,
+        family: duplicatedQuote.training_family
       },
       session: null,
       totals: {
@@ -689,6 +769,10 @@ export async function createProgrammeDocumentForQuote(quoteId: string) {
         id: quote.company.id,
         company_name: quote.company.company_name
       },
+      training: {
+        type: quote.training_type,
+        family: quote.training_family
+      },
       session: quote.session
         ? {
             id: quote.session.id,
@@ -714,6 +798,14 @@ export async function updateQuote({
   quoteId,
   title,
   description,
+  trainingType,
+  durationHours,
+  prerequisites,
+  objectives,
+  programmeOutline,
+  accessibilityDetails,
+  macPreviousCertificateDate,
+  macPreviousCertificateRef,
   candidateCount,
   sessionStartDate,
   sessionEndDate,
@@ -726,6 +818,14 @@ export async function updateQuote({
   quoteId: string;
   title: string;
   description: string;
+  trainingType: Database["public"]["Tables"]["quotes"]["Update"]["training_type"];
+  durationHours?: number | "";
+  prerequisites: string;
+  objectives: string;
+  programmeOutline: string;
+  accessibilityDetails: string;
+  macPreviousCertificateDate: string;
+  macPreviousCertificateRef: string;
   candidateCount: number;
   sessionStartDate: string;
   sessionEndDate: string;
@@ -736,16 +836,29 @@ export async function updateQuote({
   notes: string;
 }) {
   const supabase = await createClient();
+  const resolvedTrainingType = normalizeTrainingType(trainingType);
+  const defaults = getTrainingProgramDefaults(resolvedTrainingType);
   const { data, error } = await supabase
     .from("quotes")
     .update({
       title: title.trim(),
       description: description.trim() || null,
+      training_type: resolvedTrainingType,
+      training_family: defaults.family,
       candidate_count: candidateCount,
       session_start_date: sessionStartDate || null,
       session_end_date: sessionEndDate || null,
       location: location.trim() || null,
       trainer_name: trainerName.trim() || null,
+      duration_hours: durationHours === "" || typeof durationHours === "undefined" ? null : durationHours,
+      prerequisites: prerequisites.trim() || defaults.prerequisites,
+      objectives: objectives.trim() || defaults.objectives.join("\n"),
+      programme_outline: programmeOutline.trim() || defaults.programmeLines.join("\n"),
+      accessibility_details: accessibilityDetails.trim() || defaults.accessibility,
+      mac_previous_certificate_date:
+        resolvedTrainingType === "mac_sst" ? macPreviousCertificateDate.trim() || null : null,
+      mac_previous_certificate_ref:
+        resolvedTrainingType === "mac_sst" ? macPreviousCertificateRef.trim() || null : null,
       price_ht: roundCurrency(priceHt),
       vat_rate: roundCurrency(vatRate),
       notes: notes.trim() || null,
@@ -775,6 +888,10 @@ async function upsertGeneratedDocumentForQuote(quote: QuoteRow, status: "draft" 
         }
       : null,
     session: null,
+    training: {
+      type: quote.training_type,
+      family: quote.training_family
+    },
     totals: {
       price_ht: quote.price_ht,
       vat_rate: quote.vat_rate,
@@ -868,6 +985,28 @@ export async function updateQuoteStatus(quoteId: string, status: QuoteRow["statu
   return data;
 }
 
+export function buildSessionPayloadFromQuote(quote: QuoteBaseRow, trainerUserId: string): TrainingSessionInsertRow {
+  return {
+    title: quote.title,
+    start_date: quote.session_start_date!,
+    end_date: quote.session_end_date!,
+    location: quote.location!,
+    status: "draft",
+    training_type: quote.training_type,
+    training_family: quote.training_family,
+    source_quote_id: quote.id,
+    trainer_user_id: trainerUserId,
+    trainer_name: quote.trainer_name,
+    duration_hours: quote.duration_hours,
+    prerequisites: quote.prerequisites,
+    objectives: quote.objectives,
+    programme_outline: quote.programme_outline,
+    accessibility_details: quote.accessibility_details,
+    mac_previous_certificate_date: quote.mac_previous_certificate_date,
+    mac_previous_certificate_ref: quote.mac_previous_certificate_ref
+  };
+}
+
 export async function createSessionFromQuote(quoteId: string, trainerUserId: string) {
   const quote = await selectQuoteById(quoteId);
 
@@ -888,17 +1027,7 @@ export async function createSessionFromQuote(quoteId: string, trainerUserId: str
   }
 
   const supabase = await createClient();
-  const sessionPayload: TrainingSessionInsertRow = {
-    title: quote.title,
-    start_date: quote.session_start_date,
-    end_date: quote.session_end_date,
-    location: quote.location,
-    status: "draft",
-    source_quote_id: quote.id,
-    trainer_user_id: trainerUserId,
-    trainer_name: quote.trainer_name,
-    duration_hours: null
-  };
+  const sessionPayload = buildSessionPayloadFromQuote(quote, trainerUserId);
 
   const { data: session, error: sessionError } = await supabase
     .from("training_sessions")

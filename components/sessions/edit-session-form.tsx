@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { updateSessionAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
 import type { SessionItem, TrainerOption } from "@/lib/types";
 
 const initialState: ActionState = {};
@@ -17,6 +18,7 @@ export function EditSessionForm({
   trainers: TrainerOption[];
 }) {
   const [state, formAction, pending] = useActionState(updateSessionAction, initialState);
+  const trainingDefaults = getTrainingProgramDefaults(session.training_type);
 
   return (
     <div className="grid gap-4">
@@ -54,6 +56,20 @@ export function EditSessionForm({
           defaultValue={session.duration_hours ? String(session.duration_hours) : ""}
         />
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
+          <span>Type de formation</span>
+          <select
+            name="trainingType"
+            defaultValue={session.training_type}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+          >
+            {TRAINING_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {TRAINING_TYPE_LABELS[option]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
           <span>Formateur</span>
           <select
             name="trainerId"
@@ -69,6 +85,53 @@ export function EditSessionForm({
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Prérequis</span>
+          <textarea
+            name="prerequisites"
+            rows={2}
+            defaultValue={session.prerequisites ?? trainingDefaults.prerequisites}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Objectifs</span>
+          <textarea
+            name="objectives"
+            rows={3}
+            defaultValue={session.objectives ?? trainingDefaults.objectives.join("\n")}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Programme</span>
+          <textarea
+            name="programmeOutline"
+            rows={4}
+            defaultValue={session.programme_outline ?? trainingDefaults.programmeLines.join("\n")}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Accessibilité / adaptation</span>
+          <textarea
+            name="accessibilityDetails"
+            rows={2}
+            defaultValue={session.accessibility_details ?? trainingDefaults.accessibility}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+        <Input
+          label="Date certificat SST précédent"
+          name="macPreviousCertificateDate"
+          type="date"
+          defaultValue={session.mac_previous_certificate_date ?? ""}
+        />
+        <Input
+          label="Référence certificat précédent"
+          name="macPreviousCertificateRef"
+          defaultValue={session.mac_previous_certificate_ref ?? ""}
+        />
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
           <span>Statut</span>
           <select

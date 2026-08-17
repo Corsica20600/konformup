@@ -6,6 +6,7 @@ import { createQuoteAction, type ActionState } from "@/app/(dashboard)/sessions/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { buildDefaultQuoteDescription, buildDefaultQuoteTitle, computeQuoteTotalTtc } from "@/lib/quote-utils";
+import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
 import { formatCurrency, formatDateRange } from "@/lib/utils";
 
 type QuoteCompanyOption = {
@@ -46,6 +47,13 @@ export function CreateQuoteForm({
       candidateCount: initialCandidateCount
     })
   );
+  const [trainingType, setTrainingType] = useState("sst_initial");
+  const trainingDefaults = getTrainingProgramDefaults(trainingType);
+  const [durationHours, setDurationHours] = useState(String(trainingDefaults.durationHours));
+  const [prerequisites, setPrerequisites] = useState(trainingDefaults.prerequisites);
+  const [objectives, setObjectives] = useState(trainingDefaults.objectives.join("\n"));
+  const [programmeOutline, setProgrammeOutline] = useState(trainingDefaults.programmeLines.join("\n"));
+  const [accessibilityDetails, setAccessibilityDetails] = useState(trainingDefaults.accessibility);
   const [candidateCount, setCandidateCount] = useState(String(initialCandidateCount));
   const [priceHt, setPriceHt] = useState("");
   const [vatRate, setVatRate] = useState("20");
@@ -56,6 +64,14 @@ export function CreateQuoteForm({
       setIsOpen(false);
     }
   }, [state.success]);
+
+  useEffect(() => {
+    setDurationHours(String(trainingDefaults.durationHours));
+    setPrerequisites(trainingDefaults.prerequisites);
+    setObjectives(trainingDefaults.objectives.join("\n"));
+    setProgrammeOutline(trainingDefaults.programmeLines.join("\n"));
+    setAccessibilityDetails(trainingDefaults.accessibility);
+  }, [trainingDefaults]);
 
   const totalTtc = computeQuoteTotalTtc(Number(priceHt || 0), Number(vatRate || 0));
 
@@ -125,6 +141,32 @@ export function CreateQuoteForm({
               required
             />
 
+            <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
+              <span>Type de formation</span>
+              <select
+                name="trainingType"
+                value={trainingType}
+                onChange={(event) => setTrainingType(event.target.value)}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+              >
+                {TRAINING_TYPE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {TRAINING_TYPE_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <Input
+              label="Durée (heures)"
+              name="durationHours"
+              type="number"
+              min="1"
+              step="0.5"
+              value={durationHours}
+              onChange={(event) => setDurationHours(event.target.value)}
+            />
+
             {sessionTitle ? (
               <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
                 <span>Dates / lieu</span>
@@ -154,6 +196,57 @@ export function CreateQuoteForm({
                 className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
               />
             </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+              <span>Prérequis</span>
+              <textarea
+                name="prerequisites"
+                rows={2}
+                value={prerequisites}
+                onChange={(event) => setPrerequisites(event.target.value)}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+              <span>Objectifs</span>
+              <textarea
+                name="objectives"
+                rows={3}
+                value={objectives}
+                onChange={(event) => setObjectives(event.target.value)}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+              <span>Programme</span>
+              <textarea
+                name="programmeOutline"
+                rows={4}
+                value={programmeOutline}
+                onChange={(event) => setProgrammeOutline(event.target.value)}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+              <span>Accessibilité / adaptation</span>
+              <textarea
+                name="accessibilityDetails"
+                rows={2}
+                value={accessibilityDetails}
+                onChange={(event) => setAccessibilityDetails(event.target.value)}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+              />
+            </label>
+
+            {trainingType === "mac_sst" ? (
+              <>
+                <Input label="Date certificat SST précédent" name="macPreviousCertificateDate" type="date" />
+                <Input label="Référence certificat précédent" name="macPreviousCertificateRef" />
+              </>
+            ) : null}
 
             <Input
               label="Prix HT"

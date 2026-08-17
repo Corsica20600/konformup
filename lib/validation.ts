@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const trainingTypeSchema = z.enum(["sst_initial", "mac_sst", "hygiene"]);
+
 export const loginSchema = z.object({
   email: z.string().email("Email invalide."),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères.")
@@ -12,6 +14,13 @@ export const createSessionSchema = z.object({
   location: z.string().min(2, "Le lieu est requis."),
   trainerName: z.string().optional().default(""),
   durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
+  trainingType: trainingTypeSchema.default("sst_initial"),
+  prerequisites: z.string().optional().default(""),
+  objectives: z.string().optional().default(""),
+  programmeOutline: z.string().optional().default(""),
+  accessibilityDetails: z.string().optional().default(""),
+  macPreviousCertificateDate: z.string().optional().default(""),
+  macPreviousCertificateRef: z.string().optional().default(""),
   status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
 });
 
@@ -23,6 +32,13 @@ export const updateSessionSchema = z
     endDate: z.string().min(1, "La date de fin est requise."),
     location: z.string().min(2, "Le lieu est requis."),
     durationHours: z.union([z.literal(""), z.coerce.number().positive("La durée doit être supérieure à 0.")]).optional(),
+    trainingType: trainingTypeSchema.default("sst_initial"),
+    prerequisites: z.string().optional().default(""),
+    objectives: z.string().optional().default(""),
+    programmeOutline: z.string().optional().default(""),
+    accessibilityDetails: z.string().optional().default(""),
+    macPreviousCertificateDate: z.string().optional().default(""),
+    macPreviousCertificateRef: z.string().optional().default(""),
     trainerId: z.string().uuid().or(z.literal("")).optional(),
     status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
   })
@@ -106,6 +122,14 @@ export const createQuoteSchema = z.object({
   companyId: z.string().uuid("La société est requise."),
   title: z.string().trim().min(2, "L'intitulé est requis."),
   description: z.string().optional().default(""),
+  trainingType: trainingTypeSchema.default("sst_initial"),
+  durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
+  prerequisites: z.string().optional().default(""),
+  objectives: z.string().optional().default(""),
+  programmeOutline: z.string().optional().default(""),
+  accessibilityDetails: z.string().optional().default(""),
+  macPreviousCertificateDate: z.string().optional().default(""),
+  macPreviousCertificateRef: z.string().optional().default(""),
   candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
   priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
   vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
@@ -117,6 +141,14 @@ export const updateQuoteSchema = z
     quoteId: z.string().uuid("Le devis est introuvable."),
     title: z.string().trim().min(2, "L'intitulé est requis."),
     description: z.string().optional().default(""),
+    trainingType: trainingTypeSchema.default("sst_initial"),
+    durationHours: z.union([z.literal(""), z.coerce.number().positive("La durée doit être supérieure à 0.")]).optional(),
+    prerequisites: z.string().optional().default(""),
+    objectives: z.string().optional().default(""),
+    programmeOutline: z.string().optional().default(""),
+    accessibilityDetails: z.string().optional().default(""),
+    macPreviousCertificateDate: z.string().optional().default(""),
+    macPreviousCertificateRef: z.string().optional().default(""),
     candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
     sessionStartDate: z.string().optional().default(""),
     sessionEndDate: z.string().optional().default(""),

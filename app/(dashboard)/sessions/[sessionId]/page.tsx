@@ -16,6 +16,7 @@ import {
   RecoverableSessionQueryError,
   SessionNotFoundError
 } from "@/lib/queries";
+import { getTrainingTypeLabel } from "@/lib/training-programs";
 import type { SessionCandidate, SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -212,6 +213,7 @@ export default async function SessionDetailPage({
     }
   }
   const completedModules = modules.filter((module) => module.is_completed).length;
+  const trainingLabel = getTrainingTypeLabel(session.training_type);
   const companyGroups = buildSessionCompanyGroups(candidates);
   const linkedCompanyGroups = companyGroups.filter((group) => group.companyId !== null);
   const unassignedCandidateCount = companyGroups
@@ -242,6 +244,7 @@ export default async function SessionDetailPage({
               <p>
                 Dates : {formatDate(session.start_date)} au {formatDate(session.end_date)}
               </p>
+              <p>Type : {trainingLabel}</p>
               <p>Lieu : {session.location}</p>
               <p>Formateur : {session.trainer_name || "Non renseigne"}</p>
               <p>Duree : {session.duration_hours ? `${session.duration_hours} h` : "Non renseignee"}</p>
@@ -285,7 +288,7 @@ export default async function SessionDetailPage({
 
           <Card>
             <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
-            <h3 className="mt-2 text-2xl font-bold">Modules SST</h3>
+            <h3 className="mt-2 text-2xl font-bold">Modules {trainingLabel}</h3>
             <p className="mt-2 text-sm text-ink/65">
               Sélectionne un module pour afficher son contenu et piloter l&apos;avancement de la session.
             </p>

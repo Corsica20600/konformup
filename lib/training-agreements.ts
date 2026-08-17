@@ -6,6 +6,12 @@ import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import type { QuotePdfData } from "@/lib/quotes";
 import { QuoteError, getQuoteById } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getTrainingProgramDefaults,
+  getTrainingTypeLabel,
+  splitObjectivesText,
+  splitProgrammeText
+} from "@/lib/training-programs";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
 
 type GeneratedAgreementDocumentRow = {
@@ -56,6 +62,7 @@ export type TrainingAgreementPdfData = {
   };
   training: {
     title: string;
+    typeLabel: string;
     objectives: string[];
     programmeLines: string[];
     durationHours: number | null;
@@ -64,6 +71,7 @@ export type TrainingAgreementPdfData = {
     locationLabel: string;
     modality: string;
     prerequisites: string;
+    accessibilityDetails: string;
     pedagogicalMeans: string[];
     evaluationMethods: string[];
     trainerName: string;
@@ -93,48 +101,6 @@ export type TrainingAgreementPdfData = {
 function safeTrim(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
-}
-
-function splitTextToLines(value: string | null | undefined) {
-  return (value ?? "")
-    .split(/\r?\n|•|-/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function deriveObjectives(quote: QuotePdfData) {
-  const descriptionLines = splitTextToLines(quote.description);
-
-  if (descriptionLines.length >= 2) {
-    return descriptionLines.slice(0, 4);
-  }
-
-  return [
-    `Permettre aux participants de suivre la formation "${quote.title}".`,
-    "Acquerir les competences visees par le programme pedagogique transmis par l'organisme de formation.",
-    "Permettre une mise en pratique immediate dans le contexte professionnel du client."
-  ];
-}
-
-function deriveProgrammeLines(params: {
-  quote: QuotePdfData;
-  sessionModuleTitles: string[];
-}) {
-  if (params.sessionModuleTitles.length) {
-    return params.sessionModuleTitles;
-  }
-
-  const descriptionLines = splitTextToLines(params.quote.description);
-  if (descriptionLines.length) {
-    return descriptionLines.slice(0, 8);
-  }
-
-  return [
-    "Accueil des participants et cadrage de l'action de formation.",
-    "Apports theoriques et methodologiques sur les competences cibles.",
-    "Mises en situation, exercices pratiques et analyses de cas.",
-    "Evaluation des acquis et bilan de fin de formation."
-  ];
 }
 
 function deriveModality(quote: QuotePdfData) {
@@ -265,7 +231,11 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         trainerId: quote.session?.trainer_id,
         trainerName: quote.session?.trainer_name || quote.trainer_name
       }),
-      durationHours: quote.session?.duration_hours ?? null
+      durationHours: quote.duration_hours ?? quote.session?.duration_hours ?? null,
+      objectives: quote.objectives ?? quote.session?.objectives ?? null,
+      programmeOutline: quote.programme_outline ?? quote.session?.programme_outline ?? null,
+      prerequisites: quote.prerequisites ?? quote.session?.prerequisites ?? null,
+      accessibilityDetails: quote.accessibility_details ?? quote.session?.accessibility_details ?? null
     };
   }
 
@@ -289,7 +259,13 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         trainerId: sessionData.session.trainer_id ?? quote.session?.trainer_id,
         trainerName: sessionData.session.trainer_name || quote.session?.trainer_name || quote.trainer_name
       }),
-      durationHours: sessionData.session.duration_hours ?? quote.session?.duration_hours ?? null
+      durationHours: quote.duration_hours ?? sessionData.session.duration_hours ?? quote.session?.duration_hours ?? null,
+      objectives: quote.objectives ?? sessionData.session.objectives ?? quote.session?.objectives ?? null,
+      programmeOutline:
+        quote.programme_outline ?? sessionData.session.programme_outline ?? quote.session?.programme_outline ?? null,
+      prerequisites: quote.prerequisites ?? sessionData.session.prerequisites ?? quote.session?.prerequisites ?? null,
+      accessibilityDetails:
+        quote.accessibility_details ?? sessionData.session.accessibility_details ?? quote.session?.accessibility_details ?? null
     };
   } catch (error) {
     if (error instanceof SessionNotFoundError) {
@@ -300,7 +276,11 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
           trainerId: quote.session?.trainer_id,
           trainerName: quote.session?.trainer_name || quote.trainer_name
         }),
-        durationHours: quote.session?.duration_hours ?? null
+        durationHours: quote.duration_hours ?? quote.session?.duration_hours ?? null,
+        objectives: quote.objectives ?? quote.session?.objectives ?? null,
+        programmeOutline: quote.programme_outline ?? quote.session?.programme_outline ?? null,
+        prerequisites: quote.prerequisites ?? quote.session?.prerequisites ?? null,
+        accessibilityDetails: quote.accessibility_details ?? quote.session?.accessibility_details ?? null
       };
     }
 
@@ -336,6 +316,7 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
     client: data.client,
     training: {
       title: data.training.title,
+      type_label: data.training.typeLabel,
       objectives: data.training.objectives,
       programme_lines: data.training.programmeLines,
       duration_hours: data.training.durationHours,
@@ -344,6 +325,7 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
       location_label: data.training.locationLabel,
       modality: data.training.modality,
       prerequisites: data.training.prerequisites,
+      accessibility_details: data.training.accessibilityDetails,
       pedagogical_means: data.training.pedagogicalMeans,
       evaluation_methods: data.training.evaluationMethods,
       trainer_name: data.training.trainerName,
@@ -388,6 +370,15 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
       : null;
   const locationLabel = safeTrim(quote.location) || safeTrim(quote.session?.location) || "Lieu a confirmer";
   const participantCount = sessionContext.participants.length || quote.candidate_count || 0;
+  const trainingDefaults = getTrainingProgramDefaults(quote.training_type);
+  const objectives = splitObjectivesText(sessionContext.objectives, trainingDefaults.objectives);
+  const programmeLines = splitProgrammeText(
+    sessionContext.programmeOutline,
+    sessionContext.modules.length ? sessionContext.modules : trainingDefaults.programmeLines
+  );
+  const prerequisites = safeTrim(sessionContext.prerequisites) || trainingDefaults.prerequisites;
+  const accessibilityDetails = safeTrim(sessionContext.accessibilityDetails) || trainingDefaults.accessibility;
+  const durationHours = sessionContext.durationHours ?? quote.duration_hours ?? trainingDefaults.durationHours;
   const missingFields = buildMissingFields({
     organizationEmail,
     organizationPhone,
@@ -426,17 +417,16 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
     },
     training: {
       title: quote.title,
-      objectives: deriveObjectives(quote),
-      programmeLines: deriveProgrammeLines({
-        quote,
-        sessionModuleTitles: sessionContext.modules
-      }),
-      durationHours: sessionContext.durationHours,
-      durationLabel: formatDurationHours(sessionContext.durationHours),
+      typeLabel: getTrainingTypeLabel(quote.training_type),
+      objectives,
+      programmeLines,
+      durationHours,
+      durationLabel: formatDurationHours(durationHours),
       dateRangeLabel: sessionDateLabel || "Dates a definir",
       locationLabel,
       modality: deriveModality(quote),
-      prerequisites: "Aucun prerequis particulier sauf mention contraire au devis ou au programme.",
+      prerequisites,
+      accessibilityDetails,
       pedagogicalMeans: [
         "Apports theoriques et methodologiques animes par un formateur qualifie.",
         "Supports pedagogiques, demonstrations, echanges et etudes de cas.",
@@ -460,7 +450,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
       depositTerms: buildDepositTerms(quote.notes)
     },
     clauses: {
-      purpose: `La presente convention a pour objet de definir les conditions dans lesquelles l'organisme de formation realise l'action de formation intitulee "${quote.title}" au benefice du client.`,
+      purpose: `La presente convention a pour objet de definir les conditions dans lesquelles l'organisme de formation realise l'action de formation "${getTrainingTypeLabel(quote.training_type)}" intitulee "${quote.title}" au benefice du client.`,
       organization:
         "L'action de formation est organisee selon les dates, horaires, modalites et conditions logistiques definis au devis et/ou precises ulterieurement d'un commun accord entre les parties.",
       pedagogicalMeans:

@@ -84,6 +84,13 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
     location: formData.get("location"),
     trainerName: formData.get("trainerName"),
     durationHours: formData.get("durationHours") || undefined,
+    trainingType: formData.get("trainingType"),
+    prerequisites: formData.get("prerequisites"),
+    objectives: formData.get("objectives"),
+    programmeOutline: formData.get("programmeOutline"),
+    accessibilityDetails: formData.get("accessibilityDetails"),
+    macPreviousCertificateDate: formData.get("macPreviousCertificateDate"),
+    macPreviousCertificateRef: formData.get("macPreviousCertificateRef"),
     status: formData.get("status")
   });
 
@@ -102,9 +109,19 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
       end_date: parsed.data.endDate,
       location: parsed.data.location,
       status: parsed.data.status,
+      training_type: parsed.data.trainingType,
+      training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : "sst",
       trainer_user_id: profile.id,
       trainer_name: parsed.data.trainerName || null,
-      duration_hours: parsed.data.durationHours ?? null
+      duration_hours: parsed.data.durationHours ?? null,
+      prerequisites: parsed.data.prerequisites.trim() || null,
+      objectives: parsed.data.objectives.trim() || null,
+      programme_outline: parsed.data.programmeOutline.trim() || null,
+      accessibility_details: parsed.data.accessibilityDetails.trim() || null,
+      mac_previous_certificate_date:
+        parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateDate.trim() || null : null,
+      mac_previous_certificate_ref:
+        parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateRef.trim() || null : null
     })
     .select("id")
     .single();
@@ -134,6 +151,13 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
     endDate: formData.get("endDate"),
     location: formData.get("location"),
     durationHours: formData.get("durationHours"),
+    trainingType: formData.get("trainingType"),
+    prerequisites: formData.get("prerequisites"),
+    objectives: formData.get("objectives"),
+    programmeOutline: formData.get("programmeOutline"),
+    accessibilityDetails: formData.get("accessibilityDetails"),
+    macPreviousCertificateDate: formData.get("macPreviousCertificateDate"),
+    macPreviousCertificateRef: formData.get("macPreviousCertificateRef"),
     trainerId: formData.get("trainerId"),
     status: formData.get("status")
   });
@@ -153,10 +177,20 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
         start_date: parsed.data.startDate,
         end_date: parsed.data.endDate,
         location: parsed.data.location,
+        training_type: parsed.data.trainingType,
+        training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : "sst",
         duration_hours:
           parsed.data.durationHours === "" || typeof parsed.data.durationHours === "undefined"
             ? null
             : parsed.data.durationHours,
+        prerequisites: parsed.data.prerequisites.trim() || null,
+        objectives: parsed.data.objectives.trim() || null,
+        programme_outline: parsed.data.programmeOutline.trim() || null,
+        accessibility_details: parsed.data.accessibilityDetails.trim() || null,
+        mac_previous_certificate_date:
+          parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateDate.trim() || null : null,
+        mac_previous_certificate_ref:
+          parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateRef.trim() || null : null,
         trainer_id: trainerId,
         trainer_name: trainerName,
         status: parsed.data.status
@@ -569,6 +603,14 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
     companyId: formData.get("companyId"),
     title: formData.get("title"),
     description: formData.get("description"),
+    trainingType: formData.get("trainingType"),
+    durationHours: formData.get("durationHours") || undefined,
+    prerequisites: formData.get("prerequisites"),
+    objectives: formData.get("objectives"),
+    programmeOutline: formData.get("programmeOutline"),
+    accessibilityDetails: formData.get("accessibilityDetails"),
+    macPreviousCertificateDate: formData.get("macPreviousCertificateDate"),
+    macPreviousCertificateRef: formData.get("macPreviousCertificateRef"),
     candidateCount: formData.get("candidateCount"),
     priceHt: formData.get("priceHt"),
     vatRate: formData.get("vatRate"),
@@ -585,6 +627,14 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
       companyId: parsed.data.companyId,
       title: parsed.data.title,
       description: parsed.data.description,
+      trainingType: parsed.data.trainingType,
+      durationHours: parsed.data.durationHours ?? null,
+      prerequisites: parsed.data.prerequisites,
+      objectives: parsed.data.objectives,
+      programmeOutline: parsed.data.programmeOutline,
+      accessibilityDetails: parsed.data.accessibilityDetails,
+      macPreviousCertificateDate: parsed.data.macPreviousCertificateDate,
+      macPreviousCertificateRef: parsed.data.macPreviousCertificateRef,
       candidateCount: parsed.data.candidateCount,
       priceHt: parsed.data.priceHt,
       vatRate: parsed.data.vatRate,

@@ -3,7 +3,8 @@ import type {
   AttendanceResponseStatus,
   AttendanceSlotStatus,
   CandidateValidationStatus,
-  QuoteStatus
+  QuoteStatus,
+  TrainingType
 } from "@/lib/database.types";
 
 export type UserRole = "admin" | "lead_trainer" | "trainer";
@@ -21,11 +22,19 @@ export type SessionItem = {
   end_date: string;
   location: string;
   status: "draft" | "scheduled" | "in_progress" | "completed" | "cancelled";
+  training_type: TrainingType;
+  training_family: string;
   source_quote_id: string | null;
   trainer_id: string | null;
   trainer_user_id: string | null;
   trainer_name: string | null;
   duration_hours: number | null;
+  prerequisites: string | null;
+  objectives: string | null;
+  programme_outline: string | null;
+  accessibility_details: string | null;
+  mac_previous_certificate_date: string | null;
+  mac_previous_certificate_ref: string | null;
   created_at: string;
 };
 
@@ -195,6 +204,8 @@ export type CompanyQuoteSummary = {
   quote_number: string;
   status: QuoteStatus;
   session_id: string | null;
+  training_type: TrainingType;
+  training_family: string;
   title: string;
   total_ttc: number;
   created_at: string;

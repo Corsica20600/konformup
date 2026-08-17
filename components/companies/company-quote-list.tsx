@@ -11,6 +11,7 @@ import { updateQuoteStatusAction, type ActionState } from "@/app/(dashboard)/ses
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getQuoteStatusTone, QUOTE_STATUS_LABELS, QUOTE_STATUS_MANAGEMENT_OPTIONS } from "@/lib/quote-status";
+import { getTrainingTypeLabel } from "@/lib/training-programs";
 import type { CompanyInvoiceSummary, CompanyQuoteSummary } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ function CompanyQuoteRow({
             <Badge tone={getQuoteStatusTone(quote.status)}>{QUOTE_STATUS_LABELS[quote.status]}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink/65">{quote.title}</p>
+          <p className="mt-1 text-sm text-ink/55">{getTrainingTypeLabel(quote.training_type)}</p>
           <p className="mt-2 text-sm text-ink/55">
             Cree le {formatDate(quote.created_at)} - {quote.total_ttc.toFixed(2)} EUR
           </p>

@@ -619,14 +619,14 @@ async function selectQuotesByCompanyId(companyId: string): Promise<CompanyQuoteS
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, status, session_id, title, total_ttc, created_at, session_start_date, session_end_date")
+    .select("id, quote_number, status, training_type, training_family, session_id, title, total_ttc, created_at, session_start_date, session_end_date")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "quotes",
-    query: 'select("id, quote_number, status, session_id, title, total_ttc, created_at, session_start_date, session_end_date").eq("company_id", companyId).order("created_at")',
+    query: 'select("id, quote_number, status, training_type, training_family, session_id, title, total_ttc, created_at, session_start_date, session_end_date").eq("company_id", companyId).order("created_at")',
     error
   });
 
@@ -653,6 +653,8 @@ async function selectQuotesByCompanyId(companyId: string): Promise<CompanyQuoteS
         id: quote.id,
         quote_number: quote.quote_number,
         status: quote.status as QuoteStatus,
+        training_type: "sst_initial" as const,
+        training_family: "sst",
         session_id: null,
         title: quote.quote_number,
         total_ttc: 0,
@@ -894,13 +896,13 @@ async function selectSessionsWithFallback() {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
+    .select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at")
     .order("start_date", { ascending: false });
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").order("start_date")',
+    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at").order("start_date")',
     error: primary.error
   });
 
@@ -924,7 +926,15 @@ async function selectSessionsWithFallback() {
     return {
       data: (fallbackWithTrainer.data ?? []).map((session) => ({
         ...session,
-        source_quote_id: null
+        training_type: "sst_initial",
+        training_family: "sst",
+        source_quote_id: null,
+        prerequisites: null,
+        objectives: null,
+        programme_outline: null,
+        accessibility_details: null,
+        mac_previous_certificate_date: null,
+        mac_previous_certificate_ref: null
       })),
       error: fallbackWithTrainer.error
     };
@@ -945,10 +955,18 @@ async function selectSessionsWithFallback() {
   return {
     data: (fallback.data ?? []).map((session) => ({
       ...session,
+      training_type: "sst_initial" as const,
+      training_family: "sst",
       source_quote_id: null,
       trainer_id: null,
       trainer_name: null,
-      duration_hours: null
+      duration_hours: null,
+      prerequisites: null,
+      objectives: null,
+      programme_outline: null,
+      accessibility_details: null,
+      mac_previous_certificate_date: null,
+      mac_previous_certificate_ref: null
     })),
     error: fallback.error
   };
@@ -958,14 +976,14 @@ async function selectSessionByIdWithFallback(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at")
+    .select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at")
     .eq("id", sessionId)
     .maybeSingle<SessionItem>();
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "training_sessions",
-    query: 'select("id, title, start_date, end_date, location, status, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, created_at").eq("id", sessionId).maybeSingle()',
+    query: 'select("id, title, start_date, end_date, location, status, training_type, training_family, source_quote_id, trainer_id, trainer_user_id, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, created_at").eq("id", sessionId).maybeSingle()',
     error: primary.error
   });
 
@@ -991,7 +1009,15 @@ async function selectSessionByIdWithFallback(sessionId: string) {
       data: fallbackWithTrainer.data
         ? {
             ...fallbackWithTrainer.data,
-            source_quote_id: null
+            training_type: "sst_initial" as const,
+            training_family: "sst",
+            source_quote_id: null,
+            prerequisites: null,
+            objectives: null,
+            programme_outline: null,
+            accessibility_details: null,
+            mac_previous_certificate_date: null,
+            mac_previous_certificate_ref: null
           }
         : null,
       error: fallbackWithTrainer.error
@@ -1015,10 +1041,18 @@ async function selectSessionByIdWithFallback(sessionId: string) {
     data: fallback.data
       ? {
           ...fallback.data,
+          training_type: "sst_initial" as const,
+          training_family: "sst",
           source_quote_id: null,
           trainer_id: null,
           trainer_name: null,
-          duration_hours: null
+          duration_hours: null,
+          prerequisites: null,
+          objectives: null,
+          programme_outline: null,
+          accessibility_details: null,
+          mac_previous_certificate_date: null,
+          mac_previous_certificate_ref: null
         }
       : null,
     error: fallback.error

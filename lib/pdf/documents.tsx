@@ -3,6 +3,13 @@ import { Document, Font, Image, Link as PdfLink, Page, StyleSheet, Text, View } 
 import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
+import {
+  getTrainingFamilyLabel,
+  getTrainingProgramDefaults,
+  getTrainingTypeLabel,
+  splitObjectivesText,
+  splitProgrammeText
+} from "@/lib/training-programs";
 import type { TrainingAgreementPdfData } from "@/lib/training-agreements";
 import {
   formatAddressLines,
@@ -16,7 +23,13 @@ import {
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 
-const TRAINING_TITLE = "Sauveteur Secouriste du Travail (SST)";
+function getSessionTrainingTitle(session: SessionItem) {
+  return getTrainingTypeLabel(session.training_type);
+}
+
+function getQuoteTrainingTitle(quote: QuotePdfData) {
+  return getTrainingTypeLabel(quote.training_type);
+}
 
 const validationLabel = {
   pending: "En attente de validation",
@@ -1664,6 +1677,7 @@ export function CertificateDocument({
       ? [certificateStyles.validationBadgeText, certificateStyles.validationBadgeTextPending]
       : certificateStyles.validationBadgeText;
   const trainerName = session.trainer_name || "Formateur non renseigne";
+  const trainingTitle = getSessionTrainingTitle(session);
   const attestationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
   const attestationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
   const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
@@ -1684,11 +1698,11 @@ export function CertificateDocument({
           </View>
 
           <Text style={certificateStyles.certificateTitle}>Attestation de fin de formation</Text>
-          <Text style={certificateStyles.certificateSubtitle}>Sauveteur Secouriste du Travail (SST)</Text>
+          <Text style={certificateStyles.certificateSubtitle}>{trainingTitle}</Text>
 
           <Text style={certificateStyles.intro}>Nous attestons que le stagiaire suivant a suivi la formation :</Text>
           <Text style={certificateStyles.candidateName}>{candidateFullName}</Text>
-          <Text style={certificateStyles.trainingTitle}>{TRAINING_TITLE}</Text>
+          <Text style={certificateStyles.trainingTitle}>{trainingTitle}</Text>
 
           <View style={certificateStyles.identificationGrid}>
             <View style={certificateStyles.identificationCard}>
@@ -1761,7 +1775,7 @@ export function CertificateDocument({
                   {line}
                 </Text>
               ))}
-              <Text style={certificateStyles.legalText}>Formation suivie : {TRAINING_TITLE}</Text>
+              <Text style={certificateStyles.legalText}>Formation suivie : {trainingTitle}</Text>
               <Text style={certificateStyles.legalFootnote}>
                 Cette attestation interne de fin de formation ne se substitue pas au certificat officiel delivre dans le
                 cadre du dispositif SST / FORPREV lorsque celui-ci est applicable.
@@ -1772,7 +1786,7 @@ export function CertificateDocument({
               <View style={certificateStyles.signatureSection}>
                 <Text style={certificateStyles.signatureLabel}>Formation animee par</Text>
                 <Text style={certificateStyles.signatureName}>{trainerName}</Text>
-                <Text style={certificateStyles.signatureTitle}>Formateur SST</Text>
+                <Text style={certificateStyles.signatureTitle}>Formateur</Text>
               </View>
 
               <View style={[certificateStyles.signatureSection, certificateStyles.signatureSectionLast]}>
@@ -1812,6 +1826,8 @@ export function ConvocationDocument({
   const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
   const convocationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
   const convocationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
+  const trainingTitle = getSessionTrainingTitle(session);
+  const shouldAppendSstProgramme = session.training_family === "sst";
 
   return (
     <Document>
@@ -1829,11 +1845,11 @@ export function ConvocationDocument({
           </View>
 
           <Text style={certificateStyles.certificateTitle}>Convocation a la formation</Text>
-          <Text style={certificateStyles.certificateSubtitle}>Participation a la session SST</Text>
+          <Text style={certificateStyles.certificateSubtitle}>Participation a la session {trainingTitle}</Text>
 
           <Text style={certificateStyles.intro}>Nous vous confirmons l&apos;inscription du participant suivant :</Text>
           <Text style={certificateStyles.candidateName}>{candidateFullName}</Text>
-          <Text style={certificateStyles.trainingTitle}>{TRAINING_TITLE}</Text>
+          <Text style={certificateStyles.trainingTitle}>{trainingTitle}</Text>
 
           <View style={certificateStyles.detailsCard}>
             <DetailRow label="Dates de session" value={formatDateRange(session.start_date, session.end_date)} />
@@ -1848,6 +1864,9 @@ export function ConvocationDocument({
             <Text style={certificateStyles.validationDate}>{addressLine}</Text>
             <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
               Le programme pedagogique detaille de la formation est joint aux pages suivantes.
+            </Text>
+            <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
+              Accessibilite : {session.accessibility_details || "besoin d'adaptation a signaler avant la formation."}
             </Text>
             {welcomePackUrl ? (
               <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
@@ -1868,13 +1887,13 @@ export function ConvocationDocument({
                   {line}
                 </Text>
               ))}
-              <Text style={certificateStyles.legalText}>Formation convoquee : {TRAINING_TITLE}</Text>
+              <Text style={certificateStyles.legalText}>Formation convoquee : {trainingTitle}</Text>
             </View>
 
             <View style={certificateStyles.signatureBlockSlim}>
               <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim]}>Formation animee par</Text>
               <Text style={[certificateStyles.signatureName, certificateStyles.signatureNameSlim]}>{trainerName}</Text>
-              <Text style={[certificateStyles.signatureTitle, certificateStyles.signatureTitleSlim]}>Formateur SST</Text>
+              <Text style={[certificateStyles.signatureTitle, certificateStyles.signatureTitleSlim]}>Formateur</Text>
 
               <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim, { marginTop: 8 }]}>
                 Convocation etablie par
@@ -1891,24 +1910,28 @@ export function ConvocationDocument({
         </View>
       </Page>
 
-      <ConvocationProgrammePage
-        title="Formation initiale des sauveteurs secouristes du travail"
-        subtitle="Deroule pedagogique de la session, presente sous forme de tableau pour accompagner la convocation du participant."
-        session={session}
-        candidateFullName={candidateFullName}
-        sections={SST_PROGRAMME_PAGE_1}
-        organizationSettings={organizationSettings}
-      />
+      {shouldAppendSstProgramme ? (
+        <>
+          <ConvocationProgrammePage
+            title="Formation initiale des sauveteurs secouristes du travail"
+            subtitle="Deroule pedagogique de la session, presente sous forme de tableau pour accompagner la convocation du participant."
+            session={session}
+            candidateFullName={candidateFullName}
+            sections={SST_PROGRAMME_PAGE_1}
+            organizationSettings={organizationSettings}
+          />
 
-      <ConvocationProgrammePage
-        title="Suite du programme de formation"
-        subtitle="Mises en situation, gestes de secours et dispositif de validation du SST."
-        session={session}
-        candidateFullName={candidateFullName}
-        sections={SST_PROGRAMME_PAGE_2}
-        organizationSettings={organizationSettings}
-        note="*Composition du jury : un formateur SST ayant assure la formation."
-      />
+          <ConvocationProgrammePage
+            title="Suite du programme de formation"
+            subtitle="Mises en situation, gestes de secours et dispositif de validation du SST."
+            session={session}
+            candidateFullName={candidateFullName}
+            sections={SST_PROGRAMME_PAGE_2}
+            organizationSettings={organizationSettings}
+            note="*Composition du jury : un formateur SST ayant assure la formation."
+          />
+        </>
+      ) : null}
     </Document>
   );
 }
@@ -2010,6 +2033,8 @@ export function QuoteDocument({
     city: quote.company.city
   });
   const sessionLabel = quote.session?.title || "Session non planifiee";
+  const trainingLabel = getQuoteTrainingTitle(quote);
+  const trainingFamilyLabel = getTrainingFamilyLabel(quote.training_family, quote.training_type);
 
   return (
     <Document>
@@ -2048,6 +2073,8 @@ export function QuoteDocument({
 
           <View style={quoteStyles.infoCard}>
             <Text style={quoteStyles.infoTitle}>Session</Text>
+            <QuoteInfoLine value={`Formation : ${trainingLabel}`} />
+            <QuoteInfoLine value={`Famille : ${trainingFamilyLabel}`} />
             <QuoteInfoLine value={sessionLabel} />
             <QuoteInfoLine
               value={
@@ -2057,13 +2084,28 @@ export function QuoteDocument({
               }
             />
             <QuoteInfoLine value={`Lieu : ${quote.location || "A confirmer"}`} />
+            <QuoteInfoLine value={`Duree : ${formatDurationHours(quote.duration_hours)}`} />
             <QuoteInfoLine value={`Participants : ${quote.candidate_count}`} />
           </View>
         </View>
 
         <View style={quoteStyles.descriptionCard}>
           <Text style={quoteStyles.infoTitle}>Description</Text>
-          <Text style={quoteStyles.descriptionText}>{quote.description || "Prestation de formation SST."}</Text>
+          <Text style={quoteStyles.descriptionText}>{quote.description || `Prestation de formation ${trainingLabel}.`}</Text>
+        </View>
+
+        <View style={quoteStyles.descriptionCard}>
+          <Text style={quoteStyles.infoTitle}>Cadre pédagogique</Text>
+          <Text style={quoteStyles.descriptionText}>Prérequis : {quote.prerequisites || "Aucun prérequis particulier."}</Text>
+          <Text style={quoteStyles.descriptionText}>
+            Accessibilité : {quote.accessibility_details || "Analyse des besoins d'adaptation sur demande."}
+          </Text>
+          {quote.training_type === "mac_sst" ? (
+            <Text style={quoteStyles.descriptionText}>
+              MAC SST : certificat précédent {quote.mac_previous_certificate_ref || "à renseigner"}
+              {quote.mac_previous_certificate_date ? ` du ${formatDateShort(quote.mac_previous_certificate_date)}` : ""}.
+            </Text>
+          ) : null}
         </View>
 
         <View style={quoteStyles.priceTable}>
@@ -2642,7 +2684,11 @@ export function ProgrammeDocument({
 
     return normalized.startsWith(prefixNormalized) ? trimmed : `${prefix} ${trimmed}`;
   };
-  const trainerLabel = quote.session?.trainer_name || "Formateur SST Konformup";
+  const trainerLabel = quote.session?.trainer_name || "Formateur Konformup";
+  const trainingLabel = getQuoteTrainingTitle(quote);
+  const trainingDefaults = getTrainingProgramDefaults(quote.training_type);
+  const programmeLines = splitProgrammeText(quote.programme_outline, trainingDefaults.programmeLines);
+  const objectiveLines = splitObjectivesText(quote.objectives, trainingDefaults.objectives);
   const dateLabel =
     quote.session_start_date || quote.session_end_date
       ? formatDateRange(quote.session_start_date, quote.session_end_date)
@@ -2652,6 +2698,7 @@ export function ProgrammeDocument({
     quote.candidate_count > 0
       ? `${quote.candidate_count} participant(s) prevu(s) - 4 mini / 10 maxi`
       : "4 mini / 10 maxi";
+  const durationLabel = formatDurationHours(quote.duration_hours ?? trainingDefaults.durationHours);
   const organizationMeta = [
     organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
       ? organizationSettings.address
@@ -2672,10 +2719,10 @@ return (
                   <Text style={programmeStyles.heroKicker}>Programme de formation</Text>
               </View>
               <Text style={programmeStyles.heroTitle}>
-                Programme SST {"\n"}Sauveteur Secouriste du Travail
+                Programme {"\n"}{trainingLabel}
               </Text>
               <Text style={programmeStyles.heroSubtitle}>
-                Une presentation structurée et operationnelle de la formation, inspiree d&apos;une brochure pedagogique et alignee sur le dispositif SST / INRS.
+                Une presentation structuree et operationnelle de la formation, adaptee au type d'action retenu au devis.
               </Text>
             </View>
             <View style={programmeStyles.heroAside}>
@@ -2686,7 +2733,7 @@ return (
                 <View style={programmeStyles.metaGrid}>
                   <View style={programmeStyles.metaChip}>
                     <Text style={programmeStyles.metaChipLabel}>Duree</Text>
-                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaValue]}>14 h</Text>
+                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaValue]}>{durationLabel}</Text>
                   </View>
                   <View style={programmeStyles.metaChip}>
                     <Text style={programmeStyles.metaChipLabel}>Modalite</Text>
@@ -2694,7 +2741,9 @@ return (
                   </View>
                   <View style={programmeStyles.metaChip}>
                     <Text style={programmeStyles.metaChipLabel}>Certificat</Text>
-                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>Valide 24 mois</Text>
+                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>
+                      {trainingDefaults.certificateNote}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -2722,16 +2771,18 @@ return (
         <View style={programmeStyles.firstLeft}>
           <View style={[programmeStyles.card, programmeStyles.cardEmphasis]}>
             <Text style={programmeStyles.cardTitle}>Objectif de la formation</Text>
-            <Text style={programmeStyles.sectionLead}>Former des SST capables d&apos;agir vite et juste.</Text>
-            <Text style={programmeStyles.bodyText}>
-              Intervenir efficacement face a une situation d&apos;accident du travail et contribuer a la prevention des risques professionnels dans l&apos;entreprise.
-            </Text>
+            <Text style={programmeStyles.sectionLead}>{objectiveLines[0]}</Text>
+            {objectiveLines.slice(1).map((objective) => (
+              <Text key={objective} style={programmeStyles.bodyText}>
+                {objective}
+              </Text>
+            ))}
           </View>
           <View style={programmeStyles.card}>
             <Text style={programmeStyles.cardTitle}>Competences developpees</Text>
-            <ProgrammeBullet>Identifier les situations dangereuses et participer a la prevention.</ProgrammeBullet>
-            <ProgrammeBullet>Examiner une victime et alerter ou faire alerter les secours.</ProgrammeBullet>
-            <ProgrammeBullet>Realiser les gestes de secours adaptes: protection, saignement, etouffement, inconscience, arret cardiaque, malaise, brulure et traumatisme.</ProgrammeBullet>
+            {programmeLines.slice(0, 3).map((line) => (
+              <ProgrammeBullet key={line}>{line}</ProgrammeBullet>
+            ))}
           </View>
         </View>
 
@@ -2743,11 +2794,11 @@ return (
             </View>
             <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
               <Text style={programmeStyles.factLabel}>Prerequis</Text>
-              <Text style={programmeStyles.factValue}>Aucun</Text>
+              <Text style={programmeStyles.factValue}>{quote.prerequisites || trainingDefaults.prerequisites}</Text>
             </View>
             <View style={programmeStyles.factTile}>
               <Text style={programmeStyles.factLabel}>Duree</Text>
-              <Text style={programmeStyles.factValue}>14 h en presentiel</Text>
+              <Text style={programmeStyles.factValue}>{durationLabel} en presentiel</Text>
             </View>
             <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
               <Text style={programmeStyles.factLabel}>Effectif</Text>
@@ -2762,11 +2813,11 @@ return (
           <View style={programmeStyles.card}>
             <Text style={programmeStyles.cardTitle}>Cadre certificateur et validite</Text>
             <Text style={programmeStyles.bodyText}>
-              Formation preparee selon le referentiel SST de l&apos;INRS. Certificat delivre dans le cadre du dispositif Assurance maladie - Risques professionnels / INRS.
+              {trainingDefaults.certificateNote}
             </Text>
-            <Text style={[programmeStyles.bodyText, { marginTop: 5 }]}>
-              Validite du certificat: 24 mois. Maintien et actualisation des competences (MAC): 7 h tous les 24 mois.
-            </Text>
+            {quote.accessibility_details ? (
+              <Text style={[programmeStyles.bodyText, { marginTop: 5 }]}>Accessibilite : {quote.accessibility_details}</Text>
+            ) : null}
           </View>
         </View>
       </View>
@@ -2785,8 +2836,8 @@ return (
           <View style={programmeStyles.card}>
             <Text style={programmeStyles.cardTitle}>Modalites d&apos;evaluation</Text>
             <ProgrammeBullet>Evaluations formatives tout au long de la formation.</ProgrammeBullet>
-            <ProgrammeBullet>Evaluation certificative selon les criteres definis par le dispositif SST.</ProgrammeBullet>
-            <ProgrammeBullet>Remise du certificat SST aux participants ayant satisfait aux exigences.</ProgrammeBullet>
+            <ProgrammeBullet>Evaluation selon les criteres definis par le programme de formation.</ProgrammeBullet>
+            <ProgrammeBullet>Remise du document de fin de formation prevu pour les participants ayant satisfait aux exigences.</ProgrammeBullet>
           </View>
         </View>
       </View>
@@ -2794,7 +2845,7 @@ return (
       <View style={programmeStyles.pageFooter}>
         <View style={programmeStyles.footerTopRow}>
           <Text style={programmeStyles.footerOrg}>{organizationSettings.organization_name}</Text>
-          <Text style={programmeStyles.footerMeta}>Programme SST • Document pedagogique</Text>
+          <Text style={programmeStyles.footerMeta}>{trainingLabel} • Document pedagogique</Text>
         </View>
         <Text style={programmeStyles.footerNote}>{organizationMeta.join(" • ")}</Text>
       </View>
@@ -2803,7 +2854,7 @@ return (
     <Page size="A4" style={[shared.page, programmeStyles.page]}>
       <View style={programmeStyles.sectionBand}>
         <Text style={programmeStyles.sectionBandKicker}>Programme detaille</Text>
-        <Text style={programmeStyles.sectionBandTitle}>Une progression equilibree entre theorie et mises en situation</Text>
+        <Text style={programmeStyles.sectionBandTitle}>{trainingLabel}</Text>
       </View>
 
       <View style={programmeStyles.splitShell}>
@@ -2817,14 +2868,14 @@ return (
             <Text style={[programmeStyles.splitPercent, programmeStyles.splitTheory]}>40%</Text>
             <Text style={programmeStyles.splitTitle}>Partie theorique</Text>
             <Text style={programmeStyles.splitText}>
-              Cadre d&apos;intervention, principes de prevention, analyse de la situation et logique d&apos;alerte.
+              Apports, cadrage, principes et repères nécessaires à la mise en pratique.
             </Text>
           </View>
           <View style={[programmeStyles.splitCard, programmeStyles.splitCardLast]}>
             <Text style={[programmeStyles.splitPercent, programmeStyles.splitPractice]}>60%</Text>
             <Text style={programmeStyles.splitTitle}>Partie pratique</Text>
             <Text style={programmeStyles.splitText}>
-              Gestes de secours, ateliers, cas concrets et entrainements sur des situations proches du terrain.
+              Exercices, études de cas, mises en situation et vérification des acquis.
             </Text>
           </View>
         </View>
@@ -2834,23 +2885,18 @@ return (
         <View style={programmeStyles.secondCol}>
           <View style={programmeStyles.card}>
             <Text style={programmeStyles.cardTitle}>Partie theorique</Text>
-            <ProgrammeBullet>Role du SST dans l&apos;entreprise et articulation avec la prevention des risques.</ProgrammeBullet>
-            <ProgrammeBullet>Cadre juridique de l&apos;intervention et principes generaux de prevention.</ProgrammeBullet>
-            <ProgrammeBullet>Recherche des dangers persistants et protection adaptee.</ProgrammeBullet>
-            <ProgrammeBullet>Examen de la victime, alerte, organisation des secours et transmission des informations.</ProgrammeBullet>
-            <ProgrammeBullet>Conduites a tenir face aux saignements, etouffements, malaises, brulures, traumatismes et pertes de connaissance.</ProgrammeBullet>
-            <ProgrammeBullet>Principes de la reanimation cardio-pulmonaire et usage du defibrillateur.</ProgrammeBullet>
+            {programmeLines.slice(0, Math.ceil(programmeLines.length / 2)).map((line) => (
+              <ProgrammeBullet key={line}>{line}</ProgrammeBullet>
+            ))}
           </View>
         </View>
 
         <View style={[programmeStyles.secondCol, programmeStyles.secondColLast]}>
           <View style={[programmeStyles.card, programmeStyles.cardEmphasis]}>
             <Text style={programmeStyles.cardTitle}>Partie pratique</Text>
-            <ProgrammeBullet>Exercices de protection, degagement d&apos;urgence et mise en securite.</ProgrammeBullet>
-            <ProgrammeBullet>Mises en situation d&apos;accidents du travail contextualisees.</ProgrammeBullet>
-            <ProgrammeBullet>Ateliers gestes d&apos;urgence: compression, PLS, RCP adulte et utilisation du DEA.</ProgrammeBullet>
-            <ProgrammeBullet>Jeux de role sur l&apos;alerte et la coordination avec les secours externes.</ProgrammeBullet>
-            <ProgrammeBullet>Analyse de situations de travail pour reperer les actions de prevention a proposer.</ProgrammeBullet>
+            {programmeLines.slice(Math.ceil(programmeLines.length / 2)).map((line) => (
+              <ProgrammeBullet key={line}>{line}</ProgrammeBullet>
+            ))}
           </View>
         </View>
       </View>
@@ -2880,7 +2926,7 @@ return (
       <View style={programmeStyles.pageFooter}>
         <View style={programmeStyles.footerTopRow}>
           <Text style={programmeStyles.footerOrg}>{organizationSettings.organization_name}</Text>
-          <Text style={programmeStyles.footerMeta}>Programme SST • Document pedagogique</Text>
+          <Text style={programmeStyles.footerMeta}>{trainingLabel} • Document pedagogique</Text>
         </View>
         <Text style={programmeStyles.footerNote}>{organizationMeta.join(" • ")}</Text>
       </View>
@@ -3236,6 +3282,7 @@ export function TrainingAgreementDocument({
         <View style={trainingAgreementStyles.block}>
           <Text style={trainingAgreementStyles.blockTitle}>Action de formation</Text>
           <Text style={[trainingAgreementStyles.line, trainingAgreementStyles.lineStrong]}>{agreement.training.title}</Text>
+          <Text style={trainingAgreementStyles.line}>Type : {agreement.training.typeLabel}</Text>
           <Text style={trainingAgreementStyles.line}>Dates : {agreement.training.dateRangeLabel}</Text>
           <Text style={trainingAgreementStyles.line}>Lieu : {agreement.training.locationLabel}</Text>
           <Text style={trainingAgreementStyles.line}>Modalites : {agreement.training.modality}</Text>
@@ -3243,6 +3290,7 @@ export function TrainingAgreementDocument({
           <Text style={trainingAgreementStyles.line}>Formateur : {agreement.training.trainerName}</Text>
           <Text style={trainingAgreementStyles.line}>Effectif : {agreement.training.participantLabel}</Text>
           <Text style={trainingAgreementStyles.line}>Prerequis : {agreement.training.prerequisites}</Text>
+          <Text style={trainingAgreementStyles.line}>Accessibilite : {agreement.training.accessibilityDetails}</Text>
         </View>
       </Page>
 

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { QuoteEditData } from "@/lib/quotes";
 import type { Database } from "@/lib/database.types";
+import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
 
 const initialState: QuoteEditorActionState = {};
 
@@ -61,6 +62,7 @@ export function EditQuoteForm({
   const canCreateInvoice = quote.status === "accepted" && !invoice;
   const canGenerateTrainingAgreement = quote.status === "accepted";
   const trainingAgreementFileUrl = trainingAgreement?.fileUrl ?? `/api/pdf/training-agreement/${quote.id}`;
+  const trainingDefaults = getTrainingProgramDefaults(quote.training_type);
 
   return (
     <div className="grid gap-4">
@@ -116,7 +118,7 @@ export function EditQuoteForm({
           <form action={programmeAction}>
             <input type="hidden" name="quoteId" value={quote.id} />
             <Button type="submit" variant="secondary" disabled={programmePending}>
-              {programmePending ? "Generation..." : "Programme SST"}
+              {programmePending ? "Generation..." : "Programme"}
             </Button>
           </form>
           {programmeFileUrl ? (
@@ -284,6 +286,30 @@ export function EditQuoteForm({
           <Input label="Intitule" name="title" defaultValue={quote.title} required />
         </div>
 
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
+          <span>Type de formation</span>
+          <select
+            name="trainingType"
+            defaultValue={quote.training_type}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+          >
+            {TRAINING_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {TRAINING_TYPE_LABELS[option]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <Input
+          label="Duree (heures)"
+          name="durationHours"
+          type="number"
+          min="1"
+          step="0.5"
+          defaultValue={quote.duration_hours ? String(quote.duration_hours) : String(trainingDefaults.durationHours)}
+        />
+
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
           <span>Description</span>
           <textarea
@@ -307,6 +333,59 @@ export function EditQuoteForm({
         <Input label="Formateur" name="trainerName" defaultValue={quote.trainer_name ?? ""} />
         <Input label="Date de debut" name="sessionStartDate" type="date" defaultValue={quote.session_start_date ?? ""} />
         <Input label="Date de fin" name="sessionEndDate" type="date" defaultValue={quote.session_end_date ?? ""} />
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Prérequis</span>
+          <textarea
+            name="prerequisites"
+            rows={2}
+            defaultValue={quote.prerequisites ?? trainingDefaults.prerequisites}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Objectifs</span>
+          <textarea
+            name="objectives"
+            rows={3}
+            defaultValue={quote.objectives ?? trainingDefaults.objectives.join("\n")}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Programme</span>
+          <textarea
+            name="programmeOutline"
+            rows={4}
+            defaultValue={quote.programme_outline ?? trainingDefaults.programmeLines.join("\n")}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+          <span>Accessibilité / adaptation</span>
+          <textarea
+            name="accessibilityDetails"
+            rows={2}
+            defaultValue={quote.accessibility_details ?? trainingDefaults.accessibility}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
+          />
+        </label>
+
+        <Input
+          label="Date certificat SST précédent"
+          name="macPreviousCertificateDate"
+          type="date"
+          defaultValue={quote.mac_previous_certificate_date ?? ""}
+        />
+        <Input
+          label="Référence certificat précédent"
+          name="macPreviousCertificateRef"
+          defaultValue={quote.mac_previous_certificate_ref ?? ""}
+        />
+
         <Input
           label="Prix HT"
           name="priceHt"
