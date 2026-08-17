@@ -4,10 +4,17 @@ import {
   getTrainingDocumentTitle,
   getTrainingProgramDefaults,
   getTrainingTypeLabel,
+  isMacSstTraining,
   normalizeTrainingType
 } from "@/lib/training-programs";
 
 describe("training program helpers", () => {
+  it("shows previous certificate fields only for MAC SST", () => {
+    expect(isMacSstTraining("mac_sst")).toBe(true);
+    expect(isMacSstTraining("sst_initial")).toBe(false);
+    expect(isMacSstTraining("hygiene")).toBe(false);
+  });
+
   it("normalizes unknown training types to SST initial", () => {
     expect(normalizeTrainingType("unknown")).toBe("sst_initial");
     expect(getTrainingTypeLabel("unknown")).toBe("SST initiale");

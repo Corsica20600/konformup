@@ -856,10 +856,12 @@ export async function updateQuote({
       objectives: objectives.trim() || defaults.objectives.join("\n"),
       programme_outline: programmeOutline.trim() || defaults.programmeLines.join("\n"),
       accessibility_details: accessibilityDetails.trim() || defaults.accessibility,
-      mac_previous_certificate_date:
-        resolvedTrainingType === "mac_sst" ? macPreviousCertificateDate.trim() || null : null,
-      mac_previous_certificate_ref:
-        resolvedTrainingType === "mac_sst" ? macPreviousCertificateRef.trim() || null : null,
+      ...(resolvedTrainingType === "mac_sst"
+        ? {
+            mac_previous_certificate_date: macPreviousCertificateDate.trim() || null,
+            mac_previous_certificate_ref: macPreviousCertificateRef.trim() || null
+          }
+        : {}),
       price_ht: roundCurrency(priceHt),
       vat_rate: roundCurrency(vatRate),
       notes: notes.trim() || null,

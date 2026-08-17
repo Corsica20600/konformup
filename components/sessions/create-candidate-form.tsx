@@ -11,11 +11,13 @@ const initialState: ActionState = {};
 export function CreateCandidateForm({
   sessionId,
   companies,
-  defaultCompanyId = ""
+  defaultCompanyId = "",
+  compact = false
 }: {
   sessionId: string;
   companies: CompanyOption[];
   defaultCompanyId?: string;
+  compact?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(createCandidateAction, initialState);
 
@@ -27,7 +29,7 @@ export function CreateCandidateForm({
       <Input label="Email" name="email" type="email" />
       <Input label="Téléphone" name="phone" />
       <Input label="Fonction" name="jobTitle" />
-      <Input label="Société" name="company" />
+      {!compact ? <Input label="Société" name="company" /> : null}
       <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
         <span>Société cliente</span>
         <select
@@ -43,23 +45,29 @@ export function CreateCandidateForm({
           ))}
         </select>
       </label>
-      <div className="md:col-span-2">
-        <Input label="Adresse" name="address" />
-      </div>
-      <Input label="Code postal" name="postalCode" />
-      <Input label="Ville" name="city" />
-      <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
-        <span>Statut de validation</span>
-        <select
-          name="validationStatus"
-          defaultValue="pending"
-          className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
-        >
-          <option value="pending">En attente</option>
-          <option value="validated">Validé</option>
-          <option value="not_validated">Non validé</option>
-        </select>
-      </label>
+      {!compact ? (
+        <>
+          <div className="md:col-span-2">
+            <Input label="Adresse" name="address" />
+          </div>
+          <Input label="Code postal" name="postalCode" />
+          <Input label="Ville" name="city" />
+          <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
+            <span>Statut de validation</span>
+            <select
+              name="validationStatus"
+              defaultValue="pending"
+              className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+            >
+              <option value="pending">En attente</option>
+              <option value="validated">Validé</option>
+              <option value="not_validated">Non validé</option>
+            </select>
+          </label>
+        </>
+      ) : (
+        <input type="hidden" name="validationStatus" value="pending" />
+      )}
       {state.error ? <p className="text-sm text-accent md:col-span-2">{state.error}</p> : null}
       {state.success ? <p className="text-sm text-pine md:col-span-2">{state.success}</p> : null}
       <div className="md:col-span-2">

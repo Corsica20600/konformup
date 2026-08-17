@@ -99,6 +99,9 @@ export default async function CandidateDetailPage({
                 <SendCandidateSessionDocumentsButton
                   candidateId={candidate.id}
                   sessionId={session.id}
+                  candidateName={`${candidate.first_name} ${candidate.last_name}`}
+                  candidateEmail={candidate.email}
+                  documents={documents}
                   disabled={!documents.length}
                 />
                 <GenerateDocumentsMenu sessionId={session.id} candidateId={candidate.id} />

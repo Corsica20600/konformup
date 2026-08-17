@@ -11,7 +11,8 @@ import {
   TRAINING_TYPE_LABELS,
   TRAINING_TYPE_OPTIONS,
   getTrainingDocumentTitle,
-  getTrainingProgramDefaults
+  getTrainingProgramDefaults,
+  isMacSstTraining
 } from "@/lib/training-programs";
 import { formatCurrency, formatDateRange } from "@/lib/utils";
 
@@ -64,6 +65,8 @@ export function CreateQuoteForm({
   const [priceHt, setPriceHt] = useState("");
   const [vatRate, setVatRate] = useState("20");
   const [notes, setNotes] = useState("");
+  const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState("");
+  const [macPreviousCertificateRef, setMacPreviousCertificateRef] = useState("");
 
   useEffect(() => {
     if (state.success) {
@@ -251,10 +254,21 @@ export function CreateQuoteForm({
               />
             </label>
 
-            {trainingType === "mac_sst" ? (
+            {isMacSstTraining(trainingType) ? (
               <>
-                <Input label="Date certificat SST précédent" name="macPreviousCertificateDate" type="date" />
-                <Input label="Référence certificat précédent" name="macPreviousCertificateRef" />
+                <Input
+                  label="Date certificat SST précédent"
+                  name="macPreviousCertificateDate"
+                  type="date"
+                  value={macPreviousCertificateDate}
+                  onChange={(event) => setMacPreviousCertificateDate(event.target.value)}
+                />
+                <Input
+                  label="Référence certificat précédent"
+                  name="macPreviousCertificateRef"
+                  value={macPreviousCertificateRef}
+                  onChange={(event) => setMacPreviousCertificateRef(event.target.value)}
+                />
               </>
             ) : null}
 

@@ -10,11 +10,11 @@ import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 const initialState: ActionState = {};
 
 const documentOptions = [
-  { value: "welcome_pack", label: "Livret + reglement" },
-  { value: "aide_memoire", label: "Aide memoire SST" },
-  { value: "attestation", label: getGeneratedDocumentLabel("attestation") },
-  { value: "certificat_realisation", label: "Certificat de realisation" },
-  { value: "convocation", label: "Convocation" }
+  { value: "convocation", label: "Convocation", phase: "Avant formation" },
+  { value: "welcome_pack", label: "Livret + reglement", phase: "Avant formation" },
+  { value: "aide_memoire", label: "Aide memoire SST", phase: "Avant formation" },
+  { value: "attestation", label: getGeneratedDocumentLabel("attestation"), phase: "Fin de formation" },
+  { value: "certificat_realisation", label: "Certificat de realisation", phase: "Fin de formation" }
 ] as const;
 
 export function GenerateDocumentsMenu({
@@ -49,20 +49,31 @@ export function GenerateDocumentsMenu({
           >
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="candidateId" value={candidateId} />
-            {documentOptions
-              .filter((option) => option.value !== "aide_memoire" || trainingType !== "hygiene")
-              .map((option) => (
-              <button
-                key={option.value}
-                type="submit"
-                name="type"
-                value={option.value}
-                className="rounded-2xl px-4 py-2 text-left text-sm font-semibold text-ink transition hover:bg-sand disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={pending}
-              >
-                {option.label}
-              </button>
-            ))}
+            {["Avant formation", "Fin de formation"].map((phase) => {
+              const phaseOptions = documentOptions.filter(
+                (option) => option.phase === phase && (option.value !== "aide_memoire" || trainingType !== "hygiene")
+              );
+
+              return (
+                <fieldset key={phase} className="grid gap-1">
+                  <legend className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">
+                    {phase}
+                  </legend>
+                  {phaseOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="submit"
+                      name="type"
+                      value={option.value}
+                      className="rounded-2xl px-4 py-2 text-left text-sm font-semibold text-ink transition hover:bg-sand disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={pending}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </fieldset>
+              );
+            })}
           </form>
         ) : null}
       </div>

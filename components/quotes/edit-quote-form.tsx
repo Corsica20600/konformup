@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
@@ -17,7 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { QuoteEditData } from "@/lib/quotes";
 import type { Database } from "@/lib/database.types";
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
+import type { TrainingType } from "@/lib/database.types";
+import {
+  TRAINING_TYPE_LABELS,
+  TRAINING_TYPE_OPTIONS,
+  getTrainingProgramDefaults,
+  isMacSstTraining
+} from "@/lib/training-programs";
 
 const initialState: QuoteEditorActionState = {};
 
@@ -58,11 +64,18 @@ export function EditQuoteForm({
   const [programmeState, programmeAction, programmePending] = useActionState(generateProgrammePdfAction, initialState);
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
+  const [trainingType, setTrainingType] = useState<TrainingType>(quote.training_type);
+  const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState(
+    quote.mac_previous_certificate_date ?? ""
+  );
+  const [macPreviousCertificateRef, setMacPreviousCertificateRef] = useState(
+    quote.mac_previous_certificate_ref ?? ""
+  );
   const canCreateSession = quote.status === "accepted" && !quote.session_id;
   const canCreateInvoice = quote.status === "accepted" && !invoice;
   const canGenerateTrainingAgreement = quote.status === "accepted";
   const trainingAgreementFileUrl = trainingAgreement?.fileUrl ?? `/api/pdf/training-agreement/${quote.id}`;
-  const trainingDefaults = getTrainingProgramDefaults(quote.training_type);
+  const trainingDefaults = getTrainingProgramDefaults(trainingType);
 
   return (
     <div className="grid gap-4">
@@ -290,7 +303,8 @@ export function EditQuoteForm({
           <span>Type de formation</span>
           <select
             name="trainingType"
-            defaultValue={quote.training_type}
+            value={trainingType}
+            onChange={(event) => setTrainingType(event.target.value as TrainingType)}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
           >
             {TRAINING_TYPE_OPTIONS.map((option) => (
@@ -374,17 +388,23 @@ export function EditQuoteForm({
           />
         </label>
 
-        <Input
-          label="Date certificat SST précédent"
-          name="macPreviousCertificateDate"
-          type="date"
-          defaultValue={quote.mac_previous_certificate_date ?? ""}
-        />
-        <Input
-          label="Référence certificat précédent"
-          name="macPreviousCertificateRef"
-          defaultValue={quote.mac_previous_certificate_ref ?? ""}
-        />
+        {isMacSstTraining(trainingType) ? (
+          <>
+            <Input
+              label="Date certificat SST précédent"
+              name="macPreviousCertificateDate"
+              type="date"
+              value={macPreviousCertificateDate}
+              onChange={(event) => setMacPreviousCertificateDate(event.target.value)}
+            />
+            <Input
+              label="Référence certificat précédent"
+              name="macPreviousCertificateRef"
+              value={macPreviousCertificateRef}
+              onChange={(event) => setMacPreviousCertificateRef(event.target.value)}
+            />
+          </>
+        ) : null}
 
         <Input
           label="Prix HT"

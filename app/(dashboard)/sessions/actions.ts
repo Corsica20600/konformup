@@ -16,7 +16,11 @@ import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
-import { deriveCandidateValidationStatus, deriveEvaluationStatusFromResult } from "@/lib/evaluations";
+import {
+  deriveCandidateValidationStatus,
+  deriveEvaluationStatusFromResult,
+  shouldSyncCandidateStatus
+} from "@/lib/evaluations";
 import {
   calculateSessionClosureSummary,
   getForprevStatusForCandidate,
@@ -203,10 +207,12 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
         objectives: parsed.data.objectives.trim() || null,
         programme_outline: parsed.data.programmeOutline.trim() || null,
         accessibility_details: parsed.data.accessibilityDetails.trim() || null,
-        mac_previous_certificate_date:
-          parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateDate.trim() || null : null,
-        mac_previous_certificate_ref:
-          parsed.data.trainingType === "mac_sst" ? parsed.data.macPreviousCertificateRef.trim() || null : null,
+        ...(parsed.data.trainingType === "mac_sst"
+          ? {
+              mac_previous_certificate_date: parsed.data.macPreviousCertificateDate.trim() || null,
+              mac_previous_certificate_ref: parsed.data.macPreviousCertificateRef.trim() || null
+            }
+          : {}),
         trainer_id: trainerId,
         trainer_name: trainerName,
         status: parsed.data.status
@@ -419,17 +425,19 @@ export async function upsertCandidateEvaluationAction(_: ActionState, formData: 
     return { error: "Impossible d'enregistrer l'évaluation." };
   }
 
-  const { error: candidateUpdateError } = await supabase
-    .from("candidates")
-    .update({
-      validation_status: validationStatus,
-      validated_at: validationStatus === "validated" ? evaluatedAt : null
-    })
-    .eq("id", parsed.data.candidateId)
-    .eq("session_id", parsed.data.sessionId);
+  if (shouldSyncCandidateStatus(parsed.data.evaluationType)) {
+    const { error: candidateUpdateError } = await supabase
+      .from("candidates")
+      .update({
+        validation_status: validationStatus,
+        validated_at: validationStatus === "validated" ? evaluatedAt : null
+      })
+      .eq("id", parsed.data.candidateId)
+      .eq("session_id", parsed.data.sessionId);
 
-  if (candidateUpdateError) {
-    return { error: "Évaluation enregistrée, mais le statut candidat n'a pas pu être synchronisé." };
+    if (candidateUpdateError) {
+      return { error: "Évaluation enregistrée, mais le statut candidat n'a pas pu être synchronisé." };
+    }
   }
 
   revalidatePath(`/sessions/${parsed.data.sessionId}`);

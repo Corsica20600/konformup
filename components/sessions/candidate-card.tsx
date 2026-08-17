@@ -53,6 +53,9 @@ export function CandidateCard({
           <SendCandidateSessionDocumentsButton
             candidateId={candidateSession.candidate.id}
             sessionId={candidateSession.session_id}
+            candidateName={`${candidate.first_name} ${candidate.last_name}`}
+            candidateEmail={candidate.email}
+            documents={documents}
             disabled={!documents.length}
           />
           <GenerateDocumentsMenu

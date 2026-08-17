@@ -27,6 +27,10 @@ export const EVALUATION_RESULT_LABELS: Record<CandidateEvaluationResult, string>
   non_renseigne: "Non renseigne"
 };
 
+export function shouldSyncCandidateStatus(evaluationType: CandidateEvaluationType) {
+  return evaluationType === "globale";
+}
+
 export function deriveCandidateValidationStatus(result: CandidateEvaluationResult): CandidateValidationStatus {
   if (result === "admis") {
     return "validated";
@@ -105,11 +109,23 @@ export function resolveCandidateWorkflowLabel({
 export function getGlobalEvaluation<T extends { evaluation_type: CandidateEvaluationType; evaluated_at: string | null }>(
   evaluations: T[] | null | undefined
 ) {
+  return getEvaluationByType(evaluations, "globale") ?? getLatestEvaluation(evaluations);
+}
+
+function getLatestEvaluation<T extends { evaluated_at: string | null }>(evaluations: T[] | null | undefined) {
   const sorted = [...(evaluations ?? [])].sort((a, b) => {
     const left = a.evaluated_at ? new Date(a.evaluated_at).getTime() : 0;
     const right = b.evaluated_at ? new Date(b.evaluated_at).getTime() : 0;
     return right - left;
   });
 
-  return sorted.find((evaluation) => evaluation.evaluation_type === "globale") ?? sorted[0] ?? null;
+  return sorted[0] ?? null;
+}
+
+export function getEvaluationByType<
+  T extends { evaluation_type: CandidateEvaluationType; evaluated_at: string | null }
+>(evaluations: T[] | null | undefined, evaluationType: CandidateEvaluationType) {
+  return getLatestEvaluation(
+    (evaluations ?? []).filter((evaluation) => evaluation.evaluation_type === evaluationType)
+  );
 }

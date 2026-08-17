@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmedSubmitButton } from "@/components/ui/confirmed-submit-button";
 import Link from "next/link";
 import { getAttendanceOverviewForSession } from "@/lib/attendance";
 import type { SessionCandidate, SessionItem } from "@/lib/types";
@@ -146,17 +147,25 @@ export async function AttendancePanel({
                 <form action={sendAttendanceSlotRequestsFormAction}>
                   <input type="hidden" name="slotId" value={slot.id} />
                   <input type="hidden" name="sessionId" value={session.id} />
-                  <Button variant="secondary" type="submit" disabled={!slot.total_candidates}>
+                  <ConfirmedSubmitButton
+                    variant="secondary"
+                    disabled={!slot.total_candidates}
+                    confirmation={`${slot.sent_at ? "Renvoyer" : "Envoyer"} les demandes d'emargement a ${slot.total_candidates} candidat(s) pour le creneau ${slot.slot_label} ?\n\nDestinataires : ${slot.responses.map((response) => response.candidate_email || `${response.candidate_name} (email manquant)`).join(", ")}`}
+                  >
                     {slot.sent_at ? "Renvoyer a tous" : "Envoyer les demandes"}
-                  </Button>
+                  </ConfirmedSubmitButton>
                 </form>
                 {slot.sent_at ? (
                   <form action={sendAttendanceSlotReminderFormAction}>
                     <input type="hidden" name="slotId" value={slot.id} />
                     <input type="hidden" name="sessionId" value={session.id} />
-                    <Button variant="secondary" type="submit" disabled={!slot.pending_count}>
+                    <ConfirmedSubmitButton
+                      variant="secondary"
+                      disabled={!slot.pending_count}
+                      confirmation={`Relancer ${slot.pending_count} candidat(s) encore en attente pour le creneau ${slot.slot_label} ?\n\nType d'envoi : rappel d'emargement.`}
+                    >
                       Relancer les en attente
-                    </Button>
+                    </ConfirmedSubmitButton>
                   </form>
                 ) : null}
                 <form action={closeAttendanceSlotFormAction}>

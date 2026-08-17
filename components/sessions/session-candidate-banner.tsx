@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { CandidateEvaluationForm } from "@/components/sessions/candidate-evaluation-form";
 import { GenerateDocumentsMenu } from "@/components/sessions/generate-documents-menu";
 import { SendCandidateSessionDocumentsButton } from "@/components/sessions/send-candidate-session-documents-button";
-import { getGlobalEvaluation, resolveCandidateWorkflowLabel } from "@/lib/evaluations";
+import { getEvaluationByType, resolveCandidateWorkflowLabel } from "@/lib/evaluations";
 import type { TrainingType } from "@/lib/database.types";
 import type { GeneratedDocumentItem, SessionCandidate } from "@/lib/types";
 import { initials } from "@/lib/utils";
@@ -27,7 +27,7 @@ export function SessionCandidateBanner({
   trainingType: TrainingType;
 }) {
   const { candidate } = candidateSession;
-  const evaluation = getGlobalEvaluation(candidateSession.evaluations);
+  const evaluation = getEvaluationByType(candidateSession.evaluations, "globale");
   const workflowLabel = resolveCandidateWorkflowLabel({
     validationStatus: candidate.validation_status,
     evaluationStatus: evaluation?.status,
@@ -73,6 +73,9 @@ export function SessionCandidateBanner({
           <SendCandidateSessionDocumentsButton
             candidateId={candidate.id}
             sessionId={candidateSession.session_id}
+            candidateName={`${candidate.first_name} ${candidate.last_name}`}
+            candidateEmail={candidate.email}
+            documents={documents}
             disabled={!documents.length}
           />
           <GenerateDocumentsMenu sessionId={candidateSession.session_id} candidateId={candidate.id} trainingType={trainingType} />

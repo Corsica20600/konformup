@@ -18,7 +18,12 @@ import {
 } from "@/app/(dashboard)/sessions/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getGeneratedDocumentLabel } from "@/lib/document-labels";
+import {
+  DOCUMENT_PHASE_LABELS,
+  getDocumentPhase,
+  getGeneratedDocumentLabel,
+  type DocumentPhase
+} from "@/lib/document-labels";
 import { getQuoteStatusTone, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import type { QuoteStatus } from "@/lib/database.types";
 import type { GeneratedDocumentItem } from "@/lib/types";
@@ -313,6 +318,13 @@ export function DocumentList({
   allowQuoteDuplication?: boolean;
 }) {
   const visibleDocuments = documents.filter((document) => document.document_type !== "invoice");
+  const phaseOrder: DocumentPhase[] = ["before", "during", "after", "other"];
+  const groupedDocuments = phaseOrder
+    .map((phase) => ({
+      phase,
+      documents: visibleDocuments.filter((document) => getDocumentPhase(document.document_type) === phase)
+    }))
+    .filter((group) => group.documents.length > 0);
 
   return (
     <div>
@@ -320,12 +332,19 @@ export function DocumentList({
       <h3 className="mt-2 text-2xl font-bold">{title}</h3>
       <div className="mt-6 grid gap-3">
         {visibleDocuments.length ? (
-          visibleDocuments.map((document) => (
-            <DocumentRow
-              key={document.id}
-              document={document}
-              allowQuoteDuplication={allowQuoteDuplication}
-            />
+          groupedDocuments.map((group) => (
+            <section key={group.phase} className="grid gap-2">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/45">
+                {DOCUMENT_PHASE_LABELS[group.phase]}
+              </h4>
+              {group.documents.map((document) => (
+                <DocumentRow
+                  key={document.id}
+                  document={document}
+                  allowQuoteDuplication={allowQuoteDuplication}
+                />
+              ))}
+            </section>
           ))
         ) : (
           <p className="text-sm text-ink/65">{emptyMessage}</p>

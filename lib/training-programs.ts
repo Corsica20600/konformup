@@ -2,6 +2,10 @@ import type { TrainingType } from "@/lib/database.types";
 
 export const TRAINING_TYPE_OPTIONS = ["sst_initial", "mac_sst", "hygiene"] as const;
 
+export function isMacSstTraining(trainingType: TrainingType) {
+  return trainingType === "mac_sst";
+}
+
 export const TRAINING_TYPE_LABELS: Record<TrainingType, string> = {
   sst_initial: "SST initiale",
   mac_sst: "MAC SST",

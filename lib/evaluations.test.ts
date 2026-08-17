@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   deriveCandidateValidationStatus,
   deriveEvaluationStatusFromResult,
+  getEvaluationByType,
   getGlobalEvaluation,
-  resolveCandidateWorkflowLabel
+  resolveCandidateWorkflowLabel,
+  shouldSyncCandidateStatus
 } from "@/lib/evaluations";
 import type { CandidateEvaluation } from "@/lib/types";
 
@@ -77,5 +79,23 @@ describe("candidate evaluations", () => {
     ]);
 
     expect(evaluation?.id).toBe("global");
+  });
+
+  it("retrieves each evaluation part independently", () => {
+    const evaluations = [
+      buildEvaluation({ id: "global", evaluation_type: "globale", result: "admis" }),
+      buildEvaluation({ id: "theory", evaluation_type: "theorique", result: "partiel" }),
+      buildEvaluation({ id: "practice", evaluation_type: "pratique", result: "non_admis" })
+    ];
+
+    expect(getEvaluationByType(evaluations, "globale")?.id).toBe("global");
+    expect(getEvaluationByType(evaluations, "theorique")?.id).toBe("theory");
+    expect(getEvaluationByType(evaluations, "pratique")?.id).toBe("practice");
+  });
+
+  it("syncs the candidate status only from the global evaluation", () => {
+    expect(shouldSyncCandidateStatus("globale")).toBe(true);
+    expect(shouldSyncCandidateStatus("theorique")).toBe(false);
+    expect(shouldSyncCandidateStatus("pratique")).toBe(false);
   });
 });

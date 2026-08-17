@@ -9,15 +9,18 @@ import { SessionModuleList } from "@/components/sessions/session-module-list";
 import { SessionProgressCard } from "@/components/sessions/session-progress-card";
 import { SessionCandidateBanner } from "@/components/sessions/session-candidate-banner";
 import { SessionClosurePanel } from "@/components/sessions/session-closure-panel";
+import { CreateCandidateForm } from "@/components/sessions/create-candidate-form";
 import { getOrCreateDocument } from "@/lib/generated-documents";
 import {
   getDocumentsBySessionId,
+  getCompanyOptions,
   getSessionById,
   getTrainingQuizzesByModuleId,
   RecoverableSessionQueryError,
   SessionNotFoundError
 } from "@/lib/queries";
 import { getTrainingTypeLabel } from "@/lib/training-programs";
+import { getSessionNextAction } from "@/lib/session-next-action";
 import type { SessionCandidate, SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
@@ -215,14 +218,25 @@ export default async function SessionDetailPage({
   }
   const completedModules = modules.filter((module) => module.is_completed).length;
   const trainingLabel = getTrainingTypeLabel(session.training_type);
+  const companyOptions = await getCompanyOptions();
   const companyGroups = buildSessionCompanyGroups(candidates);
   const linkedCompanyGroups = companyGroups.filter((group) => group.companyId !== null);
   const unassignedCandidateCount = companyGroups
     .filter((group) => group.companyId === null)
     .reduce((total, group) => total + group.candidates.length, 0);
+  const nextAction = getSessionNextAction({ session, candidates, documents: sessionDocuments, globalProgress });
 
   return (
     <main className="grid gap-4">
+      <aside className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-pine/20 bg-pine/10 px-5 py-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pine">Prochaine action</p>
+          <p className="mt-1 text-sm text-ink/70">{nextAction.description}</p>
+        </div>
+        <a href={nextAction.href} className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink">
+          {nextAction.label}
+        </a>
+      </aside>
       <section className="grid gap-4 xl:grid-cols-[0.72fr_1.28fr]">
         <section className="grid gap-4">
           <Card>
@@ -272,35 +286,39 @@ export default async function SessionDetailPage({
             totalCount={modules.length}
           />
 
-          <AttendancePanel
-            session={session}
-            candidates={candidates}
-            documentUrl={attendanceDocumentUrl}
-            feedback={{
-              success: attendanceSuccess
-                ? "Demandes de presence envoyees."
-                : attendanceClosed
-                  ? "Creneau cloture."
-                  : null,
-              error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null,
-              slotId: attendanceSlot ?? null
-            }}
-          />
+          <div id="emargement-session">
+            <AttendancePanel
+              session={session}
+              candidates={candidates}
+              documentUrl={attendanceDocumentUrl}
+              feedback={{
+                success: attendanceSuccess
+                  ? "Demandes de presence envoyees."
+                  : attendanceClosed
+                    ? "Creneau cloture."
+                    : null,
+                error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null,
+                slotId: attendanceSlot ?? null
+              }}
+            />
+          </div>
 
-          <Card>
-            <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
-            <h3 className="mt-2 text-2xl font-bold">Modules {trainingLabel}</h3>
-            <p className="mt-2 text-sm text-ink/65">
-              Sélectionne un module pour afficher son contenu et piloter l&apos;avancement de la session.
-            </p>
-            <div className="mt-6">
-              <SessionModuleList
-                sessionId={session.id}
-                moduleGroups={moduleGroups}
-                selectedModuleId={selectedModule?.id ?? ""}
-              />
-            </div>
-          </Card>
+          <div id="deroule-pedagogique">
+            <Card>
+              <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Déroulé pédagogique</p>
+              <h3 className="mt-2 text-2xl font-bold">Modules {trainingLabel}</h3>
+              <p className="mt-2 text-sm text-ink/65">
+                Sélectionne un module pour afficher son contenu et piloter l&apos;avancement de la session.
+              </p>
+              <div className="mt-6">
+                <SessionModuleList
+                  sessionId={session.id}
+                  moduleGroups={moduleGroups}
+                  selectedModuleId={selectedModule?.id ?? ""}
+                />
+              </div>
+            </Card>
+          </div>
 
           {sourceQuote ? (
             <Card>
@@ -345,9 +363,11 @@ export default async function SessionDetailPage({
             </Card>
           </div>
 
-          <Card>
-            <SessionClosurePanel session={session} candidates={candidates} />
-          </Card>
+          <div id="cloture-session">
+            <Card>
+              <SessionClosurePanel session={session} candidates={candidates} />
+            </Card>
+          </div>
         </section>
 
         <section className="grid gap-4">
@@ -373,6 +393,22 @@ export default async function SessionDetailPage({
         <div className="px-1">
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Candidats</p>
           <h2 className="mt-2 text-2xl font-bold">{candidates.length} candidat(s)</h2>
+        </div>
+        <div id="ajouter-candidat">
+          <Card>
+            <details open={!candidates.length}>
+              <summary className="cursor-pointer list-none text-lg font-bold text-ink">Ajouter un candidat</summary>
+              <p className="mt-2 text-sm text-ink/65">Le candidat sera ajouté directement à cette session.</p>
+              <div className="mt-5">
+                <CreateCandidateForm
+                  sessionId={session.id}
+                  companies={companyOptions}
+                  defaultCompanyId={sourceQuote?.company_id ?? ""}
+                  compact
+                />
+              </div>
+            </details>
+          </Card>
         </div>
         {candidates.length ? (
           <div className="grid gap-4 md:grid-cols-3">

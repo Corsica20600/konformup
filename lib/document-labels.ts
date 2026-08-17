@@ -13,3 +13,28 @@ export function getGeneratedDocumentLabel(type: string) {
   if (type === "feuille_presence") return "Feuille de presence";
   return type;
 }
+
+export type DocumentPhase = "before" | "during" | "after" | "other";
+
+export const DOCUMENT_PHASE_LABELS: Record<DocumentPhase, string> = {
+  before: "Avant formation",
+  during: "Pendant formation",
+  after: "Fin de formation",
+  other: "Autres documents"
+};
+
+export function getDocumentPhase(type: string): DocumentPhase {
+  if (["quote", "programme", "training_agreement", "convocation", "welcome_pack", "aide_memoire"].includes(type)) {
+    return "before";
+  }
+
+  if (["feuille_presence", "emargement"].includes(type)) {
+    return "during";
+  }
+
+  if (["attestation", "certificat", "certificat_realisation", "bilan_session", "synthese_societe"].includes(type)) {
+    return "after";
+  }
+
+  return "other";
+}

@@ -4,19 +4,27 @@ import { useActionState, useEffect, useState } from "react";
 import { createSessionAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
+import type { TrainingType } from "@/lib/database.types";
+import {
+  TRAINING_TYPE_LABELS,
+  TRAINING_TYPE_OPTIONS,
+  getTrainingProgramDefaults,
+  isMacSstTraining
+} from "@/lib/training-programs";
 
 const initialState: ActionState = {};
 
 export function CreateSessionForm() {
   const [state, formAction, pending] = useActionState(createSessionAction, initialState);
-  const [trainingType, setTrainingType] = useState("sst_initial");
+  const [trainingType, setTrainingType] = useState<TrainingType>("sst_initial");
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
   const [durationHours, setDurationHours] = useState(String(trainingDefaults.durationHours));
   const [prerequisites, setPrerequisites] = useState(trainingDefaults.prerequisites);
   const [objectives, setObjectives] = useState(trainingDefaults.objectives.join("\n"));
   const [programmeOutline, setProgrammeOutline] = useState(trainingDefaults.programmeLines.join("\n"));
   const [accessibilityDetails, setAccessibilityDetails] = useState(trainingDefaults.accessibility);
+  const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState("");
+  const [macPreviousCertificateRef, setMacPreviousCertificateRef] = useState("");
 
   useEffect(() => {
     setDurationHours(String(trainingDefaults.durationHours));
@@ -51,7 +59,7 @@ export function CreateSessionForm() {
         <select
           name="trainingType"
           value={trainingType}
-          onChange={(event) => setTrainingType(event.target.value)}
+          onChange={(event) => setTrainingType(event.target.value as TrainingType)}
           className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
         >
           {TRAINING_TYPE_OPTIONS.map((option) => (
@@ -101,8 +109,23 @@ export function CreateSessionForm() {
           className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
         />
       </label>
-      <Input label="Date certificat SST précédent" name="macPreviousCertificateDate" type="date" />
-      <Input label="Référence certificat précédent" name="macPreviousCertificateRef" />
+      {isMacSstTraining(trainingType) ? (
+        <>
+          <Input
+            label="Date certificat SST précédent"
+            name="macPreviousCertificateDate"
+            type="date"
+            value={macPreviousCertificateDate}
+            onChange={(event) => setMacPreviousCertificateDate(event.target.value)}
+          />
+          <Input
+            label="Référence certificat précédent"
+            name="macPreviousCertificateRef"
+            value={macPreviousCertificateRef}
+            onChange={(event) => setMacPreviousCertificateRef(event.target.value)}
+          />
+        </>
+      ) : null}
       <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
         <span>Statut</span>
         <select

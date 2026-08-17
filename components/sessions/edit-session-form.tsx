@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateSessionAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
+import {
+  TRAINING_TYPE_LABELS,
+  TRAINING_TYPE_OPTIONS,
+  getTrainingProgramDefaults,
+  isMacSstTraining
+} from "@/lib/training-programs";
 import type { SessionItem, TrainerOption } from "@/lib/types";
+import type { TrainingType } from "@/lib/database.types";
 
 const initialState: ActionState = {};
 
@@ -18,7 +24,14 @@ export function EditSessionForm({
   trainers: TrainerOption[];
 }) {
   const [state, formAction, pending] = useActionState(updateSessionAction, initialState);
-  const trainingDefaults = getTrainingProgramDefaults(session.training_type);
+  const [trainingType, setTrainingType] = useState<TrainingType>(session.training_type);
+  const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState(
+    session.mac_previous_certificate_date ?? ""
+  );
+  const [macPreviousCertificateRef, setMacPreviousCertificateRef] = useState(
+    session.mac_previous_certificate_ref ?? ""
+  );
+  const trainingDefaults = getTrainingProgramDefaults(trainingType);
 
   return (
     <div className="grid gap-4">
@@ -59,7 +72,8 @@ export function EditSessionForm({
           <span>Type de formation</span>
           <select
             name="trainingType"
-            defaultValue={session.training_type}
+            value={trainingType}
+            onChange={(event) => setTrainingType(event.target.value as TrainingType)}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
           >
             {TRAINING_TYPE_OPTIONS.map((option) => (
@@ -121,17 +135,23 @@ export function EditSessionForm({
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm transition focus:border-pine"
           />
         </label>
-        <Input
-          label="Date certificat SST précédent"
-          name="macPreviousCertificateDate"
-          type="date"
-          defaultValue={session.mac_previous_certificate_date ?? ""}
-        />
-        <Input
-          label="Référence certificat précédent"
-          name="macPreviousCertificateRef"
-          defaultValue={session.mac_previous_certificate_ref ?? ""}
-        />
+        {isMacSstTraining(trainingType) ? (
+          <>
+            <Input
+              label="Date certificat SST précédent"
+              name="macPreviousCertificateDate"
+              type="date"
+              value={macPreviousCertificateDate}
+              onChange={(event) => setMacPreviousCertificateDate(event.target.value)}
+            />
+            <Input
+              label="Référence certificat précédent"
+              name="macPreviousCertificateRef"
+              value={macPreviousCertificateRef}
+              onChange={(event) => setMacPreviousCertificateRef(event.target.value)}
+            />
+          </>
+        ) : null}
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
           <span>Statut</span>
           <select
