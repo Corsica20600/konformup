@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { sendTrainerResourceEmail } from "@/lib/trainer-resource-email";
 import { getTrainerResourceBySlug } from "@/lib/trainer-resources";
@@ -16,6 +17,8 @@ export async function createTrainerAction(
   _: TrainerActionState,
   formData: FormData
 ): Promise<TrainerActionState> {
+  await requireUser();
+
   const parsed = createTrainerSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
@@ -52,6 +55,8 @@ export async function sendTrainerResourceEmailAction(
   _: TrainerActionState,
   formData: FormData
 ): Promise<TrainerActionState> {
+  await requireUser();
+
   const trainerId = formData.get("trainerId")?.toString().trim();
   const resourceSlug = formData.get("resourceSlug")?.toString().trim();
 

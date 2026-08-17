@@ -125,6 +125,8 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
 }
 
 export async function updateSessionAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const parsed = updateSessionSchema.safeParse({
     sessionId: formData.get("sessionId"),
     title: formData.get("title"),
@@ -183,6 +185,8 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
 }
 
 export async function createCandidateAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const parsed = createCandidateSchema.safeParse({
     sessionId: formData.get("sessionId"),
     firstName: formData.get("firstName"),
@@ -245,6 +249,8 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
 }
 
 export async function updateCandidateAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const parsed = updateCandidateSchema.safeParse({
     candidateId: formData.get("candidateId"),
     sessionId: formData.get("sessionId"),
@@ -307,6 +313,8 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
 }
 
 export async function toggleSessionModuleAction(formData: FormData) {
+  await requireUser();
+
   const sessionId = formData.get("sessionId")?.toString();
   const moduleId = formData.get("moduleId")?.toString();
 
@@ -348,6 +356,8 @@ export async function toggleSessionModuleAction(formData: FormData) {
 }
 
 export async function generateDocumentAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const sessionId = formData.get("sessionId")?.toString();
   const candidateId = formData.get("candidateId")?.toString();
   const type = formData.get("type")?.toString();
@@ -429,6 +439,8 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
 }
 
 export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
+  await requireUser();
+
   const slotId = formData.get("slotId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
 
@@ -452,6 +464,8 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
 }
 
 export async function sendAttendanceSlotReminderFormAction(formData: FormData) {
+  await requireUser();
+
   const slotId = formData.get("slotId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
 
@@ -478,6 +492,8 @@ export async function sendAttendanceSlotReminderFormAction(formData: FormData) {
 }
 
 export async function closeAttendanceSlotFormAction(formData: FormData) {
+  await requireUser();
+
   const slotId = formData.get("slotId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
 
@@ -501,6 +517,8 @@ export async function closeAttendanceSlotFormAction(formData: FormData) {
 }
 
 export async function setAttendanceResponseOverrideFormAction(formData: FormData) {
+  await requireUser();
+
   const responseId = formData.get("responseId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
   const overrideStatus = formData.get("overrideStatus")?.toString().trim() ?? "";
@@ -544,6 +562,8 @@ export async function setAttendanceResponseOverrideFormAction(formData: FormData
 }
 
 export async function createQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const parsed = createQuoteSchema.safeParse({
     sessionId: formData.get("sessionId"),
     companyId: formData.get("companyId"),
@@ -598,6 +618,8 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
 }
 
 export async function regenerateGeneratedDocumentAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const documentId = formData.get("documentId")?.toString();
 
   if (!documentId) {
@@ -630,6 +652,8 @@ export async function regenerateGeneratedDocumentAction(_: ActionState, formData
 }
 
 export async function sendCandidateDocumentEmailAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const documentId = formData.get("documentId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
 
@@ -659,6 +683,8 @@ export async function sendCandidateDocumentEmailAction(_: ActionState, formData:
 }
 
 export async function sendCandidateSessionDocumentsEmailAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const candidateId = formData.get("candidateId")?.toString().trim();
   const sessionId = formData.get("sessionId")?.toString().trim();
 
@@ -686,6 +712,8 @@ export async function sendCandidateSessionDocumentsEmailAction(_: ActionState, f
 }
 
 export async function updateQuoteStatusAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
   const statusValue = formData.get("status")?.toString().trim();
 
@@ -730,6 +758,8 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
 }
 
 export async function duplicateQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -754,6 +784,8 @@ export async function duplicateQuoteAction(_: ActionState, formData: FormData): 
 }
 
 export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+
   const sessionId = formData.get("sessionId")?.toString().trim();
 
   if (!sessionId) {

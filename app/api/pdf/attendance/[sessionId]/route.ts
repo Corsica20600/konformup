@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessSession } from "@/lib/auth";
 import { getSessionById } from "@/lib/queries";
 import { getOrganizationBranding } from "@/lib/organization";
 import { getAttendanceOverviewForSession } from "@/lib/attendance";
@@ -10,21 +12,31 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request, context: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await context.params;
-  const { session, candidates } = await getSessionById(sessionId);
-  const attendanceOverview = await getAttendanceOverviewForSession(session, candidates);
-  const organizationSettings = await getOrganizationBranding(new URL(request.url).origin);
-  const document = createElement(AttendanceDocument as never, {
-    session,
-    candidates,
-    organizationSettings,
-    attendanceOverview
-  });
-  const buffer = await renderToBuffer(document as never);
+  try {
+    await assertCanAccessSession(sessionId);
+    const { session, candidates } = await getSessionById(sessionId);
+    const attendanceOverview = await getAttendanceOverviewForSession(session, candidates);
+    const organizationSettings = await getOrganizationBranding(new URL(request.url).origin);
+    const document = createElement(AttendanceDocument as never, {
+      session,
+      candidates,
+      organizationSettings,
+      attendanceOverview
+    });
+    const buffer = await renderToBuffer(document as never);
 
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="feuille-presence-${session.id}.pdf"`
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="feuille-presence-${session.id}.pdf"`
+      }
+    });
+  } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
     }
-  });
+
+    return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
+  }
 }

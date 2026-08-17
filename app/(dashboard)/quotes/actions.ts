@@ -31,6 +31,8 @@ export async function updateQuoteAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const parsed = updateQuoteSchema.safeParse({
     quoteId: formData.get("quoteId"),
     title: formData.get("title"),
@@ -74,6 +76,8 @@ export async function regenerateQuotePdfAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -106,6 +110,8 @@ export async function sendQuoteEmailAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -144,6 +150,7 @@ export async function createSessionFromQuoteAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  const { profile } = await requireUser();
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -151,7 +158,6 @@ export async function createSessionFromQuoteAction(
   }
 
   try {
-    const { profile } = await requireUser();
     const { quote, session } = await createSessionFromQuote(quoteId, profile.id);
 
     revalidatePath(`/quotes/${quote.id}`);
@@ -179,6 +185,8 @@ export async function createInvoiceFromQuoteAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   console.info("[create-invoice-action]", {
@@ -241,6 +249,8 @@ export async function generateProgrammePdfAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -273,6 +283,8 @@ export async function generateTrainingAgreementAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {
@@ -305,6 +317,8 @@ export async function regenerateTrainingAgreementAction(
   _: QuoteEditorActionState,
   formData: FormData
 ): Promise<QuoteEditorActionState> {
+  await requireUser();
+
   const quoteId = formData.get("quoteId")?.toString().trim();
 
   if (!quoteId) {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessQuote } from "@/lib/auth";
 import { getOrganizationBranding } from "@/lib/organization";
 import { TrainingAgreementDocument } from "@/lib/pdf/documents";
 import { QuoteError } from "@/lib/quotes";
@@ -12,6 +14,7 @@ export async function GET(request: Request, context: { params: Promise<{ quoteId
   const { quoteId } = await context.params;
 
   try {
+    await assertCanAccessQuote(quoteId);
     const [existingDocument, organizationSettings] = await Promise.all([
       getTrainingAgreementDocumentByQuoteId(quoteId),
       getOrganizationBranding(new URL(request.url).origin)
@@ -29,7 +32,12 @@ export async function GET(request: Request, context: { params: Promise<{ quoteId
     });
   } catch (error) {
     if (error instanceof QuoteError) {
-      return NextResponse.json({ message: error.message }, { status: 404 });
+      return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
+    }
+
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
     }
 
     throw error;

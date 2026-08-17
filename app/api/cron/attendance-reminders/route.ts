@@ -6,13 +6,8 @@ export const runtime = "nodejs";
 function isAuthorized(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET?.trim();
-  const userAgent = request.headers.get("user-agent") ?? "";
 
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-
-  if (userAgent.toLowerCase().includes("vercel-cron")) {
     return true;
   }
 

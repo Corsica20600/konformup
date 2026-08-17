@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireUser } from "@/lib/auth";
 import { getInvoiceStatusAfterSend, getInvoiceById, updateInvoiceStatus } from "@/lib/invoices";
 import { sendInvoiceEmail } from "@/lib/invoice-email";
 import { upsertInvoiceComplaint } from "@/lib/invoice-complaints";
@@ -21,6 +22,8 @@ export async function sendInvoiceEmailAction(
   _: InvoiceActionState,
   formData: FormData
 ): Promise<InvoiceActionState> {
+  await requireUser();
+
   const invoiceId = formData.get("invoiceId")?.toString().trim();
 
   if (!invoiceId) {
@@ -59,6 +62,8 @@ export async function saveInvoiceComplaintAction(
   _: InvoiceComplaintActionState,
   formData: FormData
 ): Promise<InvoiceComplaintActionState> {
+  await requireUser();
+
   const parsed = upsertInvoiceComplaintSchema.safeParse({
     invoiceId: formData.get("invoiceId"),
     status: formData.get("status"),

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { requireAuthenticatedUser } from "@/lib/auth";
 import { getTrainerResourceBySlug } from "@/lib/trainer-resources";
 import { generateTrainerResourcePdf } from "@/lib/trainer-resource-pdf";
 
@@ -16,6 +18,7 @@ export async function GET(
   }
 
   try {
+    await requireAuthenticatedUser();
     const { bytes } = await generateTrainerResourcePdf(resource.slug);
 
     return new NextResponse(Buffer.from(bytes), {
@@ -25,6 +28,11 @@ export async function GET(
       }
     });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
+    }
+
     console.error("[trainer-resource-pdf]", {
       resourceSlug,
       message: error instanceof Error ? error.message : String(error)

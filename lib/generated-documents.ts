@@ -147,6 +147,23 @@ export function buildDocumentVerificationUrl(publicOrigin: string, ref: string) 
   return url.toString();
 }
 
+function normalizeAppOrigin(value: string | null | undefined) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const candidate =
+    trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
+
+  try {
+    return new URL(candidate).origin;
+  } catch {
+    return null;
+  }
+}
+
 function appendQueryParams(pathname: string, params: Record<string, string | null | undefined>) {
   const [basePath, queryString = ""] = pathname.split("?");
   const searchParams = new URLSearchParams(queryString);
@@ -252,33 +269,30 @@ export async function insertGeneratedDocumentRecord({
 }
 
 async function resolveAppOrigin() {
+  const configuredOrigin =
+    normalizeAppOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeAppOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
+    normalizeAppOrigin(process.env.APP_URL) ||
+    normalizeAppOrigin(process.env.VERCEL_URL);
+
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
   const forwardedHeaders = await headers();
   const forwardedProto = forwardedHeaders.get("x-forwarded-proto");
   const forwardedHost = forwardedHeaders.get("x-forwarded-host") || forwardedHeaders.get("host");
 
-  if (forwardedProto && forwardedHost) {
+  if (process.env.NODE_ENV !== "production" && forwardedProto && forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 
-  if (forwardedHost) {
+  if (process.env.NODE_ENV !== "production" && forwardedHost) {
     return `https://${forwardedHost}`;
   }
 
-  const vercelUrl = process.env.VERCEL_URL?.trim();
-  if (vercelUrl) {
-    return vercelUrl.startsWith("http://") || vercelUrl.startsWith("https://")
-      ? vercelUrl
-      : `https://${vercelUrl}`;
-  }
-
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.APP_URL ||
-    "http://localhost:3000";
-
   try {
-    return new URL(origin).origin;
+    return new URL("http://localhost:3000").origin;
   } catch {
     throw new DocumentGenerationError(
       "L'URL de l'application est invalide. Vérifie NEXT_PUBLIC_APP_URL ou NEXT_PUBLIC_SITE_URL."

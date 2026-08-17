@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import QRCode from "qrcode";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessCandidate } from "@/lib/auth";
 import { buildDocumentVerificationUrl, resolvePublicAppOrigin } from "@/lib/generated-documents";
 import { CertificateDocument } from "@/lib/pdf/documents";
 import { getOrganizationBranding } from "@/lib/organization";
@@ -15,6 +17,17 @@ export async function GET(request: Request, context: { params: Promise<{ candida
   const requestUrl = new URL(request.url);
   const origin = requestUrl.origin;
   let documentRef = requestUrl.searchParams.get("ref")?.trim() || null;
+  try {
+    await assertCanAccessCandidate(candidateSessionId);
+  } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
+    }
+
+    return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
+  }
+
   const supabase = await createClient();
 
   const { data: candidateRow, error } = await supabase

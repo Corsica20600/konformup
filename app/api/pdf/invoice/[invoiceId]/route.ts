@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessInvoice } from "@/lib/auth";
 import { InvoiceError, getInvoiceById } from "@/lib/invoices";
 import { getOrganizationBranding } from "@/lib/organization";
 import { InvoiceDocument } from "@/lib/pdf/documents";
@@ -11,6 +13,7 @@ export async function GET(request: Request, context: { params: Promise<{ invoice
   const { invoiceId } = await context.params;
 
   try {
+    await assertCanAccessInvoice(invoiceId);
     const invoice = await getInvoiceById(invoiceId);
     const organizationSettings = await getOrganizationBranding(new URL(request.url).origin);
     const document = createElement(InvoiceDocument as never, { invoice, organizationSettings });
@@ -24,10 +27,12 @@ export async function GET(request: Request, context: { params: Promise<{ invoice
     });
   } catch (error) {
     if (error instanceof InvoiceError) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: error.message === "Facture introuvable." ? 404 : 500 }
-      );
+      return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
+    }
+
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
     }
 
     throw error;

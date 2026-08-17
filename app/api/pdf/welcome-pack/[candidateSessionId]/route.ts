@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessCandidate } from "@/lib/auth";
 import { WelcomePackDocument } from "@/lib/pdf/welcome-pack";
 import { getOrganizationBranding } from "@/lib/organization";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
@@ -19,6 +21,17 @@ const DEFAULT_PROGRAMME_LINES = [
 export async function GET(request: Request, context: { params: Promise<{ candidateSessionId: string }> }) {
   const { candidateSessionId } = await context.params;
   const origin = new URL(request.url).origin;
+  try {
+    await assertCanAccessCandidate(candidateSessionId);
+  } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
+    }
+
+    return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
+  }
+
   const supabase = await createClient();
 
   const { data: candidateRow, error } = await supabase

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { accessErrorResponse } from "@/lib/api-errors";
+import { assertCanAccessGeneratedDocument } from "@/lib/auth";
 import { downloadStoredGeneratedDocument } from "@/lib/document-storage";
 
 export const runtime = "nodejs";
@@ -7,6 +9,7 @@ export async function GET(request: Request, context: { params: Promise<{ documen
   const { documentId } = await context.params;
 
   try {
+    await assertCanAccessGeneratedDocument(documentId);
     const { buffer, fileName } = await downloadStoredGeneratedDocument(documentId);
     const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
 
@@ -17,11 +20,11 @@ export async function GET(request: Request, context: { params: Promise<{ documen
       }
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        message: error instanceof Error ? error.message : "Impossible d'ouvrir ce document."
-      },
-      { status: 404 }
-    );
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) {
+      return accessResponse;
+    }
+
+    return NextResponse.json({ message: "Document introuvable." }, { status: 404 });
   }
 }

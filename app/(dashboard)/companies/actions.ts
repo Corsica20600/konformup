@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createCompanyCandidateSchema, createCompanySchema, updateCompanySchema } from "@/lib/validation";
 
@@ -18,6 +19,8 @@ export async function createCompanyAction(
   _: CompanyActionState,
   formData: FormData
 ): Promise<CompanyActionState> {
+  await requireUser();
+
   const parsed = createCompanySchema.safeParse({
     companyName: formData.get("companyName"),
     contactFirstName: formData.get("contactFirstName"),
@@ -91,6 +94,8 @@ export async function updateCompanyAction(
   _: CompanyActionState,
   formData: FormData
 ): Promise<CompanyActionState> {
+  await requireUser();
+
   const parsed = updateCompanySchema.safeParse({
     companyId: formData.get("companyId"),
     companyName: formData.get("companyName"),
@@ -171,6 +176,8 @@ export async function createCompanyCandidateAction(
   _: CompanyCandidateActionState,
   formData: FormData
 ): Promise<CompanyCandidateActionState> {
+  await requireUser();
+
   const parsed = createCompanyCandidateSchema.safeParse({
     companyId: formData.get("companyId"),
     sessionId: formData.get("sessionId"),
