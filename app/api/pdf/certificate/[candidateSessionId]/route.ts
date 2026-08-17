@@ -102,8 +102,18 @@ export async function GET(request: Request, context: { params: Promise<{ candida
       city: null,
       validation_status: candidateRow.validation_status,
       validated_at: candidateRow.validated_at
-    }
+    },
+    evaluations: []
   };
+
+  const { data: evaluations } = await supabase
+    .from("candidate_evaluations")
+    .select("id, session_id, candidate_id, evaluation_type, status, result, trainer_notes, evaluated_at, evaluated_by, metadata, created_at, updated_at")
+    .eq("candidate_id", candidateSessionId)
+    .eq("session_id", session.id)
+    .order("evaluated_at", { ascending: false, nullsFirst: false });
+
+  candidateSession.evaluations = evaluations ?? [];
 
   const organizationSettings = await getOrganizationBranding(origin);
   if (!documentRef) {

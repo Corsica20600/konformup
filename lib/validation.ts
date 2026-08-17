@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 const trainingTypeSchema = z.enum(["sst_initial", "mac_sst", "hygiene"]);
+const candidateEvaluationTypeSchema = z.enum(["theorique", "pratique", "globale"]);
+const candidateEvaluationStatusSchema = z.enum(["non_evalue", "en_cours", "acquis", "non_acquis", "absent"]);
+const candidateEvaluationResultSchema = z.enum(["admis", "non_admis", "absent", "partiel", "non_renseigne"]);
 
 export const loginSchema = z.object({
   email: z.string().email("Email invalide."),
@@ -90,6 +93,16 @@ export const updateCandidateSchema = z.object({
   postalCode: z.string().optional().default(""),
   city: z.string().optional().default(""),
   validationStatus: z.enum(["pending", "validated", "not_validated"]).default("pending")
+});
+
+export const upsertCandidateEvaluationSchema = z.object({
+  sessionId: z.string().uuid("La session est introuvable."),
+  candidateId: z.string().uuid("Le candidat est introuvable."),
+  evaluationType: candidateEvaluationTypeSchema.default("globale"),
+  status: candidateEvaluationStatusSchema.default("non_evalue"),
+  result: candidateEvaluationResultSchema.default("non_renseigne"),
+  trainerNotes: z.string().optional().default(""),
+  evaluatedAt: z.string().optional().default("")
 });
 
 export const createCompanySchema = z.object({

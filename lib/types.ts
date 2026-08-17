@@ -2,6 +2,9 @@ import type {
   AttendanceDeliveryStatus,
   AttendanceResponseStatus,
   AttendanceSlotStatus,
+  CandidateEvaluationResult,
+  CandidateEvaluationStatus,
+  CandidateEvaluationType,
   CandidateValidationStatus,
   QuoteStatus,
   TrainingType
@@ -55,11 +58,27 @@ export type Candidate = {
   validated_at: string | null;
 };
 
+export type CandidateEvaluation = {
+  id: string;
+  session_id: string;
+  candidate_id: string;
+  evaluation_type: CandidateEvaluationType;
+  status: CandidateEvaluationStatus;
+  result: CandidateEvaluationResult;
+  trainer_notes: string | null;
+  evaluated_at: string | null;
+  evaluated_by: string | null;
+  metadata: unknown;
+  created_at: string;
+  updated_at: string;
+};
+
 export type SessionCandidate = {
   id: string;
   session_id: string;
   global_progress: number;
   candidate: Candidate;
+  evaluations?: CandidateEvaluation[];
 };
 
 export type ClientCompany = {

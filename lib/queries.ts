@@ -3,6 +3,7 @@ import type { CandidateValidationStatus, QuoteStatus } from "@/lib/database.type
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import type {
   Candidate,
+  CandidateEvaluation,
   CandidateDashboard,
   ClientCompany,
   CompanyComplaintSummary,
@@ -1221,6 +1222,30 @@ async function selectCandidatesBySessionIdWithFallback(sessionId: string) {
   return primary;
 }
 
+async function selectCandidateEvaluationsBySessionId(sessionId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("candidate_evaluations")
+    .select(
+      "id, session_id, candidate_id, evaluation_type, status, result, trainer_notes, evaluated_at, evaluated_by, metadata, created_at, updated_at"
+    )
+    .eq("session_id", sessionId)
+    .order("evaluated_at", { ascending: false, nullsFirst: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidate_evaluations",
+    query: 'select("id, session_id, candidate_id, evaluation_type, status, result, trainer_notes, evaluated_at, evaluated_by, metadata, created_at, updated_at").eq("session_id", sessionId).order("evaluated_at")',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as CandidateEvaluation[];
+}
+
 async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
@@ -1359,6 +1384,15 @@ export async function getSessionById(sessionId: string) {
 
   if (candidatesError) throw candidatesError;
 
+  const candidateEvaluations = await selectCandidateEvaluationsBySessionId(sessionId);
+  const evaluationsByCandidateId = new Map<string, CandidateEvaluation[]>();
+
+  candidateEvaluations.forEach((evaluation) => {
+    const existing = evaluationsByCandidateId.get(evaluation.candidate_id) ?? [];
+    existing.push(evaluation);
+    evaluationsByCandidateId.set(evaluation.candidate_id, existing);
+  });
+
   const normalizedCandidates = (candidates ?? []).map((candidate) => ({
     id: candidate.id,
     session_id: candidate.session_id,
@@ -1385,7 +1419,8 @@ export async function getSessionById(sessionId: string) {
       city: candidate.city,
       validation_status: candidate.validation_status,
       validated_at: candidate.validated_at
-    }
+    },
+    evaluations: evaluationsByCandidateId.get(candidate.id) ?? []
   })) as SessionCandidate[];
 
   const { data: moduleRows, error: modulesError } = await selectSessionModulesBySessionIdWithFallback(sessionId);

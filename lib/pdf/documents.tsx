@@ -2,6 +2,7 @@
 import { Document, Font, Image, Link as PdfLink, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { InvoiceDetail } from "@/lib/invoices";
 import type { QuotePdfData } from "@/lib/quotes";
+import { EVALUATION_RESULT_LABELS, EVALUATION_STATUS_LABELS, getGlobalEvaluation } from "@/lib/evaluations";
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import {
   getTrainingFamilyLabel,
@@ -494,6 +495,12 @@ const certificateStyles = StyleSheet.create({
     lineHeight: 1.4,
     color: "#4e5f57",
     marginTop: 8
+  },
+  evaluationSummary: {
+    borderTopWidth: 1,
+    borderTopColor: "#c9dbd0",
+    marginTop: 10,
+    paddingTop: 8
   },
   verificationCard: {
     borderWidth: 1,
@@ -1656,7 +1663,11 @@ export function CertificateDocument({
   verificationQrCodeDataUrl?: string | null;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
+  const globalEvaluation = getGlobalEvaluation(candidateSession.evaluations);
   const validationStatus = validationLabel[candidateSession.candidate.validation_status];
+  const evaluationResultLabel = globalEvaluation ? EVALUATION_RESULT_LABELS[globalEvaluation.result] : "Non renseigne";
+  const evaluationStatusLabel = globalEvaluation ? EVALUATION_STATUS_LABELS[globalEvaluation.status] : "Non evalue";
+  const evaluationDate = globalEvaluation?.evaluated_at ? formatDate(globalEvaluation.evaluated_at) : "Non renseignee";
   const validationDate = candidateSession.candidate.validated_at
     ? formatDate(candidateSession.candidate.validated_at)
     : formatDate(new Date().toISOString());
@@ -1731,12 +1742,23 @@ export function CertificateDocument({
             </View>
             <Text style={certificateStyles.validationValue}>{validationStatus}</Text>
             <Text style={certificateStyles.validationDate}>Date de delivrance : {validationDate}</Text>
+            <View style={certificateStyles.evaluationSummary}>
+              <DetailRow label="Evaluation interne" value={`${evaluationStatusLabel} - ${evaluationResultLabel}`} />
+              <DetailRow label="Date d'evaluation" value={evaluationDate} isLast />
+            </View>
+            {globalEvaluation?.trainer_notes ? (
+              <Text style={certificateStyles.validationHint}>Notes pedagogiques internes : {globalEvaluation.trainer_notes}</Text>
+            ) : null}
             {candidateSession.candidate.validation_status === "validated" ? (
               <Text style={certificateStyles.validationHint}>
                 Validite indicative : 24 mois, sous reserve d&apos;enregistrement et de delivrance du certificat officiel
                 dans le dispositif applicable.
               </Text>
             ) : null}
+            <Text style={certificateStyles.validationHint}>
+              Cette attestation reste un document interne de fin de formation et ne vaut pas certificat officiel SST /
+              FORPREV.
+            </Text>
           </View>
 
           <View style={certificateStyles.verificationCard} wrap={false}>

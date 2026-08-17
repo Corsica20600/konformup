@@ -16,8 +16,16 @@ import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
+import { deriveCandidateValidationStatus, deriveEvaluationStatusFromResult } from "@/lib/evaluations";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
-import { createCandidateSchema, createQuoteSchema, createSessionSchema, updateCandidateSchema, updateSessionSchema } from "@/lib/validation";
+import {
+  createCandidateSchema,
+  createQuoteSchema,
+  createSessionSchema,
+  updateCandidateSchema,
+  updateSessionSchema,
+  upsertCandidateEvaluationSchema
+} from "@/lib/validation";
 import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
 
 export type ActionState = {
@@ -344,6 +352,84 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
   revalidatePath("/candidates");
 
   return { success: "Candidat mis à jour." };
+}
+
+export async function upsertCandidateEvaluationAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  const { profile } = await requireUser();
+
+  const parsed = upsertCandidateEvaluationSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    candidateId: formData.get("candidateId"),
+    evaluationType: formData.get("evaluationType"),
+    status: formData.get("status"),
+    result: formData.get("result"),
+    trainerNotes: formData.get("trainerNotes"),
+    evaluatedAt: formData.get("evaluatedAt")
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message };
+  }
+
+  const supabase = await createClient();
+  const { data: candidate, error: candidateError } = await supabase
+    .from("candidates")
+    .select("id, session_id")
+    .eq("id", parsed.data.candidateId)
+    .eq("session_id", parsed.data.sessionId)
+    .maybeSingle<{ id: string; session_id: string | null }>();
+
+  if (candidateError || !candidate) {
+    return { error: "Impossible de rattacher cette évaluation au candidat." };
+  }
+
+  const result = parsed.data.result;
+  const status = deriveEvaluationStatusFromResult(result, parsed.data.status);
+  const evaluatedAt = parsed.data.evaluatedAt
+    ? new Date(`${parsed.data.evaluatedAt}T12:00:00.000Z`).toISOString()
+    : new Date().toISOString();
+  const validationStatus = deriveCandidateValidationStatus(result);
+
+  const { error: evaluationError } = await supabase
+    .from("candidate_evaluations")
+    .upsert(
+      {
+        session_id: parsed.data.sessionId,
+        candidate_id: parsed.data.candidateId,
+        evaluation_type: parsed.data.evaluationType,
+        status,
+        result,
+        trainer_notes: parsed.data.trainerNotes.trim() || null,
+        evaluated_at: evaluatedAt,
+        evaluated_by: profile.id,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "candidate_id,session_id,evaluation_type" }
+    );
+
+  if (evaluationError) {
+    return { error: "Impossible d'enregistrer l'évaluation." };
+  }
+
+  const { error: candidateUpdateError } = await supabase
+    .from("candidates")
+    .update({
+      validation_status: validationStatus,
+      validated_at: validationStatus === "validated" ? evaluatedAt : null
+    })
+    .eq("id", parsed.data.candidateId)
+    .eq("session_id", parsed.data.sessionId);
+
+  if (candidateUpdateError) {
+    return { error: "Évaluation enregistrée, mais le statut candidat n'a pas pu être synchronisé." };
+  }
+
+  revalidatePath(`/sessions/${parsed.data.sessionId}`);
+  revalidatePath(`/candidates/${parsed.data.candidateId}`);
+  revalidatePath("/sessions");
+  revalidatePath("/candidates");
+
+  return { success: "Évaluation enregistrée." };
 }
 
 export async function toggleSessionModuleAction(formData: FormData) {

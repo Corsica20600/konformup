@@ -8,6 +8,9 @@ export type Json =
 
 export type TrainingSessionStatus = "draft" | "scheduled" | "in_progress" | "completed" | "cancelled";
 export type CandidateValidationStatus = "pending" | "validated" | "not_validated";
+export type CandidateEvaluationType = "theorique" | "pratique" | "globale";
+export type CandidateEvaluationStatus = "non_evalue" | "en_cours" | "acquis" | "non_acquis" | "absent";
+export type CandidateEvaluationResult = "admis" | "non_admis" | "absent" | "partiel" | "non_renseigne";
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived";
 export type TrainingType = "sst_initial" | "mac_sst" | "hygiene";
@@ -194,6 +197,64 @@ export type Database = {
             foreignKeyName: "candidates_company_id_fkey";
             columns: ["company_id"];
             referencedRelation: "client_companies";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      candidate_evaluations: {
+        Row: {
+          id: string;
+          session_id: string;
+          candidate_id: string;
+          evaluation_type: CandidateEvaluationType;
+          status: CandidateEvaluationStatus;
+          result: CandidateEvaluationResult;
+          trainer_notes: string | null;
+          evaluated_at: string | null;
+          evaluated_by: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          candidate_id: string;
+          evaluation_type?: CandidateEvaluationType;
+          status?: CandidateEvaluationStatus;
+          result?: CandidateEvaluationResult;
+          trainer_notes?: string | null;
+          evaluated_at?: string | null;
+          evaluated_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          candidate_id?: string;
+          evaluation_type?: CandidateEvaluationType;
+          status?: CandidateEvaluationStatus;
+          result?: CandidateEvaluationResult;
+          trainer_notes?: string | null;
+          evaluated_at?: string | null;
+          evaluated_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "candidate_evaluations_session_id_fkey";
+            columns: ["session_id"];
+            referencedRelation: "training_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "candidate_evaluations_candidate_id_fkey";
+            columns: ["candidate_id"];
+            referencedRelation: "candidates";
             referencedColumns: ["id"];
           }
         ];

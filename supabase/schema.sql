@@ -103,7 +103,8 @@ create table if not exists public.candidates (
   validated_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   constraint candidates_first_name_not_blank check (btrim(first_name) <> ''),
-  constraint candidates_last_name_not_blank check (btrim(last_name) <> '')
+  constraint candidates_last_name_not_blank check (btrim(last_name) <> ''),
+  constraint candidates_id_session_id_unique unique (id, session_id)
 );
 
 alter table public.candidates
@@ -126,6 +127,27 @@ alter table public.candidates
 
 alter table public.candidates
   add column if not exists city text;
+
+create table if not exists public.candidate_evaluations (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.training_sessions(id) on delete cascade,
+  candidate_id uuid not null references public.candidates(id) on delete cascade,
+  evaluation_type text not null default 'globale',
+  status text not null default 'non_evalue',
+  result text not null default 'non_renseigne',
+  trainer_notes text,
+  evaluated_at timestamptz,
+  evaluated_by uuid references auth.users(id) on delete set null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint candidate_evaluations_type_allowed check (evaluation_type in ('theorique', 'pratique', 'globale')),
+  constraint candidate_evaluations_status_allowed check (status in ('non_evalue', 'en_cours', 'acquis', 'non_acquis', 'absent')),
+  constraint candidate_evaluations_result_allowed check (result in ('admis', 'non_admis', 'absent', 'partiel', 'non_renseigne')),
+  constraint candidate_evaluations_candidate_session_type_unique unique (candidate_id, session_id, evaluation_type),
+  constraint candidate_evaluations_candidate_session_fkey foreign key (candidate_id, session_id)
+    references public.candidates(id, session_id) on update cascade on delete cascade
+);
 
 create table if not exists public.training_modules (
   id uuid primary key default gen_random_uuid(),
@@ -332,6 +354,9 @@ create index if not exists idx_trainers_name on public.trainers(last_name, first
 create index if not exists idx_training_modules_session_id on public.training_modules(session_id);
 create index if not exists idx_session_module_progress_session_id on public.session_module_progress(session_id);
 create index if not exists idx_session_module_progress_module_id on public.session_module_progress(module_id);
+create index if not exists idx_candidate_evaluations_session_id on public.candidate_evaluations(session_id);
+create index if not exists idx_candidate_evaluations_candidate_id on public.candidate_evaluations(candidate_id);
+create index if not exists idx_candidate_evaluations_evaluated_by on public.candidate_evaluations(evaluated_by);
 create index if not exists idx_generated_documents_session_id on public.generated_documents(session_id);
 create index if not exists idx_generated_documents_candidate_id on public.generated_documents(candidate_id);
 create index if not exists idx_generated_documents_company_id on public.generated_documents(company_id);
