@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { SessionList } from "@/components/sessions/session-list";
@@ -14,6 +15,9 @@ import { getDashboardActions } from "@/lib/dashboard-actions";
 import type { DashboardWorkflowSnapshot } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Tableau de bord"
+};
 
 function logDashboardBlockError(
   block: "stats" | "sessions" | "quotes" | "workflow",

@@ -9,7 +9,10 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: APP_BRANDING.name,
+  title: {
+    default: APP_BRANDING.name,
+    template: `${APP_BRANDING.name} · %s`
+  },
   description: APP_BRANDING.dashboardDescription
 };
 

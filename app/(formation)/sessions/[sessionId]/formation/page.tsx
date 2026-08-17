@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormationModuleContent } from "@/components/sessions/formation-module-content";
@@ -12,6 +13,9 @@ import { getTrainingTypeLabel } from "@/lib/training-programs";
 import type { TrainingQuiz } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Mode formation"
+};
 
 export default async function FormationModePage({
   params,

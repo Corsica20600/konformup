@@ -7,7 +7,7 @@ import type { SessionItem, TrainerOption } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Sessions | Konform’up"
+  title: "Sessions"
 };
 
 export default async function SessionsPage() {
