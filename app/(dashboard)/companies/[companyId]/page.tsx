@@ -120,7 +120,7 @@ export default async function CompanyDetailPage({
           </div>
         </Card>
 
-        <Card>
+        <Card id="devis">
           <CreateQuoteForm
             companies={[
               {
@@ -132,7 +132,7 @@ export default async function CompanyDetailPage({
           />
         </Card>
 
-        <Card>
+        <Card id="sessions">
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Sessions</p>
           <h3 className="mt-2 text-2xl font-bold">Sessions de la societe</h3>
           <p className="mt-2 text-sm text-ink/65">

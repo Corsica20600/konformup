@@ -100,17 +100,23 @@ export type SessionCandidate = {
 export type ClientCompany = {
   id: string;
   company_name: string;
-  legal_name: string | null;
-  contact_name: string | null;
+  contact_first_name: string | null;
+  contact_last_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
-  billing_address: string | null;
+  address: string | null;
   postal_code: string | null;
   city: string | null;
+  country: string | null;
   siret: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type ClientCompanyDirectoryItem = ClientCompany & {
+  quote_count: number;
+  session_count: number;
 };
 
 export type CompanyOption = {

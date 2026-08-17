@@ -6,6 +6,7 @@ import type {
   CandidateEvaluation,
   CandidateDashboard,
   ClientCompany,
+  ClientCompanyDirectoryItem,
   CompanyComplaintSummary,
   CompanyDashboard,
   CompanyInvoiceSummary,
@@ -1729,6 +1730,66 @@ export async function getClientCompanies() {
       siret: null
     })
   ) as unknown as ClientCompany[];
+}
+
+export async function getClientCompanyDirectory(): Promise<ClientCompanyDirectoryItem[]> {
+  const companies = await getClientCompanies();
+
+  if (!companies.length) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const companyIds = companies.map((company) => company.id);
+  const [quotesResult, candidatesResult] = await Promise.all([
+    supabase.from("quotes").select("company_id, session_id").in("company_id", companyIds),
+    supabase.from("candidates").select("company_id, session_id").in("company_id", companyIds)
+  ]);
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "quotes",
+    query: 'select("company_id, session_id").in("company_id", companyIds)',
+    error: quotesResult.error
+  });
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "candidates",
+    query: 'select("company_id, session_id").in("company_id", companyIds)',
+    error: candidatesResult.error
+  });
+
+  const quoteCounts = new Map<string, number>();
+  const sessionIdsByCompany = new Map<string, Set<string>>();
+
+  if (!quotesResult.error) {
+    (quotesResult.data ?? []).forEach((quote) => {
+      quoteCounts.set(quote.company_id, (quoteCounts.get(quote.company_id) ?? 0) + 1);
+      if (quote.session_id) {
+        const sessionIds = sessionIdsByCompany.get(quote.company_id) ?? new Set<string>();
+        sessionIds.add(quote.session_id);
+        sessionIdsByCompany.set(quote.company_id, sessionIds);
+      }
+    });
+  }
+
+  if (!candidatesResult.error) {
+    (candidatesResult.data ?? []).forEach((candidate) => {
+      if (!candidate.company_id || !candidate.session_id) {
+        return;
+      }
+
+      const sessionIds = sessionIdsByCompany.get(candidate.company_id) ?? new Set<string>();
+      sessionIds.add(candidate.session_id);
+      sessionIdsByCompany.set(candidate.company_id, sessionIds);
+    });
+  }
+
+  return companies.map((company) => ({
+    ...company,
+    quote_count: quoteCounts.get(company.id) ?? 0,
+    session_count: sessionIdsByCompany.get(company.id)?.size ?? 0
+  }));
 }
 
 export async function getCompanyOptions() {
