@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/alt-text */
 import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { getTrainingProgramDefaults, getTrainingTypeLabel, splitObjectivesText } from "@/lib/training-programs";
+import { getTrainingDocumentTitle, getTrainingProgramDefaults, splitObjectivesText } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
 
@@ -203,7 +203,7 @@ export function WelcomePackDocument({
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`.trim();
   const organizationLines = formatAddressLines(organizationSettings);
-  const trainingTitle = getTrainingTypeLabel(session.training_type);
+  const trainingTitle = getTrainingDocumentTitle(session.training_type, session.title);
   const trainingDefaults = getTrainingProgramDefaults(session.training_type);
   const objectives = splitObjectivesText(session.objectives, trainingDefaults.objectives);
   const pedagogicalMeans = [
@@ -218,7 +218,7 @@ export function WelcomePackDocument({
   ];
   const practicalInfo = [
     `Participant concerne : ${candidateFullName || "Stagiaire inscrit"}`,
-    `Session : ${session.title}`,
+    `Session : ${trainingTitle}`,
     `Dates : ${formatDateRange(session.start_date, session.end_date)}`,
     `Lieu : ${session.location}`,
     `Formateur : ${session.trainer_name || "Formateur communique sur convocation"}`,
@@ -298,7 +298,7 @@ export function WelcomePackDocument({
           </View>
           <View style={styles.factCard}>
             <Text style={styles.factLabel}>Session</Text>
-            <Text style={styles.factValue}>{session.title}</Text>
+            <Text style={styles.factValue}>{trainingTitle}</Text>
           </View>
           <View style={[styles.factCard, styles.factCardOdd]}>
             <Text style={styles.factLabel}>Dates</Text>

@@ -7,7 +7,7 @@ import {
   getSstCertificateNotice,
   getTrainingCompletionWording
 } from "@/lib/session-closure";
-import { getTrainingTypeLabel } from "@/lib/training-programs";
+import { getTrainingDocumentTitle, getTrainingTypeLabel } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
 
@@ -175,7 +175,7 @@ function Header({ title, session }: { title: string; session: SessionItem }) {
       <Text style={styles.kicker}>Konform'up - document de fin de formation</Text>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>
-        {session.title} - {getTrainingTypeLabel(session.training_type)} - {formatDateRange(session.start_date, session.end_date)}
+        {getTrainingDocumentTitle(session.training_type, session.title)} - {getTrainingTypeLabel(session.training_type)} - {formatDateRange(session.start_date, session.end_date)}
       </Text>
     </View>
   );

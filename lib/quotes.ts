@@ -15,6 +15,7 @@ import {
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getTrainingDocumentTitle,
   getTrainingProgramDefaults,
   normalizeTrainingType
 } from "@/lib/training-programs";
@@ -426,7 +427,7 @@ async function insertQuote({
       training_family: defaults.family,
       session_id: session?.id ?? null,
       company_id: companyId,
-      title: title.trim(),
+      title: getTrainingDocumentTitle(resolvedTrainingType, title),
       description: description.trim() || null,
       candidate_count: candidateCount,
       session_start_date: session?.start_date ?? null,
@@ -618,7 +619,7 @@ export async function duplicateQuote(quoteId: string) {
       status: "draft",
       session_id: null,
       company_id: sourceQuote.company_id,
-      title: sourceQuote.title,
+      title: getTrainingDocumentTitle(sourceQuote.training_type, sourceQuote.title),
       description: sourceQuote.description,
       training_type: sourceQuote.training_type,
       training_family: sourceQuote.training_family,
@@ -841,7 +842,7 @@ export async function updateQuote({
   const { data, error } = await supabase
     .from("quotes")
     .update({
-      title: title.trim(),
+      title: getTrainingDocumentTitle(resolvedTrainingType, title),
       description: description.trim() || null,
       training_type: resolvedTrainingType,
       training_family: defaults.family,

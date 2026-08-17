@@ -2,6 +2,7 @@ import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getInvoiceById, type InvoiceDetail } from "@/lib/invoices";
 import { getInvoiceComplaintByInvoiceId, markInvoiceComplaintSentWithInvoice } from "@/lib/invoice-complaints";
+import { getTrainingDocumentTitle } from "@/lib/training-programs";
 
 function buildInvoiceEmailSubject(invoiceNumber: string) {
   return `Envoi de votre facture ${invoiceNumber}`;
@@ -13,7 +14,7 @@ function buildInvoiceEmailBody(invoice: InvoiceDetail, signatureLines: string[])
     "",
     `Veuillez trouver ci-joint votre facture ${invoice.invoice_number} relative a la formation ${invoice.quote.quote_number}.`,
     "",
-    `Objet : ${invoice.quote.title}.`,
+    `Objet : ${getTrainingDocumentTitle(invoice.quote.training_type, invoice.quote.title)}.`,
     "",
     "Nous restons a votre disposition pour toute question concernant cette facture.",
     "",

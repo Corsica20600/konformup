@@ -24,6 +24,7 @@ import {
 } from "@/lib/session-closure";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { getSessionById } from "@/lib/queries";
+import { getTrainingDocumentTitle } from "@/lib/training-programs";
 import {
   createCandidateSchema,
   createQuoteSchema,
@@ -188,7 +189,7 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
     const { data: session, error } = await supabase
       .from("training_sessions")
       .update({
-        title: parsed.data.title,
+        title: getTrainingDocumentTitle(parsed.data.trainingType, parsed.data.title),
         start_date: parsed.data.startDate,
         end_date: parsed.data.endDate,
         location: parsed.data.location,
@@ -798,7 +799,7 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
     const { fileUrl } = await createQuote({
       sessionId: parsed.data.sessionId,
       companyId: parsed.data.companyId,
-      title: parsed.data.title,
+      title: getTrainingDocumentTitle(parsed.data.trainingType, parsed.data.title),
       description: parsed.data.description,
       trainingType: parsed.data.trainingType,
       durationHours: parsed.data.durationHours ?? null,

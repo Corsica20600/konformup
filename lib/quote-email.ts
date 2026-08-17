@@ -2,6 +2,7 @@ import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { createProgrammeDocumentForQuote, getProgrammeDocumentByQuoteId, type QuoteEditData } from "@/lib/quotes";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
+import { getTrainingDocumentTitle } from "@/lib/training-programs";
 
 function buildQuoteEmailSubject(quoteNumber: string) {
   return `Envoi de votre devis ${quoteNumber}`;
@@ -18,7 +19,7 @@ function buildQuoteEmailBody(quote: QuoteEditData, signatureLines: string[]) {
     "",
     `Veuillez trouver ci-joint notre devis ${quote.quote_number} relatif a votre demande de formation.`,
     "",
-    `Ce devis concerne : ${quote.title}.`,
+    `Ce devis concerne : ${getTrainingDocumentTitle(quote.training_type, quote.title)}.`,
     agreementNote,
     "",
     "Nous restons a votre disposition pour toute question ou pour convenir des prochaines etapes.",

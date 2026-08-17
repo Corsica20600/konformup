@@ -9,6 +9,7 @@ import {
 } from "@/lib/public-config";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import { getTrainingDocumentTitle } from "@/lib/training-programs";
 
 export type DocumentLifecycleStatus = "draft" | "generated" | "sent" | "signed" | "archived";
 export type SupportedGeneratedDocumentType =
@@ -542,7 +543,7 @@ export async function createDocument({
       metadata: {
         session: {
           id: context.session.id,
-          title: context.session.title
+          title: getTrainingDocumentTitle(context.session.training_type, context.session.title)
         },
         candidate: context.candidate
           ? {

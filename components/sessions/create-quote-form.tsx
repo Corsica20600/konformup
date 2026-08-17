@@ -5,8 +5,14 @@ import { useActionState, useEffect, useState } from "react";
 import { createQuoteAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { TrainingType } from "@/lib/database.types";
 import { buildDefaultQuoteDescription, buildDefaultQuoteTitle, computeQuoteTotalTtc } from "@/lib/quote-utils";
-import { TRAINING_TYPE_LABELS, TRAINING_TYPE_OPTIONS, getTrainingProgramDefaults } from "@/lib/training-programs";
+import {
+  TRAINING_TYPE_LABELS,
+  TRAINING_TYPE_OPTIONS,
+  getTrainingDocumentTitle,
+  getTrainingProgramDefaults
+} from "@/lib/training-programs";
 import { formatCurrency, formatDateRange } from "@/lib/utils";
 
 type QuoteCompanyOption = {
@@ -37,7 +43,7 @@ export function CreateQuoteForm({
   const defaultCompanyId = companies.find((company) => company.candidateCount > 0)?.id ?? companies[0]?.id ?? "";
   const initialCandidateCount = companies.find((company) => company.id === defaultCompanyId)?.candidateCount ?? 0;
   const [selectedCompanyId, setSelectedCompanyId] = useState(defaultCompanyId);
-  const [title, setTitle] = useState(buildDefaultQuoteTitle(sessionTitle || "Nouvelle prestation"));
+  const [title, setTitle] = useState(buildDefaultQuoteTitle(sessionTitle || "Nouvelle prestation", "sst_initial"));
   const [description, setDescription] = useState(
     buildDefaultQuoteDescription({
       sessionTitle: sessionTitle || "Prestation de formation",
@@ -47,7 +53,7 @@ export function CreateQuoteForm({
       candidateCount: initialCandidateCount
     })
   );
-  const [trainingType, setTrainingType] = useState("sst_initial");
+  const [trainingType, setTrainingType] = useState<TrainingType>("sst_initial");
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
   const [durationHours, setDurationHours] = useState(String(trainingDefaults.durationHours));
   const [prerequisites, setPrerequisites] = useState(trainingDefaults.prerequisites);
@@ -146,7 +152,11 @@ export function CreateQuoteForm({
               <select
                 name="trainingType"
                 value={trainingType}
-                onChange={(event) => setTrainingType(event.target.value)}
+                onChange={(event) => {
+                  const nextTrainingType = event.target.value as TrainingType;
+                  setTrainingType(nextTrainingType);
+                  setTitle((currentTitle) => getTrainingDocumentTitle(nextTrainingType, currentTitle));
+                }}
                 className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
               >
                 {TRAINING_TYPE_OPTIONS.map((option) => (

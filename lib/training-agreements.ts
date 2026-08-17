@@ -7,6 +7,7 @@ import type { QuotePdfData } from "@/lib/quotes";
 import { QuoteError, getQuoteById } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getTrainingDocumentTitle,
   getTrainingProgramDefaults,
   getTrainingTypeLabel,
   splitObjectivesText,
@@ -416,7 +417,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
       siret: quote.company.siret
     },
     training: {
-      title: quote.title,
+      title: getTrainingDocumentTitle(quote.training_type, quote.title),
       typeLabel: getTrainingTypeLabel(quote.training_type),
       objectives,
       programmeLines,
@@ -450,7 +451,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
       depositTerms: buildDepositTerms(quote.notes)
     },
     clauses: {
-      purpose: `La presente convention a pour objet de definir les conditions dans lesquelles l'organisme de formation realise l'action de formation "${getTrainingTypeLabel(quote.training_type)}" intitulee "${quote.title}" au benefice du client.`,
+      purpose: `La presente convention a pour objet de definir les conditions dans lesquelles l'organisme de formation realise l'action de formation "${getTrainingTypeLabel(quote.training_type)}" intitulee "${getTrainingDocumentTitle(quote.training_type, quote.title)}" au benefice du client.`,
       organization:
         "L'action de formation est organisee selon les dates, horaires, modalites et conditions logistiques definis au devis et/ou precises ulterieurement d'un commun accord entre les parties.",
       pedagogicalMeans:
@@ -515,7 +516,10 @@ export async function createTrainingAgreementDocumentForQuote(
     session: agreementData.quote.session
       ? {
           id: agreementData.quote.session.id,
-          title: agreementData.quote.session.title
+          title: getTrainingDocumentTitle(
+            agreementData.quote.training_type,
+            agreementData.quote.session.title
+          )
         }
       : null,
     candidate_ids: agreementData.training.participants.map((participant) => participant.id),

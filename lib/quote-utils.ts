@@ -1,4 +1,5 @@
 import { formatDate } from "@/lib/utils";
+import { getTrainingDocumentTitle } from "@/lib/training-programs";
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
@@ -12,8 +13,8 @@ export function computeQuoteVatAmount(priceHt: number, vatRate: number) {
   return roundCurrency(computeQuoteTotalTtc(priceHt, vatRate) - priceHt);
 }
 
-export function buildDefaultQuoteTitle(sessionTitle: string) {
-  return `Formation SST - ${sessionTitle}`;
+export function buildDefaultQuoteTitle(sessionTitle: string, trainingType: unknown = "sst_initial") {
+  return getTrainingDocumentTitle(trainingType, sessionTitle);
 }
 
 export function buildDefaultQuoteDescription({

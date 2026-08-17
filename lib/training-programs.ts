@@ -8,6 +8,12 @@ export const TRAINING_TYPE_LABELS: Record<TrainingType, string> = {
   hygiene: "Hygiène"
 };
 
+export const DEFAULT_TRAINING_TITLES: Record<TrainingType, string> = {
+  sst_initial: "Formation SST initiale",
+  mac_sst: "MAC SST",
+  hygiene: "Formation Hygiène"
+};
+
 export const TRAINING_FAMILY_LABELS: Record<string, string> = {
   sst: "Sauveteur Secouriste du Travail",
   hygiene: "Hygiène"
@@ -100,6 +106,34 @@ export function getTrainingProgramDefaults(value: unknown) {
 
 export function getTrainingTypeLabel(value: unknown) {
   return TRAINING_TYPE_LABELS[normalizeTrainingType(value)];
+}
+
+export function getTrainingDocumentTitle(value: unknown, title: string | null | undefined) {
+  const trainingType = normalizeTrainingType(value);
+  const fallback = DEFAULT_TRAINING_TITLES[trainingType];
+  const trimmedTitle = title?.trim();
+
+  if (!trimmedTitle || /^(nouvelle prestation|prestation de formation)$/i.test(trimmedTitle)) {
+    return fallback;
+  }
+
+  if (Object.values(DEFAULT_TRAINING_TITLES).some((defaultTitle) => defaultTitle === trimmedTitle)) {
+    return fallback;
+  }
+
+  const legacySstTitle = trimmedTitle.match(/^formation\s+sst(?:\s+initiale)?(?:\s*-\s*(.+))?$/i);
+  if (legacySstTitle) {
+    const suffix = legacySstTitle[1]?.trim();
+    return suffix && !/^(nouvelle prestation|prestation de formation)$/i.test(suffix)
+      ? `${fallback} - ${suffix}`
+      : fallback;
+  }
+
+  if (trainingType === "hygiene" && /\b(?:sst|forprev)\b/i.test(trimmedTitle)) {
+    return fallback;
+  }
+
+  return trimmedTitle;
 }
 
 export function getTrainingFamilyLabel(value: string | null | undefined, trainingType: unknown) {

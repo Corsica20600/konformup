@@ -6,6 +6,7 @@ import { EVALUATION_RESULT_LABELS, EVALUATION_STATUS_LABELS, getGlobalEvaluation
 import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import {
   getTrainingFamilyLabel,
+  getTrainingDocumentTitle,
   getTrainingProgramDefaults,
   getTrainingTypeLabel,
   splitObjectivesText,
@@ -25,11 +26,11 @@ import type { AttendanceOverview, OrganizationBranding, SessionCandidate, Sessio
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 
 function getSessionTrainingTitle(session: SessionItem) {
-  return getTrainingTypeLabel(session.training_type);
+  return getTrainingDocumentTitle(session.training_type, session.title);
 }
 
 function getQuoteTrainingTitle(quote: QuotePdfData) {
-  return getTrainingTypeLabel(quote.training_type);
+  return getTrainingDocumentTitle(quote.training_type, quote.title);
 }
 
 const validationLabel = {
@@ -1416,7 +1417,7 @@ export function AttendanceDocument({
           <View>
             <Text style={shared.title}>Feuille de presence - {getTrainingTypeLabel(session.training_type)}</Text>
             <Text style={shared.subtitle}>
-              {session.title} • {formatDate(session.start_date)} au {formatDate(session.end_date)} • {session.location}
+              {getSessionTrainingTitle(session)} • {formatDate(session.start_date)} au {formatDate(session.end_date)} • {session.location}
             </Text>
           </View>
           {organizationSettings.resolved_logo_url ? (
@@ -1555,7 +1556,7 @@ export function ComplaintDocument({
           <View>
             <Text style={shared.title}>Fiche de reclamation / insatisfaction</Text>
             <Text style={shared.subtitle}>
-              {invoice.quote.title} • {invoice.company.company_name}
+              {getTrainingDocumentTitle(invoice.quote.training_type, invoice.quote.title)} • {invoice.company.company_name}
             </Text>
           </View>
           {organizationSettings.resolved_logo_url ? (
@@ -2071,7 +2072,7 @@ export function QuoteDocument({
               <Image src={organizationSettings.resolved_logo_url} style={quoteStyles.logo} />
             ) : null}
             <Text style={quoteStyles.overline}>Devis de formation</Text>
-            <Text style={quoteStyles.quoteTitle}>{quote.title}</Text>
+            <Text style={quoteStyles.quoteTitle}>{getQuoteTrainingTitle(quote)}</Text>
             <Text style={quoteStyles.quoteMeta}>Reference : {quote.quote_number}</Text>
             <Text style={quoteStyles.quoteMeta}>Date d&apos;emission : {formatDate(quote.created_at)}</Text>
           </View>
@@ -2173,7 +2174,7 @@ export function InvoiceDocument({
   const organizationLegalLines = getOrganizationLegalLines(organizationSettings);
   const clientName = invoice.company.legal_name || invoice.company.company_name;
   const clientContact = invoice.company.contact_name;
-  const designation = invoice.quote.title?.trim() || "Prestation de formation";
+  const designation = getTrainingDocumentTitle(invoice.quote.training_type, invoice.quote.title);
   const description = `Facturation liee au devis ${invoice.quote.quote_number}`;
   const statusLabel = getInvoiceStatusLabel(invoice.status);
   const paymentTerms =
@@ -2932,7 +2933,7 @@ return (
         <View style={programmeStyles.factsGrid}>
           <View style={programmeStyles.factTile}>
             <Text style={programmeStyles.factLabel}>Intitule du devis</Text>
-            <Text style={programmeStyles.factValue}>{quote.title}</Text>
+            <Text style={programmeStyles.factValue}>{getQuoteTrainingTitle(quote)}</Text>
           </View>
           <View style={[programmeStyles.factTile, programmeStyles.factTileEven]}>
             <Text style={programmeStyles.factLabel}>Reference devis</Text>
