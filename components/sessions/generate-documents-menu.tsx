@@ -19,7 +19,8 @@ const documentOptions = [
 
 export function GenerateDocumentsMenu({
   sessionId,
-  candidateId
+  candidateId,
+  trainingType = "sst_initial"
 }: {
   sessionId: string;
   candidateId: string;
@@ -48,7 +49,9 @@ export function GenerateDocumentsMenu({
           >
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="candidateId" value={candidateId} />
-            {documentOptions.map((option) => (
+            {documentOptions
+              .filter((option) => option.value !== "aide_memoire" || trainingType !== "hygiene")
+              .map((option) => (
               <button
                 key={option.value}
                 type="submit"

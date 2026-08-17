@@ -2,6 +2,11 @@ import { cookies, headers } from "next/headers";
 import type { Database, Json } from "@/lib/database.types";
 import { persistGeneratedDocumentPdfToStorage } from "@/lib/document-storage";
 import { getOrganizationSettings } from "@/lib/organization";
+import {
+  normalizeHttpOrigin,
+  resolveConfiguredPrivateAppOrigin,
+  resolvePrivateAppOrigin
+} from "@/lib/public-config";
 import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
@@ -128,17 +133,14 @@ function isLocalHostname(hostname: string) {
 }
 
 export function normalizePublicAppOrigin(value: string | null | undefined) {
-  const trimmed = value?.trim();
+  const normalized = normalizeHttpOrigin(value);
 
-  if (!trimmed) {
+  if (!normalized) {
     return null;
   }
 
-  const candidate =
-    trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
-
   try {
-    const url = new URL(candidate);
+    const url = new URL(normalized);
 
     if (isLocalHostname(url.hostname)) {
       return null;
@@ -151,35 +153,14 @@ export function normalizePublicAppOrigin(value: string | null | undefined) {
 }
 
 export function resolvePublicAppOrigin() {
-  return (
-    normalizePublicAppOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
-    normalizePublicAppOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
-    normalizePublicAppOrigin(process.env.APP_URL) ||
-    normalizePublicAppOrigin(process.env.VERCEL_URL)
-  );
+  const configuredOrigin = resolveConfiguredPrivateAppOrigin();
+  return configuredOrigin ? normalizePublicAppOrigin(configuredOrigin) : resolvePrivateAppOrigin();
 }
 
 export function buildDocumentVerificationUrl(publicOrigin: string, ref: string) {
   const url = new URL("/documents/verify", publicOrigin);
   url.searchParams.set("ref", ref);
   return url.toString();
-}
-
-function normalizeAppOrigin(value: string | null | undefined) {
-  const trimmed = value?.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  const candidate =
-    trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
-
-  try {
-    return new URL(candidate).origin;
-  } catch {
-    return null;
-  }
 }
 
 function appendQueryParams(pathname: string, params: Record<string, string | null | undefined>) {
@@ -287,11 +268,7 @@ export async function insertGeneratedDocumentRecord({
 }
 
 async function resolveAppOrigin() {
-  const configuredOrigin =
-    normalizeAppOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
-    normalizeAppOrigin(process.env.NEXT_PUBLIC_SITE_URL) ||
-    normalizeAppOrigin(process.env.APP_URL) ||
-    normalizeAppOrigin(process.env.VERCEL_URL);
+  const configuredOrigin = resolveConfiguredPrivateAppOrigin();
 
   if (configuredOrigin) {
     return configuredOrigin;
@@ -309,13 +286,11 @@ async function resolveAppOrigin() {
     return `https://${forwardedHost}`;
   }
 
-  try {
-    return new URL("http://localhost:3000").origin;
-  } catch {
-    throw new DocumentGenerationError(
-      "L'URL de l'application est invalide. Vérifie NEXT_PUBLIC_APP_URL ou NEXT_PUBLIC_SITE_URL."
-    );
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:3000";
   }
+
+  return resolvePrivateAppOrigin();
 }
 
 export async function generateUniqueDocumentRef(documentType: SupportedGeneratedDocumentType) {
@@ -415,7 +390,7 @@ export async function fetchExistingPdf(pathname: string) {
       responseText
     });
     throw new DocumentGenerationError(
-      "Impossible de recuperer le PDF du devis. Verifie l'URL publique de l'application en production (APP_URL, NEXT_PUBLIC_APP_URL ou configuration Vercel)."
+      "Impossible de recuperer le PDF. Verifie l'URL privee de l'application en production (APP_URL, NEXT_PUBLIC_APP_URL ou configuration Vercel)."
     );
   }
 

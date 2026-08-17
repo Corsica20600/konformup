@@ -218,7 +218,8 @@ export function TrainingCompletionCertificateDocument({
           <Text style={styles.paragraph}>{wording}</Text>
         </View>
         <Text style={styles.footer}>
-          {organizationSettings.organization_name} - certificat de realisation distinct de l'attestation interne et du certificat SST officiel.
+          {organizationSettings.organization_name} - certificat de realisation distinct de l'attestation interne
+          {isSstTrainingType(session.training_type) ? " et du certificat SST officiel." : "."}
         </Text>
       </Page>
     </Document>

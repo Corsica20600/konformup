@@ -68,6 +68,7 @@ describe("session closure", () => {
   it("keeps FORPREV non applicable for Hygiene", () => {
     expect(getForprevStatusForCandidate("hygiene", buildCandidate({}))).toBe("non_applicable");
     expect(getFinalDocumentSet("hygiene").join(" ")).not.toMatch(/SST|FORPREV/i);
+    expect(getTrainingCompletionWording("hygiene")).not.toMatch(/SST|FORPREV/i);
   });
 
   it("distinguishes the completion certificate from the SST certificate", () => {

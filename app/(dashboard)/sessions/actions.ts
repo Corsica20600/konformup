@@ -569,6 +569,12 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
         return { error: "Le candidat est requis pour attacher l'aide memoire." };
       }
 
+      const sessionData = await getSessionById(sessionId);
+
+      if (sessionData.session.training_type === "hygiene") {
+        return { error: "L'aide memoire SST n'est pas applicable aux formations Hygiene." };
+      }
+
       const supabase = await createClient();
       const existingDocument = await supabase
         .from("generated_documents")

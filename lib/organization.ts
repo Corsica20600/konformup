@@ -1,4 +1,9 @@
 import type { OrganizationBranding, OrganizationSettings } from "@/lib/types";
+import {
+  PUBLIC_CONTACT_EMAIL,
+  PUBLIC_ORGANIZATION_NAME,
+  resolvePrivateAppOrigin
+} from "@/lib/public-config";
 import { createClient } from "@/lib/supabase/server";
 
 const DEFAULT_LOGO_PATH = "/logo-organisme.png";
@@ -42,7 +47,7 @@ function logSupabaseQueryError({
 }
 
 export const defaultOrganizationSettings: OrganizationSettings = {
-  organization_name: "Organisme de formation",
+  organization_name: PUBLIC_ORGANIZATION_NAME,
   address: "Adresse a configurer",
   postal_code: null,
   city: null,
@@ -53,7 +58,7 @@ export const defaultOrganizationSettings: OrganizationSettings = {
   legal_form: null,
   share_capital: null,
   vat_number: null,
-  contact_email: null,
+  contact_email: PUBLIC_CONTACT_EMAIL,
   contact_phone: null,
   payment_terms: null,
   late_penalty_terms: null,
@@ -80,7 +85,7 @@ function resolveAssetUrl(assetUrl: string | null, origin?: string) {
   }
 
   if (assetUrl.startsWith("/")) {
-    const baseUrl = origin || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
+    const baseUrl = origin || resolvePrivateAppOrigin();
     return baseUrl ? new URL(assetUrl, baseUrl).toString() : assetUrl;
   }
 
@@ -192,7 +197,7 @@ export async function getOrganizationSettings() {
     legal_form: getString("legal_form", "company_legal_form", "forme_juridique"),
     share_capital: getString("share_capital", "capital_social", "capital"),
     vat_number: getString("vat_number", "vat_intracom", "intracom_vat_number", "tva_intracom", "tva_number"),
-    contact_email: getString("contact_email", "email", "billing_email"),
+    contact_email: PUBLIC_CONTACT_EMAIL,
     contact_phone: getString("contact_phone", "phone", "telephone", "billing_phone"),
     payment_terms: getString("payment_terms", "invoice_payment_terms", "terms_of_payment", "conditions_reglement"),
     late_penalty_terms: getString(

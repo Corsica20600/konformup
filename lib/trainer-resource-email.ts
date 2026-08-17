@@ -1,23 +1,9 @@
+import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib/email-config";
 import { fetchExistingPdf } from "@/lib/generated-documents";
-import { getOrganizationSettings } from "@/lib/organization";
 import { getTrainerResourceBySlug, type TrainerResourceSlug } from "@/lib/trainer-resources";
 import { createClient } from "@/lib/supabase/server";
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`La variable d'environnement ${name} est requise pour envoyer un document formateur par email.`);
-  }
-
-  return value;
-}
-
-async function buildTrainerResourceEmailBody(trainerName: string, resourceTitle: string) {
-  const organization = await getOrganizationSettings();
-  const organizationEmail = process.env.ORGANIZATION_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || "";
-  const organizationPhone = process.env.ORGANIZATION_PHONE?.trim() || "";
-
+function buildTrainerResourceEmailBody(trainerName: string, resourceTitle: string, signatureLines: string[]) {
   return [
     `Bonjour ${trainerName},`,
     "",
@@ -25,10 +11,7 @@ async function buildTrainerResourceEmailBody(trainerName: string, resourceTitle:
     "",
     "Ce support peut etre utilise comme base pedagogique pour vos animations SST.",
     "",
-    "Cordialement,",
-    organization.organization_name,
-    organizationEmail,
-    organizationPhone
+    ...signatureLines
   ].join("\n");
 }
 
@@ -54,46 +37,29 @@ export async function sendTrainerResourceEmail(trainerId: string, resourceSlug: 
     throw new Error("Aucune adresse email n'est renseignee pour ce formateur.");
   }
 
-  const apiKey = requireEnv("BREVO_API_KEY");
-  const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
-  const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  const emailContext = await getTransactionalEmailContext();
   const pdf = await fetchExistingPdf(resource.apiPath);
   const trainerName = `${trainer.first_name} ${trainer.last_name}`.trim() || trainer.email;
-  const body = await buildTrainerResourceEmailBody(trainerName, resource.title);
+  const body = buildTrainerResourceEmailBody(trainerName, resource.title, emailContext.signatureLines);
 
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      sender: {
-        email: fromEmail,
-        name: fromName
-      },
-      to: [
-        {
-          email: trainer.email,
-          name: trainerName
-        }
-      ],
-      subject: `${resource.title} - Espace formateur`,
-      textContent: body,
-      attachment: [
+  await sendBrevoTransactionalEmail({
+    context: emailContext,
+    to: [
+      {
+        email: trainer.email,
+        name: trainerName
+      }
+    ],
+    subject: `${resource.title} - Espace formateur`,
+    textContent: body,
+    attachment: [
         {
           name: resource.fileName,
           content: Buffer.from(pdf.buffer).toString("base64")
         }
-      ]
-    })
+      ],
+    errorLabel: "l'envoi du document formateur"
   });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new Error(`Brevo a refuse l'envoi du document formateur. ${errorText}`.trim());
-  }
 
   return {
     fileUrl: resource.apiPath

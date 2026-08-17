@@ -1,17 +1,9 @@
+import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib/email-config";
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getGeneratedDocumentLabel } from "@/lib/document-labels";
-import { getOrganizationSettings } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
-
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`La variable d'environnement ${name} est requise pour envoyer un document candidat par email.`);
-  }
-
-  return value;
-}
+import { getTrainingTypeLabel } from "@/lib/training-programs";
+import type { TrainingType } from "@/lib/database.types";
 
 function buildDocumentLabel(type: string) {
   return getGeneratedDocumentLabel(type).toLocaleLowerCase("fr-FR");
@@ -29,12 +21,7 @@ function buildAttachmentName(type: string, ref: string) {
   return `${type}-${ref}.pdf`;
 }
 
-async function buildCandidateDocumentEmailBody(candidateName: string, documentLabel: string) {
-  const organization = await getOrganizationSettings();
-  const signatoryName = organization.certificate_signatory_name || organization.organization_name;
-  const organizationEmail = process.env.ORGANIZATION_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || "";
-  const organizationPhone = process.env.ORGANIZATION_PHONE?.trim() || "";
-
+function buildCandidateDocumentEmailBody(candidateName: string, documentLabel: string, signatureLines: string[]) {
   return [
     `Bonjour ${candidateName},`,
     "",
@@ -42,20 +29,15 @@ async function buildCandidateDocumentEmailBody(candidateName: string, documentLa
     "",
     "Nous restons a votre disposition pour toute question complementaire.",
     "",
-    "Cordialement,",
-    organization.organization_name,
-    signatoryName,
-    organizationEmail,
-    organizationPhone
+    ...signatureLines
   ].join("\n");
 }
 
-async function buildCandidateSessionDocumentsEmailBody(candidateName: string, documentLabels: string[]) {
-  const organization = await getOrganizationSettings();
-  const signatoryName = organization.certificate_signatory_name || organization.organization_name;
-  const organizationEmail = process.env.ORGANIZATION_EMAIL?.trim() || process.env.BREVO_SENDER_EMAIL?.trim() || "";
-  const organizationPhone = process.env.ORGANIZATION_PHONE?.trim() || "";
-
+function buildCandidateSessionDocumentsEmailBody(
+  candidateName: string,
+  documentLabels: string[],
+  signatureLines: string[]
+) {
   return [
     `Bonjour ${candidateName},`,
     "",
@@ -64,11 +46,7 @@ async function buildCandidateSessionDocumentsEmailBody(candidateName: string, do
     "",
     "Nous restons a votre disposition pour toute question complementaire.",
     "",
-    "Cordialement,",
-    organization.organization_name,
-    signatoryName,
-    organizationEmail,
-    organizationPhone
+    ...signatureLines
   ].join("\n");
 }
 
@@ -76,7 +54,7 @@ export async function sendCandidateDocumentEmail(documentId: string) {
   const supabase = await createClient();
   const { data: document, error } = await supabase
     .from("generated_documents")
-    .select("id, document_type, document_ref, file_url, candidate_id")
+    .select("id, document_type, document_ref, file_url, candidate_id, session_id")
     .eq("id", documentId)
     .maybeSingle();
 
@@ -106,46 +84,41 @@ export async function sendCandidateDocumentEmail(documentId: string) {
     throw new Error("Aucune adresse email n'est renseignee pour ce candidat.");
   }
 
-  const apiKey = requireEnv("BREVO_API_KEY");
-  const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
-  const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  if (document.document_type === "aide_memoire" && document.session_id) {
+    const { data: session } = await supabase
+      .from("training_sessions")
+      .select("training_type")
+      .eq("id", document.session_id)
+      .maybeSingle<{ training_type: TrainingType }>();
+
+    if (session?.training_type === "hygiene") {
+      throw new Error("L'aide memoire SST ne peut pas etre envoye pour une formation Hygiene.");
+    }
+  }
+
+  const emailContext = await getTransactionalEmailContext();
   const pdf = await fetchExistingPdf(document.file_url);
   const candidateName = `${candidate.first_name} ${candidate.last_name}`.trim();
   const documentLabel = buildDocumentLabel(document.document_type);
-  const body = await buildCandidateDocumentEmailBody(candidateName || "Bonjour", documentLabel);
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      sender: {
-        email: fromEmail,
-        name: fromName
-      },
-      to: [
-        {
-          email: candidate.email,
-          name: candidateName || candidate.email
-        }
-      ],
-      subject: `Envoi de votre ${documentLabel}`,
-      textContent: body,
-      attachment: [
+  const body = buildCandidateDocumentEmailBody(candidateName || "Bonjour", documentLabel, emailContext.signatureLines);
+  await sendBrevoTransactionalEmail({
+    context: emailContext,
+    to: [
+      {
+        email: candidate.email,
+        name: candidateName || candidate.email
+      }
+    ],
+    subject: `Envoi de votre ${documentLabel}`,
+    textContent: body,
+    attachment: [
         {
           name: buildAttachmentName(document.document_type, document.document_ref),
           content: Buffer.from(pdf.buffer).toString("base64")
         }
-      ]
-    })
+      ],
+    errorLabel: "l'envoi du document"
   });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new Error(`Brevo a refuse l'envoi du document. ${errorText}`.trim());
-  }
 
   const { error: updateError } = await supabase
     .from("generated_documents")
@@ -192,21 +165,35 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
     throw new Error("Impossible de charger les documents du candidat.");
   }
 
-  if (!documents?.length) {
-    throw new Error("Aucun document genere n'est disponible pour cet envoi.");
+  const { data: session, error: sessionError } = await supabase
+    .from("training_sessions")
+    .select("training_type")
+    .eq("id", sessionId)
+    .maybeSingle<{ training_type: TrainingType }>();
+
+  if (sessionError || !session) {
+    throw new Error("Session introuvable pour l'envoi des documents.");
   }
 
-  const apiKey = requireEnv("BREVO_API_KEY");
-  const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
-  const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  const deliverableDocuments =
+    session.training_type === "hygiene"
+      ? (documents ?? []).filter((document) => document.document_type !== "aide_memoire")
+      : documents ?? [];
+
+  if (!deliverableDocuments.length) {
+    throw new Error("Aucun document applicable a cette formation n'est disponible pour cet envoi.");
+  }
+
+  const emailContext = await getTransactionalEmailContext();
   const candidateName = `${candidate.first_name} ${candidate.last_name}`.trim();
-  const body = await buildCandidateSessionDocumentsEmailBody(
+  const body = buildCandidateSessionDocumentsEmailBody(
     candidateName || "Bonjour",
-    documents.map((document) => buildDocumentLabel(document.document_type))
+    deliverableDocuments.map((document) => buildDocumentLabel(document.document_type)),
+    emailContext.signatureLines
   );
 
   const attachments = await Promise.all(
-    documents.map(async (document) => {
+    deliverableDocuments.map(async (document) => {
       const pdf = await fetchExistingPdf(document.file_url!);
       return {
         name: buildAttachmentName(document.document_type, document.document_ref),
@@ -215,36 +202,21 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
     })
   );
 
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": apiKey,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      sender: {
-        email: fromEmail,
-        name: fromName
-      },
-      to: [
-        {
-          email: candidate.email,
-          name: candidateName || candidate.email
-        }
-      ],
-      subject: "Envoi de vos documents de formation SST",
-      textContent: body,
-      attachment: attachments
-    })
+  await sendBrevoTransactionalEmail({
+    context: emailContext,
+    to: [
+      {
+        email: candidate.email,
+        name: candidateName || candidate.email
+      }
+    ],
+    subject: `Envoi de vos documents de formation - ${getTrainingTypeLabel(session.training_type)}`,
+    textContent: body,
+    attachment: attachments,
+    errorLabel: "l'envoi des documents"
   });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new Error(`Brevo a refuse l'envoi des documents. ${errorText}`.trim());
-  }
-
-  const documentIds = documents.map((document) => document.id);
+  const documentIds = deliverableDocuments.map((document) => document.id);
   const { error: updateError } = await supabase
     .from("generated_documents")
     .update({
@@ -258,6 +230,6 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
   }
 
   return {
-    fileUrl: documents[0]?.file_url ?? null
+    fileUrl: deliverableDocuments[0]?.file_url ?? null
   };
 }

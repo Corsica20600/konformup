@@ -1414,7 +1414,7 @@ export function AttendanceDocument({
       <Page size="A4" style={[shared.page, attendanceStyles.page]}>
         <View style={attendanceStyles.header}>
           <View>
-            <Text style={shared.title}>Feuille de presence SST</Text>
+            <Text style={shared.title}>Feuille de presence - {getTrainingTypeLabel(session.training_type)}</Text>
             <Text style={shared.subtitle}>
               {session.title} • {formatDate(session.start_date)} au {formatDate(session.end_date)} • {session.location}
             </Text>
@@ -1853,7 +1853,7 @@ export function ConvocationDocument({
   const convocationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
   const convocationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
   const trainingTitle = getSessionTrainingTitle(session);
-  const shouldAppendSstProgramme = session.training_family === "sst";
+  const shouldAppendSstProgramme = session.training_type === "sst_initial";
 
   return (
     <Document>

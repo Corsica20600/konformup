@@ -1,6 +1,10 @@
+import {
+  getTransactionalEmailContext,
+  sendBrevoTransactionalEmail,
+  type TransactionalEmailContext
+} from "@/lib/email-config";
 import { createClient } from "@/lib/supabase/server";
-import { getOrganizationSettings } from "@/lib/organization";
-import { resolvePublicAppOrigin } from "@/lib/generated-documents";
+import { buildPrivateAppUrl } from "@/lib/public-config";
 import type {
   AttendanceCandidateResponse,
   AttendanceOverview,
@@ -283,44 +287,27 @@ export async function getAttendanceOverviewForSession(
   };
 }
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`La variable ${name} est requise pour l'emargement numerique.`);
-  }
-
-  return value;
-}
-
-function buildAttendanceResponseUrl(token: string) {
-  const publicOrigin = resolvePublicAppOrigin();
-
-  if (!publicOrigin) {
-    throw new Error("Ajoute NEXT_PUBLIC_APP_URL ou APP_URL pour activer les liens d'emargement.");
-  }
-
-  const url = new URL("/attendance/respond", publicOrigin);
+export function buildAttendanceResponseUrl(token: string) {
+  const url = buildPrivateAppUrl("/attendance/respond");
   url.searchParams.set("token", token);
   return url.toString();
 }
 
-async function buildAttendanceEmailBody({
+function buildAttendanceEmailBody({
   candidateName,
   session,
   slot,
   url,
-  reminder = false
+  reminder = false,
+  signatureLines
 }: {
   candidateName: string;
   session: Pick<SessionItem, "title" | "location">;
   slot: AttendanceSlotRow;
   url: string;
   reminder?: boolean;
+  signatureLines: string[];
 }) {
-  const organization = await getOrganizationSettings();
-  const senderName = organization.certificate_signatory_name || organization.organization_name;
-
   return [
     `Bonjour ${candidateName},`,
     "",
@@ -335,9 +322,7 @@ async function buildAttendanceEmailBody({
     "",
     "Ce lien est personnel et doit etre utilise uniquement pour votre emargement.",
     "",
-    "Cordialement,",
-    organization.organization_name,
-    senderName
+    ...signatureLines
   ].join("\n");
 }
 
@@ -346,8 +331,7 @@ async function sendAttendanceEmailToResponse({
   slot,
   session,
   response,
-  fromEmail,
-  fromName,
+  emailContext,
   reminder
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -370,8 +354,7 @@ async function sendAttendanceEmailToResponse({
         }[]
       | null;
   };
-  fromEmail: string;
-  fromName: string;
+  emailContext: TransactionalEmailContext;
   reminder: boolean;
 }) {
   const candidateRecord = Array.isArray(response.candidates) ? response.candidates[0] : response.candidates;
@@ -390,26 +373,18 @@ async function sendAttendanceEmailToResponse({
 
   const candidateName = `${candidateRecord.first_name} ${candidateRecord.last_name}`.trim() || candidateRecord.email;
   const responseUrl = buildAttendanceResponseUrl(response.response_token);
-  const body = await buildAttendanceEmailBody({
+  const body = buildAttendanceEmailBody({
     candidateName,
     session,
     slot,
     url: responseUrl,
-    reminder
+    reminder,
+    signatureLines: emailContext.signatureLines
   });
 
-  const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "api-key": requireEnv("BREVO_API_KEY"),
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      sender: {
-        email: fromEmail,
-        name: fromName
-      },
+  try {
+    await sendBrevoTransactionalEmail({
+      context: emailContext,
       to: [
         {
           email: candidateRecord.email,
@@ -417,16 +392,14 @@ async function sendAttendanceEmailToResponse({
         }
       ],
       subject: `${reminder ? "Rappel - " : ""}Confirmation de presence - ${session.title} - ${slot.slot_label}`,
-      textContent: body
-    })
-  });
-
-  if (!emailResponse.ok) {
+      textContent: body,
+      errorLabel: "l'envoi de la demande d'emargement"
+    });
+  } catch (error) {
     console.error("[attendance] brevo send failed", {
       slotId: slot.id,
       candidateId: response.candidate_id,
-      status: emailResponse.status,
-      statusText: emailResponse.statusText,
+      message: error instanceof Error ? error.message : "Unknown error",
       reminder
     });
     await supabase
@@ -501,8 +474,7 @@ export async function sendAttendanceSlotRequests(
     throw new Error("Impossible de charger les candidats pour ce creneau.");
   }
 
-  const fromEmail = requireEnv("BREVO_SENDER_EMAIL");
-  const fromName = process.env.BREVO_SENDER_NAME?.trim() || (await getOrganizationSettings()).organization_name;
+  const emailContext = await getTransactionalEmailContext();
   let sentCount = 0;
   let failedCount = 0;
   let skippedCount = 0;
@@ -534,8 +506,7 @@ export async function sendAttendanceSlotRequests(
       slot: slot as AttendanceSlotRow,
       session,
       response,
-      fromEmail,
-      fromName,
+      emailContext,
       reminder: options?.reminder ?? Boolean(slot.sent_at)
     });
 
