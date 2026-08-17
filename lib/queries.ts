@@ -13,6 +13,7 @@ import type {
   CompanyQuoteSummary,
   CompanySessionSummary,
   DashboardStats,
+  DashboardWorkflowSnapshot,
   GeneratedDocumentItem,
   SessionCandidate,
   SessionItem,
@@ -1636,6 +1637,36 @@ export async function getDashboardQuoteStatuses() {
   }
 
   return (data ?? []).map((quote) => quote.status as QuoteStatus);
+}
+
+export async function getDashboardWorkflowSnapshot(): Promise<DashboardWorkflowSnapshot> {
+  const supabase = await createClient();
+  const [candidates, globalEvaluations, attendanceSlots, finalDocuments] = await Promise.all([
+    supabase.from("candidates").select("id, session_id").not("session_id", "is", null),
+    supabase
+      .from("candidate_evaluations")
+      .select("candidate_id, session_id, result")
+      .eq("evaluation_type", "globale"),
+    supabase.from("attendance_slots").select("session_id, status").in("status", ["sent", "open"]),
+    supabase
+      .from("generated_documents")
+      .select("session_id, document_type")
+      .in("document_type", ["bilan_session", "synthese_societe"])
+      .in("status", ["generated", "sent", "signed", "archived"])
+      .not("session_id", "is", null)
+  ]);
+
+  const firstError = [candidates.error, globalEvaluations.error, attendanceSlots.error, finalDocuments.error].find(Boolean);
+  if (firstError) {
+    throw firstError;
+  }
+
+  return {
+    candidates: (candidates.data ?? []) as DashboardWorkflowSnapshot["candidates"],
+    globalEvaluations: (globalEvaluations.data ?? []) as DashboardWorkflowSnapshot["globalEvaluations"],
+    attendanceSlots: (attendanceSlots.data ?? []) as DashboardWorkflowSnapshot["attendanceSlots"],
+    finalDocuments: (finalDocuments.data ?? []) as DashboardWorkflowSnapshot["finalDocuments"]
+  };
 }
 
 export async function getClientCompanies() {

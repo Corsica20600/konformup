@@ -191,6 +191,23 @@ export type DashboardStats = {
   completedSessions: number;
 };
 
+export type DashboardWorkflowSnapshot = {
+  candidates: Array<{ id: string; session_id: string }>;
+  globalEvaluations: Array<{
+    candidate_id: string;
+    session_id: string;
+    result: CandidateEvaluationResult;
+  }>;
+  attendanceSlots: Array<{
+    session_id: string;
+    status: AttendanceSlotStatus;
+  }>;
+  finalDocuments: Array<{
+    session_id: string;
+    document_type: string;
+  }>;
+};
+
 export type GeneratedDocumentItem = {
   id: string;
   session_id: string | null;
