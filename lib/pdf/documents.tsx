@@ -7,6 +7,9 @@ import { computeQuoteVatAmount } from "@/lib/quote-utils";
 import {
   getTrainingFamilyLabel,
   getTrainingDocumentTitle,
+  getProgrammeParticipantLabel,
+  getProgrammePracticalMethod,
+  getProgrammeValidationHeading,
   getTrainingProgramDefaults,
   getTrainingTypeLabel,
   splitObjectivesText,
@@ -24,6 +27,7 @@ import {
 } from "@/lib/utils";
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/public-config";
 
 function getSessionTrainingTitle(session: SessionItem) {
   return getTrainingDocumentTitle(session.training_type, session.title);
@@ -314,28 +318,31 @@ const attendanceStyles = StyleSheet.create({
 
 const certificateStyles = StyleSheet.create({
   page: {
-    backgroundColor: "#fffdf8"
+    backgroundColor: "#fffdf8",
+    paddingTop: 16,
+    paddingRight: 24,
+    paddingBottom: 16,
+    paddingLeft: 24
   },
   frame: {
-    flex: 1,
     borderWidth: 1,
     borderColor: "#d7d0c2",
-    padding: 24
+    padding: 16
   },
   topBand: {
-    height: 10,
+    height: 8,
     backgroundColor: "#285943",
-    marginBottom: 18
+    marginBottom: 10
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 22
+    marginBottom: 10
   },
   logo: {
-    width: 88,
-    height: 88,
+    width: 84,
+    height: 63,
     objectFit: "contain"
   },
   organizationBlock: {
@@ -343,57 +350,57 @@ const certificateStyles = StyleSheet.create({
     textAlign: "right"
   },
   organizationName: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: 700,
     marginBottom: 4
   },
   organizationLine: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: "#47514c",
     marginBottom: 2
   },
   certificateTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 700,
     textAlign: "center",
     marginBottom: 6
   },
   certificateSubtitle: {
-    fontSize: 11,
+    fontSize: 9.5,
     textAlign: "center",
     color: "#5b655f",
-    marginBottom: 24
+    marginBottom: 12
   },
   intro: {
-    fontSize: 12,
-    lineHeight: 1.55,
+    fontSize: 10.5,
+    lineHeight: 1.4,
     textAlign: "center",
-    marginBottom: 16
+    marginBottom: 8
   },
   candidateName: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: 700,
     textAlign: "center",
     color: "#174734",
-    marginBottom: 10
+    marginBottom: 6
   },
   trainingTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     textAlign: "center",
-    marginBottom: 16
+    marginBottom: 10
   },
   identificationGrid: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 18
+    gap: 10,
+    marginBottom: 10
   },
   identificationCard: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 14
+    padding: 9
   },
   identificationLabel: {
     fontSize: 9.5,
@@ -410,15 +417,15 @@ const certificateStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 16,
-    marginBottom: 18
+    padding: 10,
+    marginBottom: 10
   },
   detailRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#ece6da",
-    paddingTop: 8,
-    paddingBottom: 8
+    paddingTop: 5,
+    paddingBottom: 5
   },
   detailRowLast: {
     borderBottomWidth: 0
@@ -437,8 +444,8 @@ const certificateStyles = StyleSheet.create({
     backgroundColor: "#edf5f0",
     borderWidth: 1,
     borderColor: "#b9d0c2",
-    padding: 14,
-    marginBottom: 24
+    padding: 10,
+    marginBottom: 10
   },
   validationTitle: {
     fontSize: 10,
@@ -449,12 +456,12 @@ const certificateStyles = StyleSheet.create({
   validationBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8
+    marginBottom: 4
   },
   validationBadge: {
-    paddingTop: 7,
+    paddingTop: 5,
     paddingRight: 12,
-    paddingBottom: 7,
+    paddingBottom: 5,
     paddingLeft: 12,
     borderRadius: 999,
     borderWidth: 1
@@ -482,7 +489,7 @@ const certificateStyles = StyleSheet.create({
     color: "#6d571f"
   },
   validationValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     color: "#174734",
     marginBottom: 4
@@ -492,27 +499,27 @@ const certificateStyles = StyleSheet.create({
     color: "#4e5f57"
   },
   validationHint: {
-    fontSize: 9.5,
-    lineHeight: 1.4,
+    fontSize: 8.5,
+    lineHeight: 1.3,
     color: "#4e5f57",
     marginTop: 8
   },
   evaluationSummary: {
     borderTopWidth: 1,
     borderTopColor: "#c9dbd0",
-    marginTop: 10,
-    paddingTop: 8
+    marginTop: 6,
+    paddingTop: 5
   },
   verificationCard: {
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    paddingTop: 10,
-    paddingRight: 12,
-    paddingBottom: 10,
-    paddingLeft: 12,
-    marginTop: 6,
-    marginBottom: 20,
+    paddingTop: 7,
+    paddingRight: 9,
+    paddingBottom: 7,
+    paddingLeft: 9,
+    marginTop: 4,
+    marginBottom: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -545,8 +552,8 @@ const certificateStyles = StyleSheet.create({
     marginTop: 4
   },
   qrShell: {
-    width: 84,
-    height: 84,
+    width: 62,
+    height: 62,
     borderWidth: 1,
     borderColor: "#d7d0c2",
     backgroundColor: "#fffdf8",
@@ -555,8 +562,8 @@ const certificateStyles = StyleSheet.create({
     padding: 5
   },
   qrImage: {
-    width: 72,
-    height: 72,
+    width: 52,
+    height: 52,
     objectFit: "contain"
   },
   qrFallback: {
@@ -575,18 +582,18 @@ const certificateStyles = StyleSheet.create({
     maxWidth: 300
   },
   legalText: {
-    fontSize: 10,
+    fontSize: 8.5,
     color: "#47514c",
     marginBottom: 3
   },
   legalFootnote: {
-    fontSize: 9,
+    fontSize: 8,
     lineHeight: 1.35,
     color: "#5b655f",
     marginTop: 8
   },
   signatureBlock: {
-    width: 220,
+    width: 200,
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
@@ -597,8 +604,13 @@ const certificateStyles = StyleSheet.create({
     alignItems: "flex-start"
   },
   signatureBlockTransparent: {
-    width: 220,
+    width: 230,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "flex-start"
+  },
+  signatureCompactColumn: {
+    width: 108
   },
   signatureLabelSlim: {
     fontSize: 8.5,
@@ -611,16 +623,16 @@ const certificateStyles = StyleSheet.create({
     marginBottom: 4
   },
   signatureSection: {
-    marginBottom: 12
+    marginBottom: 8
   },
   signatureSectionLast: {
     marginBottom: 0
   },
   signatureLabel: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     textTransform: "uppercase",
     color: "#5b655f",
-    marginBottom: 5
+    marginBottom: 3
   },
   signatureImage: {
     width: 120,
@@ -646,12 +658,12 @@ const certificateStyles = StyleSheet.create({
     marginTop: 1
   },
   signatureName: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
     textAlign: "left"
   },
   signatureTitle: {
-    fontSize: 9,
+    fontSize: 8,
     color: "#5b655f",
     textAlign: "left",
     marginTop: 2
@@ -1263,6 +1275,9 @@ function OrganizationIdentityBlock({
         <Text style={certificateStyles.organizationLine}>SIRET : {organizationSettings.siret}</Text>
       ) : null}
       {ndaLabel ? <Text style={certificateStyles.organizationLine}>NDA : {ndaLabel}</Text> : null}
+      <Text style={[certificateStyles.organizationLine, { fontSize: 7.5 }]}>
+        {organizationSettings.contact_email} - {PUBLIC_SITE_ORIGIN}
+      </Text>
     </View>
   );
 }
@@ -1277,7 +1292,9 @@ function ConvocationProgrammeFooter({
   const footerBits = [
     ...addressLines,
     organizationSettings.siret ? `SIRET ${organizationSettings.siret}` : null,
-    ndaLabel ? `NDA ${ndaLabel}` : null
+    ndaLabel ? `NDA ${ndaLabel}` : null,
+    organizationSettings.contact_email,
+    PUBLIC_SITE_ORIGIN
   ].filter(Boolean);
 
   return (
@@ -1693,8 +1710,6 @@ export function CertificateDocument({
   const isSstTraining = session.training_family === "sst";
   const attestationAuthor = organizationSettings.certificate_signatory_name || organizationSettings.organization_name;
   const attestationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
-  const organizationAddressLines = getOrganizationAddressLines(organizationSettings);
-
   return (
     <Document>
       <Page size="A4" style={[shared.page, certificateStyles.page]}>
@@ -1743,7 +1758,6 @@ export function CertificateDocument({
               </View>
             </View>
             <Text style={certificateStyles.validationValue}>{validationStatus}</Text>
-            <Text style={certificateStyles.validationDate}>Date de delivrance : {validationDate}</Text>
             <View style={certificateStyles.evaluationSummary}>
               <DetailRow label="Evaluation interne" value={`${evaluationStatusLabel} - ${evaluationResultLabel}`} />
               <DetailRow label="Date d'evaluation" value={evaluationDate} isLast />
@@ -1795,33 +1809,23 @@ export function CertificateDocument({
           <View style={certificateStyles.footer}>
             <View style={certificateStyles.legalBlock}>
               <Text style={certificateStyles.legalText}>{organizationSettings.organization_name}</Text>
-              {organizationAddressLines.map((line) => (
-                <Text key={line} style={certificateStyles.legalText}>
-                  {line}
-                </Text>
-              ))}
+              <Text style={certificateStyles.legalText}>{organizationSettings.contact_email}</Text>
               <Text style={certificateStyles.legalText}>Formation suivie : {trainingTitle}</Text>
-              {isSstTraining ? (
-                <Text style={certificateStyles.legalFootnote}>
-                  Cette attestation interne de fin de formation ne se substitue pas au certificat officiel delivre dans le
-                  cadre du dispositif SST / FORPREV lorsque celui-ci est applicable.
-                </Text>
-              ) : null}
             </View>
 
             <View style={certificateStyles.signatureBlockTransparent}>
-              <View style={certificateStyles.signatureSection}>
+              <View style={certificateStyles.signatureCompactColumn}>
                 <Text style={certificateStyles.signatureLabel}>Formation animee par</Text>
                 <Text style={certificateStyles.signatureName}>{trainerName}</Text>
                 <Text style={certificateStyles.signatureTitle}>Formateur</Text>
               </View>
 
-              <View style={[certificateStyles.signatureSection, certificateStyles.signatureSectionLast]}>
+              <View style={certificateStyles.signatureCompactColumn}>
                 <Text style={certificateStyles.signatureLabel}>Attestation etablie par</Text>
                 {organizationSettings.resolved_signature_url ? (
-                  <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImage} />
+                  <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImageSlim} />
                 ) : (
-                  <View style={certificateStyles.signatureLine} />
+                  <View style={certificateStyles.signatureLineSlim} />
                 )}
                 <Text style={certificateStyles.signatureName}>{attestationAuthor}</Text>
                 <Text style={certificateStyles.signatureTitle}>{attestationAuthorTitle}</Text>
@@ -2711,7 +2715,7 @@ export function ProgrammeDocument({
 
     return normalized.startsWith(prefixNormalized) ? trimmed : `${prefix} ${trimmed}`;
   };
-  const trainerLabel = quote.session?.trainer_name || "Formateur Konformup";
+  const trainerLabel = quote.session?.trainer_name || "Formateur Konform'up";
   const trainingLabel = getQuoteTrainingTitle(quote);
   const trainingDefaults = getTrainingProgramDefaults(quote.training_type);
   const programmeLines = splitProgrammeText(quote.programme_outline, trainingDefaults.programmeLines);
@@ -2721,17 +2725,16 @@ export function ProgrammeDocument({
       ? formatDateRange(quote.session_start_date, quote.session_end_date)
       : "Dates a definir";
   const locationLabel = quote.location || quote.session?.location || "Lieu a confirmer";
-  const participantLabel =
-    quote.candidate_count > 0
-      ? `${quote.candidate_count} participant(s) prevu(s) - 4 mini / 10 maxi`
-      : "4 mini / 10 maxi";
+  const participantLabel = getProgrammeParticipantLabel(quote.training_type, quote.candidate_count);
   const durationLabel = formatDurationHours(quote.duration_hours ?? trainingDefaults.durationHours);
   const organizationMeta = [
     organizationSettings.address && organizationSettings.address !== "Adresse a configurer"
       ? organizationSettings.address
       : null,
     cleanFooterItem(organizationSettings.siret, "SIRET"),
-    cleanFooterItem(organizationSettings.training_declaration_number, "NDA")
+    cleanFooterItem(organizationSettings.training_declaration_number, "NDA"),
+    organizationSettings.contact_email,
+    PUBLIC_SITE_ORIGIN
   ].filter(Boolean);
 
 return (
@@ -2838,7 +2841,9 @@ return (
           </View>
 
           <View style={programmeStyles.card}>
-            <Text style={programmeStyles.cardTitle}>Cadre certificateur et validite</Text>
+            <Text style={programmeStyles.cardTitle}>
+              {getProgrammeValidationHeading(quote.training_type)}
+            </Text>
             <Text style={programmeStyles.bodyText}>
               {trainingDefaults.certificateNote}
             </Text>
@@ -2854,7 +2859,9 @@ return (
           <View style={programmeStyles.card}>
             <Text style={programmeStyles.cardTitle}>Approche pedagogique</Text>
             <ProgrammeBullet>Alternance d&apos;apports methodologiques, d&apos;echanges diriges et d&apos;etudes de cas.</ProgrammeBullet>
-            <ProgrammeBullet>Mises en situation concretes, demonstrations et exercices pratiques sur materiel de secours.</ProgrammeBullet>
+            <ProgrammeBullet>
+              {getProgrammePracticalMethod(quote.training_type)}
+            </ProgrammeBullet>
             <ProgrammeBullet>Pedagogie active centree sur les risques reels de l&apos;environnement de travail.</ProgrammeBullet>
           </View>
         </View>

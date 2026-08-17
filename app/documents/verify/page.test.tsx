@@ -46,6 +46,7 @@ describe("public document verification page", () => {
     });
     expect(html).toContain("Document verifie");
     expect(html).toContain("ATTEST-2026-001");
+    expect(html).toContain("%2Fbrand%2Fkonformup-logo.png");
     expect(html).not.toContain("candidate_name");
     expect(html).not.toContain("candidate_email");
     expect(html).not.toContain("storage_path");

@@ -19,8 +19,8 @@ export function DashboardShell({
         <header className="rounded-[28px] bg-white/85 p-4 shadow-panel md:p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-ink">
-                <img src={APP_BRANDING.logoPath} alt={`Logo ${APP_BRANDING.name}`} className="h-full w-full object-cover" />
+              <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-ink">
+                <img src={APP_BRANDING.logoPath} alt={`Logo ${APP_BRANDING.name}`} className="h-full w-full object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold">{APP_BRANDING.name}</h1>

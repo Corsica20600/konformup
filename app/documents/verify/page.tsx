@@ -1,6 +1,8 @@
+import Image from "next/image";
 import { formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { getGeneratedDocumentLabel } from "@/lib/document-labels";
+import { APP_BRANDING } from "@/lib/branding";
 
 type VerifyPageProps = {
   searchParams: Promise<{
@@ -29,12 +31,22 @@ export default async function VerifyDocumentPage({ searchParams }: VerifyPagePro
   return (
     <main className="min-h-screen bg-stone-100 px-6 py-12 text-stone-900">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.35em] text-stone-500">Verification documentaire</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Verification d&apos;un document de formation</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
-            Controle de reference d&apos;une attestation interne de fin de formation.
-          </p>
+        <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-center">
+          <Image
+            src={APP_BRANDING.logoPath}
+            alt={`Logo ${APP_BRANDING.name}`}
+            width={160}
+            height={120}
+            className="h-auto w-32 rounded-[8px]"
+            priority
+          />
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-stone-500">Verification documentaire</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Verification d&apos;un document de formation</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600">
+              Controle public d&apos;une reference documentaire Konform&apos;up.
+            </p>
+          </div>
         </div>
 
         <section className="rounded-[28px] border border-stone-200 bg-white p-8 shadow-[0_18px_50px_rgba(28,35,32,0.08)]">

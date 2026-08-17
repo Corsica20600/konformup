@@ -3,6 +3,7 @@ import { Document, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/
 import { getTrainingDocumentTitle, getTrainingProgramDefaults, splitObjectivesText } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
+import { PUBLIC_SITE_ORIGIN } from "@/lib/public-config";
 
 const styles = StyleSheet.create({
   page: {
@@ -281,6 +282,7 @@ export function WelcomePackDocument({
             {organizationSettings.contact_email ? (
               <Text style={styles.organizationLine}>Email : {organizationSettings.contact_email}</Text>
             ) : null}
+            <Text style={styles.organizationLine}>Site : {PUBLIC_SITE_ORIGIN}</Text>
           </View>
         </View>
 
@@ -342,7 +344,7 @@ export function WelcomePackDocument({
         </View>
 
         <Text style={styles.footer}>
-          Document d&apos;accueil remis par {organizationSettings.organization_name}
+          Document d&apos;accueil remis par {organizationSettings.organization_name} - {organizationSettings.contact_email} - {PUBLIC_SITE_ORIGIN}
         </Text>
       </Page>
 
@@ -399,7 +401,7 @@ export function WelcomePackDocument({
         </View>
 
         <Text style={styles.footer}>
-          Livret d&apos;accueil et reglement interieur - {organizationSettings.organization_name}
+          Livret d&apos;accueil et reglement interieur - {organizationSettings.organization_name} - {organizationSettings.contact_email} - {PUBLIC_SITE_ORIGIN}
         </Text>
       </Page>
     </Document>

@@ -112,6 +112,30 @@ export function getTrainingTypeLabel(value: unknown) {
   return TRAINING_TYPE_LABELS[normalizeTrainingType(value)];
 }
 
+export function getProgrammeParticipantLabel(value: unknown, candidateCount: number) {
+  const trainingType = normalizeTrainingType(value);
+
+  if (trainingType === "hygiene") {
+    return candidateCount > 0 ? `${candidateCount} participant(s) prevu(s)` : "Effectif a confirmer au devis";
+  }
+
+  return candidateCount > 0
+    ? `${candidateCount} participant(s) prevu(s) - 4 mini / 10 maxi`
+    : "4 mini / 10 maxi";
+}
+
+export function getProgrammeValidationHeading(value: unknown) {
+  return normalizeTrainingType(value) === "hygiene"
+    ? "Validation et document remis"
+    : "Cadre certificateur et validite";
+}
+
+export function getProgrammePracticalMethod(value: unknown) {
+  return normalizeTrainingType(value) === "hygiene"
+    ? "Mises en situation concretes, demonstrations et exercices adaptes au contexte professionnel."
+    : "Mises en situation concretes, demonstrations et exercices pratiques sur materiel de secours.";
+}
+
 export function getTrainingDocumentTitle(value: unknown, title: string | null | undefined) {
   const trainingType = normalizeTrainingType(value);
   const fallback = DEFAULT_TRAINING_TITLES[trainingType];

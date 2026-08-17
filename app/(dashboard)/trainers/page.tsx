@@ -27,7 +27,7 @@ export default async function TrainersPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Ressource formateur</p>
           <h2 className="mt-2 text-2xl font-bold">{TRAINER_PEDAGOGICAL_RESOURCE.title}</h2>
           <p className="mt-2 text-sm text-ink/65">
-            Support pedagogique rebrande Konformup, disponible dans l'espace formateur et envoyable par email.
+            Support pedagogique rebrande Konform&apos;up, disponible dans l'espace formateur et envoyable par email.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a

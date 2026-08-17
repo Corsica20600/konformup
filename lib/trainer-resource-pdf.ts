@@ -1,12 +1,13 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PRIMARY_BRAND_LOGO_PATH } from "@/lib/brand-assets";
 import { getOrganizationSettings } from "@/lib/organization";
 import { getTrainerResourceBySlug, type TrainerResourceDefinition, type TrainerResourceSlug } from "@/lib/trainer-resources";
 
 const SOURCE_PDF_PATH = path.join(process.cwd(), "assets", "deroule-pedagogique-sst-source.pdf");
-const DEFAULT_LOGO_PATH = path.join(process.cwd(), "public", "logo-organisme.png");
-const FALLBACK_LOGO_PATH = path.join(process.cwd(), "public", "logo.jpg");
+const DEFAULT_LOGO_PATH = path.join(process.cwd(), "public", PRIMARY_BRAND_LOGO_PATH.replace(/^\//, ""));
+const FALLBACK_LOGO_PATH = DEFAULT_LOGO_PATH;
 
 async function resolveLocalLogoPath(logoUrl: string | null | undefined) {
   const relativeLogoPath =
@@ -70,7 +71,7 @@ function drawSharedFooter(params: {
 
 async function applyBranding(document: PDFDocument, resource: TrainerResourceDefinition) {
   const organization = await getOrganizationSettings();
-  const organizationName = organization.organization_name || "Konformup";
+  const organizationName = organization.organization_name || "Konform'up";
   const pageCount = document.getPageCount();
   const font = await document.embedFont(StandardFonts.Helvetica);
   const fontBold = await document.embedFont(StandardFonts.HelveticaBold);
@@ -85,7 +86,7 @@ async function applyBranding(document: PDFDocument, resource: TrainerResourceDef
     const { width, height } = page.getSize();
     drawSharedFooter({ page, pageIndex: index, pageCount, organizationName, font });
 
-    page.drawText("KONFORMUP", {
+    page.drawText("KONFORM'UP", {
       x: width - 128,
       y: height - 30,
       size: 11,
@@ -95,27 +96,29 @@ async function applyBranding(document: PDFDocument, resource: TrainerResourceDef
     });
 
     if (index === 0) {
-      const scaled = logo.scale(0.2);
+      const scale = Math.min(64 / logo.width, 48 / logo.height);
+      const logoWidth = logo.width * scale;
+      const logoHeight = logo.height * scale;
 
       page.drawRectangle({
         x: 24,
-        y: height - 64,
+        y: height - 84,
         width: width - 48,
-        height: 28,
+        height: 52,
         color: rgb(0.95, 0.93, 0.88),
         opacity: 0.95
       });
 
       page.drawImage(logo, {
         x: 30,
-        y: height - 60,
-        width: scaled.width,
-        height: scaled.height
+        y: height - 82,
+        width: logoWidth,
+        height: logoHeight
       });
 
       page.drawText(resource.title, {
-        x: 96,
-        y: height - 50,
+        x: 104,
+        y: height - 61,
         size: 12,
         font: fontBold,
         color: rgb(0.17, 0.19, 0.18)
@@ -123,7 +126,7 @@ async function applyBranding(document: PDFDocument, resource: TrainerResourceDef
 
       page.drawText(`Entite : ${organizationName}`, {
         x: width - 180,
-        y: height - 50,
+        y: height - 61,
         size: 10,
         font,
         color: rgb(0.17, 0.19, 0.18)

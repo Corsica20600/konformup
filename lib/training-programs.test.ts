@@ -4,6 +4,9 @@ import {
   getTrainingDocumentTitle,
   getTrainingProgramDefaults,
   getTrainingTypeLabel,
+  getProgrammeParticipantLabel,
+  getProgrammePracticalMethod,
+  getProgrammeValidationHeading,
   isMacSstTraining,
   normalizeTrainingType
 } from "@/lib/training-programs";
@@ -13,6 +16,17 @@ describe("training program helpers", () => {
     expect(isMacSstTraining("mac_sst")).toBe(true);
     expect(isMacSstTraining("sst_initial")).toBe(false);
     expect(isMacSstTraining("hygiene")).toBe(false);
+  });
+
+  it("keeps the Hygiene programme neutral and non-certifying", () => {
+    const hygieneWording = [
+      getProgrammeParticipantLabel("hygiene", 6),
+      getProgrammeValidationHeading("hygiene"),
+      getProgrammePracticalMethod("hygiene")
+    ].join(" ");
+
+    expect(hygieneWording).not.toMatch(/SST|FORPREV|secours|certificateur/i);
+    expect(hygieneWording).toContain("6 participant(s) prevu(s)");
   });
 
   it("normalizes unknown training types to SST initial", () => {

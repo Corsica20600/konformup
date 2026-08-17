@@ -1,4 +1,5 @@
 import type { OrganizationBranding, OrganizationSettings } from "@/lib/types";
+import { normalizeOrganizationLogoPath, PRIMARY_BRAND_LOGO_PATH } from "@/lib/brand-assets";
 import {
   PUBLIC_CONTACT_EMAIL,
   PUBLIC_ORGANIZATION_NAME,
@@ -6,7 +7,7 @@ import {
 } from "@/lib/public-config";
 import { createClient } from "@/lib/supabase/server";
 
-const DEFAULT_LOGO_PATH = "/logo-organisme.png";
+const DEFAULT_LOGO_PATH = PRIMARY_BRAND_LOGO_PATH;
 const DEFAULT_SIGNATURE_PATH = "/signature.png";
 
 function logSupabaseQueryError({
@@ -219,7 +220,7 @@ export async function getOrganizationSettings() {
       "tva_exoneration",
       "tax_exemption_text"
     ),
-    logo_url: normalizeConfiguredAssetUrl(data.logo_url) ?? defaultOrganizationSettings.logo_url,
+    logo_url: normalizeOrganizationLogoPath(data.logo_url),
     signature_url: normalizeConfiguredAssetUrl(data.signature_url) ?? defaultOrganizationSettings.signature_url,
     certificate_signatory_name:
       (typeof data.certificate_signatory_name === "string" && data.certificate_signatory_name.trim()) ||

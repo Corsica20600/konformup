@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { EVALUATION_RESULT_LABELS, EVALUATION_STATUS_LABELS, getGlobalEvaluation } from "@/lib/evaluations";
 import {
   calculateSessionClosureSummary,
@@ -10,6 +10,7 @@ import {
 import { getTrainingDocumentTitle, getTrainingTypeLabel } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import { formatDateRange, formatDurationHours } from "@/lib/utils";
+import { getPdfOrganizationFooterLine } from "@/lib/pdf/organization-branding";
 
 const styles = StyleSheet.create({
   page: {
@@ -20,10 +21,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#fffdf8"
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     borderBottomWidth: 1,
     borderBottomColor: "#d7d0c2",
     paddingBottom: 14,
     marginBottom: 18
+  },
+  headerContent: {
+    flex: 1,
+    paddingRight: 18
+  },
+  logo: {
+    width: 96,
+    height: 64,
+    objectFit: "contain"
   },
   kicker: {
     fontSize: 9,
@@ -169,14 +182,29 @@ function evaluationLine(candidateSession: SessionCandidate) {
   };
 }
 
-function Header({ title, session }: { title: string; session: SessionItem }) {
+function Header({
+  title,
+  session,
+  organizationSettings
+}: {
+  title: string;
+  session: SessionItem;
+  organizationSettings: OrganizationBranding;
+}) {
   return (
     <View style={styles.header}>
-      <Text style={styles.kicker}>Konform'up - document de fin de formation</Text>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>
-        {getTrainingDocumentTitle(session.training_type, session.title)} - {getTrainingTypeLabel(session.training_type)} - {formatDateRange(session.start_date, session.end_date)}
-      </Text>
+      <View style={styles.headerContent}>
+        <Text style={styles.kicker}>Konform&apos;up - document de fin de formation</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>
+          {getTrainingDocumentTitle(session.training_type, session.title)} - {getTrainingTypeLabel(session.training_type)} - {formatDateRange(session.start_date, session.end_date)}
+        </Text>
+      </View>
+      {organizationSettings.resolved_logo_url ? (
+        // React-PDF images do not expose the HTML alt attribute.
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <Image src={organizationSettings.resolved_logo_url} style={styles.logo} />
+      ) : null}
     </View>
   );
 }
@@ -198,7 +226,7 @@ export function TrainingCompletionCertificateDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header title="Certificat de realisation" session={session} />
+        <Header title="Certificat de realisation" session={session} organizationSettings={organizationSettings} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Participant</Text>
           <DetailRow label="Nom" value={candidateFullName} />
@@ -218,7 +246,7 @@ export function TrainingCompletionCertificateDocument({
           <Text style={styles.paragraph}>{wording}</Text>
         </View>
         <Text style={styles.footer}>
-          {organizationSettings.organization_name} - certificat de realisation distinct de l'attestation interne
+          {getPdfOrganizationFooterLine(organizationSettings)} - certificat de realisation distinct de l'attestation interne
           {isSstTrainingType(session.training_type) ? " et du certificat SST officiel." : "."}
         </Text>
       </Page>
@@ -240,7 +268,7 @@ export function SessionReportDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header title="Bilan session" session={session} />
+        <Header title="Bilan session" session={session} organizationSettings={organizationSettings} />
         <View style={styles.grid}>
           {[
             ["Inscrits", summary.registeredCount],
@@ -281,7 +309,7 @@ export function SessionReportDocument({
             </View>
           );
         })}
-        <Text style={styles.footer}>{organizationSettings.organization_name} - bilan interne de session.</Text>
+        <Text style={styles.footer}>{getPdfOrganizationFooterLine(organizationSettings)} - bilan interne de session.</Text>
       </Page>
     </Document>
   );
@@ -302,7 +330,7 @@ export function CompanyFinalSummaryDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header title="Synthese societe - dossier final" session={session} />
+        <Header title="Synthese societe - dossier final" session={session} organizationSettings={organizationSettings} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Societes concernees</Text>
           <Text style={styles.paragraph}>{companyNames.join(", ")}</Text>
@@ -335,7 +363,7 @@ export function CompanyFinalSummaryDocument({
           </View>
         ))}
         <Text style={styles.footer}>
-          {organizationSettings.organization_name} - synthese de fin de formation.
+          {getPdfOrganizationFooterLine(organizationSettings)} - synthese de fin de formation.
         </Text>
       </Page>
     </Document>

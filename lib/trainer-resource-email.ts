@@ -7,7 +7,7 @@ function buildTrainerResourceEmailBody(trainerName: string, resourceTitle: strin
   return [
     `Bonjour ${trainerName},`,
     "",
-    `Veuillez trouver ci-joint le document "${resourceTitle}" mis a disposition dans votre espace formateur Konformup.`,
+    `Veuillez trouver ci-joint le document "${resourceTitle}" mis a disposition dans votre espace formateur Konform'up.`,
     "",
     "Ce support peut etre utilise comme base pedagogique pour vos animations SST.",
     "",
