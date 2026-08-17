@@ -1,11 +1,10 @@
-import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { MissingEnvCard } from "@/components/system/missing-env-card";
-import { getSupabaseEnvMessage } from "@/lib/env";
 import { requireUser } from "@/lib/auth";
+import { getSupabaseEnvMessage } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function FormationLayout({ children }: { children: React.ReactNode }) {
   const envMessage = getSupabaseEnvMessage();
 
   if (envMessage) {
@@ -16,11 +15,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
-  const { profile } = await requireUser();
-
-  return (
-    <DashboardShell profile={profile}>
-      {children}
-    </DashboardShell>
-  );
+  await requireUser();
+  return children;
 }

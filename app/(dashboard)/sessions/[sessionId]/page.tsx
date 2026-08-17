@@ -21,7 +21,8 @@ import {
 } from "@/lib/queries";
 import { getTrainingTypeLabel } from "@/lib/training-programs";
 import { getSessionNextAction } from "@/lib/session-next-action";
-import type { SessionCandidate, SessionModule, SessionModuleGroup, TrainingQuiz } from "@/lib/types";
+import { buildSessionModuleGroups, resolveDefaultSelectedModule } from "@/lib/formation-navigation";
+import type { SessionCandidate, TrainingQuiz } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -39,42 +40,6 @@ type SessionCompanyGroup = {
   companyName: string;
   candidates: SessionCandidate[];
 };
-
-function buildModuleGroups(modules: SessionModule[]): SessionModuleGroup[] {
-  const parents = modules
-    .filter((module) => module.module_type === "parent")
-    .sort((a, b) => a.module_order - b.module_order);
-  const children = modules
-    .filter((module) => module.module_type === "child")
-    .sort((a, b) => a.module_order - b.module_order);
-  const childIds = new Set(children.map((module) => module.id));
-
-  const parentGroups = parents.map((parent) => ({
-    parent,
-    children: children
-      .filter((child) => child.parent_module_id === parent.id)
-      .sort((a, b) => a.module_order - b.module_order)
-  }));
-
-  const orphanStandaloneGroups = modules
-    .filter((module) => !childIds.has(module.id) && module.module_type !== "parent")
-    .sort((a, b) => a.module_order - b.module_order)
-    .map((module) => ({
-      parent: module,
-      children: []
-    }));
-
-  return [...parentGroups, ...orphanStandaloneGroups];
-}
-
-function resolveDefaultSelectedModule(moduleGroups: SessionModuleGroup[]) {
-  const firstGroup = moduleGroups[0];
-  if (!firstGroup) {
-    return null;
-  }
-
-  return firstGroup.children[0] ?? firstGroup.parent;
-}
 
 function buildSessionCompanyGroups(candidates: SessionCandidate[]): SessionCompanyGroup[] {
   const groups = new Map<string, SessionCompanyGroup>();
@@ -175,7 +140,7 @@ export default async function SessionDetailPage({
     }
   }
 
-  const moduleGroups = buildModuleGroups(modules);
+  const moduleGroups = buildSessionModuleGroups(modules);
   const defaultSelectedModule = resolveDefaultSelectedModule(moduleGroups);
   const selectedModule =
     modules.find((module) => module.id === selectedModuleParam) ??
@@ -247,12 +212,20 @@ export default async function SessionDetailPage({
                   {statusLabel[session.status]}
                 </Badge>
               </div>
-              <a
-                href={`/sessions/${session.id}/edit`}
-                className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-              >
-                Modifier la session
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={`/sessions/${session.id}/formation`}
+                  className="rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink"
+                >
+                  Lancer le mode formation
+                </a>
+                <a
+                  href={`/sessions/${session.id}/edit`}
+                  className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+                >
+                  Modifier la session
+                </a>
+              </div>
             </div>
             <h2 className="mt-3 text-3xl font-bold">{session.title}</h2>
             <div className="mt-4 space-y-2 text-sm text-ink/65">

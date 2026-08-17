@@ -1620,6 +1620,24 @@ export async function getDashboardStats() {
   return stats;
 }
 
+export async function getDashboardQuoteStatuses() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("quotes").select("status");
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "quotes",
+    query: 'select("status")',
+    error
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((quote) => quote.status as QuoteStatus);
+}
+
 export async function getClientCompanies() {
   const supabase = await createClient();
   const primary = await supabase

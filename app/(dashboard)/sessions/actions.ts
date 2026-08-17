@@ -559,6 +559,7 @@ export async function toggleSessionModuleAction(formData: FormData) {
   }
 
   revalidatePath(`/sessions/${sessionId}`);
+  revalidatePath(`/sessions/${sessionId}/formation`);
 }
 
 export async function generateDocumentAction(_: ActionState, formData: FormData): Promise<ActionState> {

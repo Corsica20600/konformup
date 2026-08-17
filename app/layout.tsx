@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { APP_BRANDING } from "@/lib/branding";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -8,8 +9,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Formation SST",
-  description: "Gestion de sessions SST en présentiel"
+  title: APP_BRANDING.name,
+  description: APP_BRANDING.dashboardDescription
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
