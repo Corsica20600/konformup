@@ -5,6 +5,7 @@ const candidateEvaluationTypeSchema = z.enum(["theorique", "pratique", "globale"
 const candidateEvaluationStatusSchema = z.enum(["non_evalue", "en_cours", "acquis", "non_acquis", "absent"]);
 const candidateEvaluationResultSchema = z.enum(["admis", "non_admis", "absent", "partiel", "non_renseigne"]);
 const sessionClosureStatusSchema = z.enum(["ready", "closed"]);
+const optionalFormStringSchema = z.preprocess((value) => value ?? "", z.string());
 
 export const loginSchema = z.object({
   email: z.string().email("Email invalide."),
@@ -23,8 +24,8 @@ export const createSessionSchema = z.object({
   objectives: z.string().optional().default(""),
   programmeOutline: z.string().optional().default(""),
   accessibilityDetails: z.string().optional().default(""),
-  macPreviousCertificateDate: z.string().optional().default(""),
-  macPreviousCertificateRef: z.string().optional().default(""),
+  macPreviousCertificateDate: optionalFormStringSchema,
+  macPreviousCertificateRef: optionalFormStringSchema,
   status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
 });
 
@@ -41,8 +42,8 @@ export const updateSessionSchema = z
     objectives: z.string().optional().default(""),
     programmeOutline: z.string().optional().default(""),
     accessibilityDetails: z.string().optional().default(""),
-    macPreviousCertificateDate: z.string().optional().default(""),
-    macPreviousCertificateRef: z.string().optional().default(""),
+    macPreviousCertificateDate: optionalFormStringSchema,
+    macPreviousCertificateRef: optionalFormStringSchema,
     trainerId: z.string().uuid().or(z.literal("")).optional(),
     status: z.enum(["draft", "scheduled", "in_progress", "completed", "cancelled"])
   })
@@ -149,8 +150,8 @@ export const createQuoteSchema = z.object({
   objectives: z.string().optional().default(""),
   programmeOutline: z.string().optional().default(""),
   accessibilityDetails: z.string().optional().default(""),
-  macPreviousCertificateDate: z.string().optional().default(""),
-  macPreviousCertificateRef: z.string().optional().default(""),
+  macPreviousCertificateDate: optionalFormStringSchema,
+  macPreviousCertificateRef: optionalFormStringSchema,
   candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
   priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
   vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
@@ -168,8 +169,8 @@ export const updateQuoteSchema = z
     objectives: z.string().optional().default(""),
     programmeOutline: z.string().optional().default(""),
     accessibilityDetails: z.string().optional().default(""),
-    macPreviousCertificateDate: z.string().optional().default(""),
-    macPreviousCertificateRef: z.string().optional().default(""),
+    macPreviousCertificateDate: optionalFormStringSchema,
+    macPreviousCertificateRef: optionalFormStringSchema,
     candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
     sessionStartDate: z.string().optional().default(""),
     sessionEndDate: z.string().optional().default(""),

@@ -8,7 +8,12 @@ type VerifyPageProps = {
   }>;
 };
 
-const publicVerifiableDocumentTypes = ["attestation", "certificat", "certificat_realisation"] as const;
+type PublicDocumentVerification = {
+  document_ref: string;
+  document_type: string;
+  status: string;
+  created_at: string;
+};
 
 export default async function VerifyDocumentPage({ searchParams }: VerifyPageProps) {
   const params = await searchParams;
@@ -17,11 +22,8 @@ export default async function VerifyDocumentPage({ searchParams }: VerifyPagePro
 
   const { data: document } = ref
     ? await supabase
-        .from("generated_documents")
-        .select("document_ref, document_type, status, created_at")
-        .eq("document_ref", ref)
-        .in("document_type", publicVerifiableDocumentTypes)
-        .maybeSingle()
+        .rpc("verify_generated_document", { p_ref: ref })
+        .maybeSingle<PublicDocumentVerification>()
     : { data: null };
 
   return (
