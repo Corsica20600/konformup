@@ -17,7 +17,7 @@ export const createSessionSchema = z.object({
   startDate: z.string().min(1, "La date de début est requise."),
   endDate: z.string().min(1, "La date de fin est requise."),
   location: z.string().min(2, "Le lieu est requis."),
-  trainerName: z.string().optional().default(""),
+  trainerId: z.preprocess((value) => value ?? "", z.string().uuid().or(z.literal(""))),
   durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
   trainingType: trainingTypeSchema.default("sst_initial"),
   prerequisites: z.string().optional().default(""),

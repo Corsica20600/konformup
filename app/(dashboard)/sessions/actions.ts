@@ -102,7 +102,7 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
     startDate: formData.get("startDate"),
     endDate: formData.get("endDate"),
     location: formData.get("location"),
-    trainerName: formData.get("trainerName"),
+    trainerId: formData.get("trainerId"),
     durationHours: formData.get("durationHours") || undefined,
     trainingType: formData.get("trainingType"),
     prerequisites: formData.get("prerequisites"),
@@ -120,11 +120,19 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
 
   const { profile } = await requireUser();
   const supabase = await createClient();
+  const trainerId = parsed.data.trainerId.trim() || null;
+  let trainerName: string | null = null;
+
+  try {
+    trainerName = await resolveTrainerDisplayName(trainerId);
+  } catch {
+    return { error: "Le formateur sélectionné est introuvable." };
+  }
 
   const { data: session, error } = await supabase
     .from("training_sessions")
     .insert({
-      title: parsed.data.title,
+      title: getTrainingDocumentTitle(parsed.data.trainingType, parsed.data.title),
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate,
       location: parsed.data.location,
@@ -132,7 +140,8 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
       training_type: parsed.data.trainingType,
       training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : "sst",
       trainer_user_id: profile.id,
-      trainer_name: parsed.data.trainerName || null,
+      trainer_id: trainerId,
+      trainer_name: trainerName,
       duration_hours: parsed.data.durationHours ?? null,
       prerequisites: parsed.data.prerequisites.trim() || null,
       objectives: parsed.data.objectives.trim() || null,
