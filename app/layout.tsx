@@ -13,7 +13,12 @@ export const metadata: Metadata = {
     default: APP_BRANDING.name,
     template: `${APP_BRANDING.name} · %s`
   },
-  description: APP_BRANDING.dashboardDescription
+  description: APP_BRANDING.dashboardDescription,
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
