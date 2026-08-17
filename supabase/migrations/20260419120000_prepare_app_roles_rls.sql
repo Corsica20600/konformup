@@ -1,7 +1,7 @@
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'app_role') then
-    create type public.app_role as enum ('admin', 'trainer');
+    create type public.app_role as enum ('admin', 'lead_trainer', 'trainer');
   end if;
 end
 $$;

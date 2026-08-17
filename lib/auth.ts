@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { UserRole } from "@/lib/types";
 import type { User } from "@supabase/supabase-js";
 
 export class AuthenticationError extends Error {
@@ -23,11 +24,21 @@ export class ResourceNotFoundError extends Error {
   }
 }
 
-function buildProfile(user: User) {
+function isUserRole(value: unknown): value is UserRole {
+  return value === "admin" || value === "lead_trainer" || value === "trainer";
+}
+
+async function buildProfile(user: User, supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, role")
+    .eq("id", user.id)
+    .maybeSingle<{ full_name: string | null; role: string | null }>();
+
   return {
     id: user.id,
-    full_name: user.user_metadata?.full_name ?? user.email ?? "Utilisateur",
-    role: "trainer" as const
+    full_name: data?.full_name || user.user_metadata?.full_name || user.email || "Utilisateur",
+    role: isUserRole(data?.role) ? data.role : "trainer"
   };
 }
 
@@ -41,7 +52,7 @@ export async function requireAuthenticatedUser() {
     throw new AuthenticationError();
   }
 
-  return { user, profile: buildProfile(user), supabase };
+  return { user, profile: await buildProfile(user, supabase), supabase };
 }
 
 export async function requireUser() {

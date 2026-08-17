@@ -6,7 +6,7 @@ import type {
   QuoteStatus
 } from "@/lib/database.types";
 
-export type UserRole = "admin" | "trainer";
+export type UserRole = "admin" | "lead_trainer" | "trainer";
 
 export type Profile = {
   id: string;
