@@ -139,6 +139,10 @@ export const createTrainerSchema = z.object({
   phone: z.string().optional().default("")
 });
 
+export const updateTrainerSchema = createTrainerSchema.extend({
+  trainerId: z.string().uuid("Le formateur est introuvable.")
+});
+
 export const createQuoteSchema = z
   .object({
     sessionId: z.string().uuid().optional().or(z.literal("")),

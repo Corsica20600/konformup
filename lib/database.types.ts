@@ -166,6 +166,49 @@ export type Database = {
         };
         Relationships: [];
       };
+      trainer_documents: {
+        Row: {
+          id: string;
+          trainer_id: string;
+          label: string;
+          file_name: string;
+          storage_path: string;
+          mime_type: string;
+          file_size: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          trainer_id: string;
+          label: string;
+          file_name: string;
+          storage_path: string;
+          mime_type: string;
+          file_size: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          trainer_id?: string;
+          label?: string;
+          file_name?: string;
+          storage_path?: string;
+          mime_type?: string;
+          file_size?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trainer_documents_trainer_id_fkey";
+            columns: ["trainer_id"];
+            referencedRelation: "trainers";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       candidates: {
         Row: {
           id: string;

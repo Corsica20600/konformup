@@ -1,13 +1,13 @@
 import { CreateTrainerForm } from "@/components/trainers/create-trainer-form";
 import { TrainerList } from "@/components/trainers/trainer-list";
 import { Card } from "@/components/ui/card";
-import { getTrainerOptions } from "@/lib/queries";
+import { getTrainerDocuments, getTrainerOptions } from "@/lib/queries";
 import { TRAINER_PEDAGOGICAL_RESOURCE } from "@/lib/trainer-resources";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrainersPage() {
-  const trainers = await getTrainerOptions();
+  const [trainers, documents] = await Promise.all([getTrainerOptions(), getTrainerDocuments()]);
 
   return (
     <main className="grid gap-4">
@@ -47,7 +47,7 @@ export default async function TrainersPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Formateurs</p>
           <h2 className="mt-2 text-2xl font-bold">Liste des formateurs</h2>
         </div>
-        <TrainerList trainers={trainers} />
+        <TrainerList trainers={trainers} documents={documents} />
       </section>
     </main>
   );

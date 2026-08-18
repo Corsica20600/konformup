@@ -251,6 +251,16 @@ export type TrainerOption = {
   phone: string | null;
 };
 
+export type TrainerDocument = {
+  id: string;
+  trainer_id: string;
+  label: string;
+  file_name: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string;
+};
+
 export type CompanySessionSummary = {
   session: SessionItem;
   company_candidate_count: number;

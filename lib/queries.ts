@@ -21,6 +21,7 @@ import type {
   SessionModule,
   SessionSourceQuote,
   TrainingQuiz,
+  TrainerDocument,
   TrainerOption
 } from "@/lib/types";
 
@@ -1296,6 +1297,24 @@ async function selectCandidatesBySessionIdWithFallback(sessionId: string) {
     })),
     error: fallback.error
   };
+}
+
+export async function getTrainerDocuments() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainer_documents")
+    .select("id, trainer_id, label, file_name, mime_type, file_size, created_at")
+    .order("created_at", { ascending: false });
+
+  logSupabaseQueryError({
+    file: "lib/queries.ts",
+    table: "trainer_documents",
+    query: 'select("id, trainer_id, label, file_name, mime_type, file_size, created_at").order("created_at")',
+    error
+  });
+
+  if (error) throw error;
+  return (data ?? []) as TrainerDocument[];
 }
 
 async function selectCandidateEvaluationsBySessionId(sessionId: string) {
