@@ -4,6 +4,8 @@ import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 import { createClient } from "@/lib/supabase/server";
 import { getTrainingTypeLabel } from "@/lib/training-programs";
 import type { TrainingType } from "@/lib/database.types";
+import { ensureCandidatePreTrainingDocuments } from "@/lib/candidate-pre-training-documents";
+import { deduplicateDocumentsByType, getRequiredPreTrainingDocumentTypes } from "@/lib/pre-training-documents";
 
 function buildDocumentLabel(type: string) {
   return getGeneratedDocumentLabel(type).toLocaleLowerCase("fr-FR");
@@ -153,18 +155,6 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
     throw new Error("Aucune adresse email n'est renseignee pour ce candidat.");
   }
 
-  const { data: documents, error: documentsError } = await supabase
-    .from("generated_documents")
-    .select("id, document_type, document_ref, file_url, created_at")
-    .eq("candidate_id", candidateId)
-    .eq("session_id", sessionId)
-    .not("file_url", "is", null)
-    .order("created_at", { ascending: true });
-
-  if (documentsError) {
-    throw new Error("Impossible de charger les documents du candidat.");
-  }
-
   const { data: session, error: sessionError } = await supabase
     .from("training_sessions")
     .select("training_type")
@@ -175,13 +165,25 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
     throw new Error("Session introuvable pour l'envoi des documents.");
   }
 
-  const deliverableDocuments =
-    session.training_type === "hygiene"
-      ? (documents ?? []).filter((document) => document.document_type !== "aide_memoire")
-      : documents ?? [];
+  await ensureCandidatePreTrainingDocuments({ candidateId, sessionId, trainingType: session.training_type });
+
+  const { data: preparedDocuments, error: preparedDocumentsError } = await supabase
+    .from("generated_documents")
+    .select("id, document_type, document_ref, file_url, created_at")
+    .eq("candidate_id", candidateId)
+    .eq("session_id", sessionId)
+    .in("document_type", getRequiredPreTrainingDocumentTypes(session.training_type))
+    .not("file_url", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (preparedDocumentsError) {
+    throw new Error("Impossible de charger les documents avant formation du candidat.");
+  }
+
+  const deliverableDocuments = deduplicateDocumentsByType(preparedDocuments ?? []);
 
   if (!deliverableDocuments.length) {
-    throw new Error("Aucun document applicable a cette formation n'est disponible pour cet envoi.");
+    throw new Error("Aucun document avant formation n'est disponible pour cet envoi.");
   }
 
   const emailContext = await getTransactionalEmailContext();

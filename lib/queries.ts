@@ -1904,6 +1904,7 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
           end_date,
           location,
           status,
+          training_type,
           source_quote_id,
           trainer_id,
           trainer_user_id,

@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createDocument,
-  generateUniqueDocumentRef,
-  insertGeneratedDocumentRecord,
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
@@ -38,7 +36,10 @@ import {
   updateSessionClosureSchema,
   upsertCandidateEvaluationSchema
 } from "@/lib/validation";
-import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
+import {
+  ensureCandidateAideMemoireDocument,
+  ensureCandidatePreTrainingDocuments
+} from "@/lib/candidate-pre-training-documents";
 
 export type ActionState = {
   error?: string;
@@ -298,15 +299,17 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
     return { error: "Impossible d'ajouter le candidat à la session." };
   }
 
-  let welcomePackWarning = false;
+  let documentPreparationWarning = false;
   if (candidate?.id && candidate.session_id) {
     try {
-      await ensureWelcomePackDocument({
+      const sessionData = await getSessionById(candidate.session_id);
+      await ensureCandidatePreTrainingDocuments({
         sessionId: candidate.session_id,
-        candidateId: candidate.id
+        candidateId: candidate.id,
+        trainingType: sessionData.session.training_type
       });
     } catch (error) {
-      welcomePackWarning = true;
+      documentPreparationWarning = true;
       console.error("[candidate-welcome-pack-error]", {
         candidateId: candidate.id,
         sessionId: candidate.session_id,
@@ -321,8 +324,8 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
   revalidatePath("/dashboard");
   revalidatePath("/sessions");
   return {
-    success: welcomePackWarning
-      ? "Candidat ajouté. Le livret n'a pas pu être préparé automatiquement ; vous pourrez le générer depuis la session."
+    success: documentPreparationWarning
+      ? "Candidat ajouté. Son dossier avant formation n'a pas pu être préparé automatiquement ; vous pourrez le compléter depuis la session."
       : "Candidat ajouté."
   };
 }
@@ -375,9 +378,11 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
   }
 
   if (parsed.data.sessionId) {
-    await ensureWelcomePackDocument({
+    const sessionData = await getSessionById(parsed.data.sessionId);
+    await ensureCandidatePreTrainingDocuments({
       sessionId: parsed.data.sessionId,
-      candidateId: parsed.data.candidateId
+      candidateId: parsed.data.candidateId,
+      trainingType: sessionData.session.training_type
     });
   }
 
@@ -608,45 +613,13 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
         return { error: "L'aide memoire SST n'est pas applicable aux formations Hygiene." };
       }
 
-      const supabase = await createClient();
-      const existingDocument = await supabase
-        .from("generated_documents")
-        .select("id, file_url")
-        .eq("session_id", sessionId)
-        .eq("candidate_id", candidateId)
-        .eq("document_type", "aide_memoire")
-        .maybeSingle();
-
-      if (existingDocument.data?.file_url) {
-        revalidatePath(`/sessions/${sessionId}`);
-
-        return {
-          success: "Aide memoire deja attache.",
-          fileUrl: existingDocument.data.file_url
-        };
-      }
-
-      const documentRef = await generateUniqueDocumentRef("attestation");
-      const fileUrl = "/aide-memoire-sauveteur-secouriste-du-travail.pdf";
-
-      await insertGeneratedDocumentRecord({
-        sessionId,
-        candidateId,
-        documentType: "aide_memoire",
-        documentRef: `AIDE-${documentRef}`,
-        status: "generated",
-        fileUrl,
-        metadata: {
-          title: "Aide memoire sauveteur secouriste du travail",
-          static_asset: true
-        }
-      });
+      const document = await ensureCandidateAideMemoireDocument(sessionId, candidateId);
 
       revalidatePath(`/sessions/${sessionId}`);
 
       return {
         success: "Aide memoire attache au candidat.",
-        fileUrl
+        fileUrl: document.file_url ?? undefined
       };
     }
 
@@ -952,10 +925,11 @@ export async function sendCandidateSessionDocumentsEmailAction(_: ActionState, f
     const result = await sendCandidateSessionDocumentsEmail(candidateId, sessionId);
 
     revalidatePath(`/sessions/${sessionId}`);
+    revalidatePath(`/candidates/${candidateId}`);
     revalidatePath("/sessions");
 
     return {
-      success: "Tous les documents du candidat ont ete envoyes.",
+      success: "Les documents avant formation ont ete prepares et envoyes.",
       fileUrl: result.fileUrl ?? undefined
     };
   } catch (error) {
@@ -964,6 +938,41 @@ export async function sendCandidateSessionDocumentsEmailAction(_: ActionState, f
     }
 
     return { error: "Impossible d'envoyer les documents du candidat." };
+  }
+}
+
+export async function prepareCandidatePreTrainingDocumentsAction(
+  _: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireUser();
+
+  const candidateId = formData.get("candidateId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+
+  if (!candidateId || !sessionId) {
+    return { error: "Parametres de preparation manquants." };
+  }
+
+  try {
+    const sessionData = await getSessionById(sessionId);
+    await ensureCandidatePreTrainingDocuments({
+      candidateId,
+      sessionId,
+      trainingType: sessionData.session.training_type
+    });
+
+    revalidatePath(`/sessions/${sessionId}`);
+    revalidatePath(`/candidates/${candidateId}`);
+    revalidatePath("/sessions");
+
+    return { success: "Le dossier avant formation est complet." };
+  } catch (error) {
+    if (error instanceof Error) {
+      return { error: error.message };
+    }
+
+    return { error: "Impossible de preparer les documents avant formation." };
   }
 }
 
@@ -1051,9 +1060,9 @@ export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, fo
   const supabase = await createClient();
   const { data: session, error: sessionError } = await supabase
     .from("training_sessions")
-    .select("id, title, source_quote_id")
+    .select("id, title, source_quote_id, training_type")
     .eq("id", sessionId)
-    .maybeSingle<{ id: string; title: string; source_quote_id: string | null }>();
+    .maybeSingle<{ id: string; title: string; source_quote_id: string | null; training_type: "sst_initial" | "mac_sst" | "hygiene" }>();
 
   if (sessionError || !session) {
     return { error: "Session introuvable." };
@@ -1140,9 +1149,10 @@ export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, fo
   await Promise.all(
     (insertedCandidates ?? []).map((candidate) =>
       candidate.session_id
-        ? ensureWelcomePackDocument({
+        ? ensureCandidatePreTrainingDocuments({
             sessionId: candidate.session_id,
-            candidateId: candidate.id
+            candidateId: candidate.id,
+            trainingType: session.training_type
           })
         : Promise.resolve(null)
     )

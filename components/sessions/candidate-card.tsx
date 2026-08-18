@@ -6,6 +6,7 @@ import { EditCandidateForm } from "@/components/sessions/edit-candidate-form";
 import { GenerateDocumentsMenu } from "@/components/sessions/generate-documents-menu";
 import { SendCandidateSessionDocumentsButton } from "@/components/sessions/send-candidate-session-documents-button";
 import type { CompanyOption, GeneratedDocumentItem } from "@/lib/types";
+import type { TrainingType } from "@/lib/database.types";
 
 const validationLabel = {
   pending: "En attente",
@@ -16,11 +17,13 @@ const validationLabel = {
 export function CandidateCard({
   candidateSession,
   companies,
-  documents
+  documents,
+  trainingType = "sst_initial"
 }: {
   candidateSession: SessionCandidate;
   companies: CompanyOption[];
   documents: GeneratedDocumentItem[];
+  trainingType?: TrainingType;
 }) {
   const { candidate } = candidateSession;
 
@@ -56,7 +59,7 @@ export function CandidateCard({
             candidateName={`${candidate.first_name} ${candidate.last_name}`}
             candidateEmail={candidate.email}
             documents={documents}
-            disabled={!documents.length}
+            trainingType={trainingType}
           />
           <GenerateDocumentsMenu
             sessionId={candidateSession.session_id}

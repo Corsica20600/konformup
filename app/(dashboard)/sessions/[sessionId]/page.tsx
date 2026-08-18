@@ -336,6 +336,7 @@ export default async function SessionDetailPage({
                 title="Documents de la session"
                 documents={sessionDocuments}
                 emptyMessage="Aucun document n’est encore enregistré pour cette session."
+                hideCandidateDocuments
               />
             </Card>
           </div>

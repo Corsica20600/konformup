@@ -28,6 +28,7 @@ import { getQuoteStatusTone, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import type { QuoteStatus } from "@/lib/database.types";
 import type { GeneratedDocumentItem } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { deduplicateCandidateDocuments, isPreTrainingDocumentType } from "@/lib/pre-training-documents";
 
 const initialQuoteMailState: QuoteEditorActionState = {};
 const initialInvoiceMailState: InvoiceActionState = {};
@@ -174,7 +175,7 @@ function DocumentRow({
               </Button>
             </form>
           ) : null}
-          {document.candidate_id && document.file_url ? (
+          {document.candidate_id && document.file_url && !isPreTrainingDocumentType(document.document_type) ? (
             <form action={sendCandidateDocumentFormAction}>
               <input type="hidden" name="documentId" value={document.id} />
               <input type="hidden" name="sessionId" value={document.session_id ?? ""} />
@@ -310,14 +311,20 @@ export function DocumentList({
   title,
   documents,
   emptyMessage,
-  allowQuoteDuplication = false
+  allowQuoteDuplication = false,
+  hideCandidateDocuments = false
 }: {
   title: string;
   documents: GeneratedDocumentItem[];
   emptyMessage: string;
   allowQuoteDuplication?: boolean;
+  hideCandidateDocuments?: boolean;
 }) {
-  const visibleDocuments = documents.filter((document) => document.document_type !== "invoice");
+  const visibleDocuments = deduplicateCandidateDocuments(
+    documents.filter(
+      (document) => document.document_type !== "invoice" && (!hideCandidateDocuments || !document.candidate_id)
+    )
+  );
   const phaseOrder: DocumentPhase[] = ["before", "during", "after", "other"];
   const groupedDocuments = phaseOrder
     .map((phase) => ({

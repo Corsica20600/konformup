@@ -4,27 +4,21 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { generateDocumentAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
-import type { TrainingType } from "@/lib/database.types";
 import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 
 const initialState: ActionState = {};
 
 const documentOptions = [
-  { value: "convocation", label: "Convocation", phase: "Avant formation" },
-  { value: "welcome_pack", label: "Livret + reglement", phase: "Avant formation" },
-  { value: "aide_memoire", label: "Aide memoire SST", phase: "Avant formation" },
-  { value: "attestation", label: getGeneratedDocumentLabel("attestation"), phase: "Fin de formation" },
-  { value: "certificat_realisation", label: "Certificat de realisation", phase: "Fin de formation" }
+  { value: "attestation", label: getGeneratedDocumentLabel("attestation") },
+  { value: "certificat_realisation", label: "Certificat de realisation" }
 ] as const;
 
 export function GenerateDocumentsMenu({
   sessionId,
-  candidateId,
-  trainingType = "sst_initial"
+  candidateId
 }: {
   sessionId: string;
   candidateId: string;
-  trainingType?: TrainingType;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction, pending] = useActionState(generateDocumentAction, initialState);
@@ -39,7 +33,7 @@ export function GenerateDocumentsMenu({
     <div className="flex flex-col items-end gap-2">
       <div className="relative">
         <Button type="button" variant="secondary" onClick={() => setIsOpen((open) => !open)} disabled={pending}>
-          {pending ? "Génération..." : "Générer documents"}
+          {pending ? "Génération..." : "Documents de fin"}
         </Button>
 
         {isOpen ? (
@@ -49,31 +43,19 @@ export function GenerateDocumentsMenu({
           >
             <input type="hidden" name="sessionId" value={sessionId} />
             <input type="hidden" name="candidateId" value={candidateId} />
-            {["Avant formation", "Fin de formation"].map((phase) => {
-              const phaseOptions = documentOptions.filter(
-                (option) => option.phase === phase && (option.value !== "aide_memoire" || trainingType !== "hygiene")
-              );
-
-              return (
-                <fieldset key={phase} className="grid gap-1">
-                  <legend className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">
-                    {phase}
-                  </legend>
-                  {phaseOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="submit"
-                      name="type"
-                      value={option.value}
-                      className="rounded-2xl px-4 py-2 text-left text-sm font-semibold text-ink transition hover:bg-sand disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={pending}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </fieldset>
-              );
-            })}
+            <p className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">Fin de formation</p>
+            {documentOptions.map((option) => (
+              <button
+                key={option.value}
+                type="submit"
+                name="type"
+                value={option.value}
+                className="rounded-2xl px-4 py-2 text-left text-sm font-semibold text-ink transition hover:bg-sand disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={pending}
+              >
+                {option.label}
+              </button>
+            ))}
           </form>
         ) : null}
       </div>

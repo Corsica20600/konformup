@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { getCandidateById, getCompanyOptions } from "@/lib/queries";
 import type { SessionCandidate } from "@/lib/types";
 import { formatDate, initials } from "@/lib/utils";
+import { deduplicateCandidateDocuments } from "@/lib/pre-training-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,8 @@ export default async function CandidateDetailPage({
   }
 
   const { candidate, session, documents } = candidateDashboard;
-  const welcomePack = documents.find((document) => document.document_type === "welcome_pack") ?? null;
+  const visibleDocuments = deduplicateCandidateDocuments(documents);
+  const welcomePack = visibleDocuments.find((document) => document.document_type === "welcome_pack") ?? null;
   const candidateSession: SessionCandidate = {
     id: candidate.id,
     session_id: candidate.session_id ?? "",
@@ -101,8 +103,8 @@ export default async function CandidateDetailPage({
                   sessionId={session.id}
                   candidateName={`${candidate.first_name} ${candidate.last_name}`}
                   candidateEmail={candidate.email}
-                  documents={documents}
-                  disabled={!documents.length}
+                  documents={visibleDocuments}
+                  trainingType={session.training_type}
                 />
                 <GenerateDocumentsMenu sessionId={session.id} candidateId={candidate.id} />
               </>
@@ -127,7 +129,7 @@ export default async function CandidateDetailPage({
               </div>
               <div className="rounded-2xl border border-ink/10 bg-canvas/60 px-4 py-4">
                 <p className="text-sm font-semibold text-ink">Documents</p>
-                <p className="mt-2 text-2xl font-bold">{documents.length}</p>
+                <p className="mt-2 text-2xl font-bold">{visibleDocuments.length}</p>
               </div>
             </div>
           </Card>
@@ -144,7 +146,7 @@ export default async function CandidateDetailPage({
         <Card>
           <DocumentList
             title="Documents du candidat"
-            documents={documents}
+            documents={visibleDocuments}
             emptyMessage="Aucun document n’est encore enregistré pour ce candidat."
           />
         </Card>

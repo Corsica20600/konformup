@@ -10,6 +10,7 @@ import { getEvaluationByType, resolveCandidateWorkflowLabel } from "@/lib/evalua
 import type { TrainingType } from "@/lib/database.types";
 import type { GeneratedDocumentItem, SessionCandidate } from "@/lib/types";
 import { initials } from "@/lib/utils";
+import { deduplicateCandidateDocuments } from "@/lib/pre-training-documents";
 
 const validationLabel = {
   pending: "En attente",
@@ -33,6 +34,7 @@ export function SessionCandidateBanner({
     evaluationStatus: evaluation?.status,
     result: evaluation?.result
   });
+  const visibleDocuments = deduplicateCandidateDocuments(documents);
 
   return (
     <Card className="grid gap-4">
@@ -59,7 +61,7 @@ export function SessionCandidateBanner({
               {candidate.phone ? ` • ${candidate.phone}` : ""}
             </p>
             {candidate.job_title ? <p className="mt-1 text-sm text-ink/55">{candidate.job_title}</p> : null}
-            <p className="mt-2 text-sm text-ink/55">{documents.length} document(s) disponible(s)</p>
+            <p className="mt-2 text-sm text-ink/55">{visibleDocuments.length} document(s) disponible(s)</p>
           </div>
         </div>
 
@@ -75,10 +77,10 @@ export function SessionCandidateBanner({
             sessionId={candidateSession.session_id}
             candidateName={`${candidate.first_name} ${candidate.last_name}`}
             candidateEmail={candidate.email}
-            documents={documents}
-            disabled={!documents.length}
+            documents={visibleDocuments}
+            trainingType={trainingType}
           />
-          <GenerateDocumentsMenu sessionId={candidateSession.session_id} candidateId={candidate.id} trainingType={trainingType} />
+          <GenerateDocumentsMenu sessionId={candidateSession.session_id} candidateId={candidate.id} />
         </div>
       </div>
 
