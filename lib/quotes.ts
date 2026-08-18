@@ -510,7 +510,7 @@ async function selectQuoteById(quoteId: string): Promise<QuoteBaseRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, status, training_type, training_family, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
+    .select("id, quote_number, quote_date, status, training_type, training_family, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
     .eq("id", quoteId)
     .maybeSingle();
 

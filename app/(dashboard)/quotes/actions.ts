@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { createInvoiceFromQuote, InvoiceError } from "@/lib/invoices";
 import { sendQuoteEmail } from "@/lib/quote-email";
 import { getQuoteStatusAfterSend } from "@/lib/quote-status";
+import type { QuoteStatus } from "@/lib/database.types";
 import {
   createProgrammeDocumentForQuote,
   createSessionFromQuote,
@@ -130,7 +131,7 @@ export async function sendQuoteEmailAction(
   try {
     const quote = await getQuoteForEdit(quoteId);
     const { fileUrl } = await sendQuoteEmail(quote);
-    const nextStatus = getQuoteStatusAfterSend(quote.status);
+    const nextStatus = getQuoteStatusAfterSend(quote.status as QuoteStatus);
 
     if (nextStatus !== quote.status) {
       await updateQuoteStatus(quote.id, nextStatus);

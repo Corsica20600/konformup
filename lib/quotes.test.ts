@@ -7,6 +7,7 @@ describe("quote to session mapping", () => {
       {
         id: "quote-1",
         quote_number: "DEVIS-2026-001",
+        quote_date: "2026-08-17",
         status: "accepted",
         training_type: "mac_sst",
         training_family: "sst",

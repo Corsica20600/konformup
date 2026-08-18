@@ -387,7 +387,7 @@ export async function createInvoiceFromQuote(quoteId: string) {
     subtotal: quote.price_ht,
     tax_rate: quote.vat_rate,
     tax_amount: taxAmount,
-    total_ttc: quote.total_ttc,
+    total_ttc: quote.total_ttc ?? 0,
     notes: null,
     created_at: now,
     updated_at: now

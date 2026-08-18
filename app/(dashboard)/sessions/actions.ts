@@ -1072,7 +1072,7 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
     revalidatePath(`/companies/${quote.company_id}`);
 
     return {
-      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status]}.${statusValue === "accepted" && currentQuote.status !== "accepted" && !agreementWarning ? " Convention envoyee par email." : ""}${agreementWarning ?? ""}`
+      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status as keyof typeof QUOTE_STATUS_LABELS]}.${statusValue === "accepted" && currentQuote.status !== "accepted" && !agreementWarning ? " Convention envoyee par email." : ""}${agreementWarning ?? ""}`
     };
   } catch (error) {
     if (error instanceof Error) {

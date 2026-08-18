@@ -68,7 +68,7 @@ export function EditQuoteForm({
   const [programmeState, programmeAction, programmePending] = useActionState(generateProgrammePdfAction, initialState);
   const [pdfState, pdfAction, pdfPending] = useActionState(regenerateQuotePdfAction, initialState);
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmailAction, initialState);
-  const [trainingType, setTrainingType] = useState<TrainingType>(quote.training_type);
+  const [trainingType, setTrainingType] = useState<TrainingType>(quote.training_type as TrainingType);
   const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState(
     quote.mac_previous_certificate_date ?? ""
   );
