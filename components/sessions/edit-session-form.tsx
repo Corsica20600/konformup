@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateSessionAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
 } from "@/lib/training-programs";
 import type { SessionItem, TrainerOption } from "@/lib/types";
 import type { TrainingType } from "@/lib/database.types";
+import { getAssignedTrainerFallback } from "@/lib/session-form";
 
 const initialState: ActionState = {};
 
@@ -25,6 +26,7 @@ export function EditSessionForm({
 }) {
   const [state, formAction, pending] = useActionState(updateSessionAction, initialState);
   const [trainingType, setTrainingType] = useState<TrainingType>(session.training_type);
+  const [trainerId, setTrainerId] = useState(session.trainer_id ?? "");
   const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState(
     session.mac_previous_certificate_date ?? ""
   );
@@ -32,6 +34,15 @@ export function EditSessionForm({
     session.mac_previous_certificate_ref ?? ""
   );
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
+  const assignedTrainerFallback = getAssignedTrainerFallback(
+    session.trainer_id,
+    session.trainer_name,
+    trainers
+  );
+
+  useEffect(() => {
+    setTrainerId(session.trainer_id ?? "");
+  }, [session.trainer_id]);
 
   return (
     <div className="grid gap-4">
@@ -87,10 +98,14 @@ export function EditSessionForm({
           <span>Formateur</span>
           <select
             name="trainerId"
-            defaultValue={session.trainer_id ?? ""}
+            value={trainerId}
+            onChange={(event) => setTrainerId(event.target.value)}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
           >
             <option value="">Aucun formateur selectionne</option>
+            {assignedTrainerFallback ? (
+              <option value={assignedTrainerFallback.id}>{assignedTrainerFallback.label}</option>
+            ) : null}
             {trainers.map((trainer) => (
               <option key={trainer.id} value={trainer.id}>
                 {trainer.first_name} {trainer.last_name}
