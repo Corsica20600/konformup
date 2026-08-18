@@ -28,6 +28,7 @@ import {
 import type { AttendanceOverview, OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 import type { InvoiceComplaint } from "@/lib/invoice-complaints";
 import { PUBLIC_SITE_ORIGIN } from "@/lib/public-config";
+import { getAttendanceSlotTimes } from "@/lib/attendance-schedule";
 
 function getSessionTrainingTitle(session: SessionItem) {
   return getTrainingDocumentTitle(session.training_type, session.title);
@@ -1455,13 +1456,20 @@ export function AttendanceDocument({
         </View>
 
         {attendanceOverview?.enabled && attendanceOverview.slots.length ? (
-          attendanceOverview.slots.map((slot) => (
+          attendanceOverview.slots.map((slot) => {
+            const slotTimes = getAttendanceSlotTimes({
+              startsAt: slot.starts_at,
+              endsAt: slot.ends_at,
+              period: slot.period
+            });
+
+            return (
             <View key={slot.id} style={attendanceStyles.slotCard} wrap={false}>
               <View style={attendanceStyles.slotHeader}>
                 <View>
                   <Text style={attendanceStyles.slotTitle}>{slot.slot_label}</Text>
                   <Text style={attendanceStyles.slotMeta}>
-                    {formatDate(slot.slot_date)} • {slot.present_count}/{slot.total_candidates} presents confirmes
+                    {formatDate(slot.slot_date)} • {slotTimes.start} - {slotTimes.end} • {slot.present_count}/{slot.total_candidates} presents confirmes
                   </Text>
                 </View>
                 <Text style={attendanceStyles.slotStatus}>{slotStatusLabel[slot.status]}</Text>
@@ -1511,7 +1519,8 @@ export function AttendanceDocument({
                 );
               })}
             </View>
-          ))
+            );
+          })
         ) : (
           <View style={shared.section}>
             {candidates.map((item, index) => (

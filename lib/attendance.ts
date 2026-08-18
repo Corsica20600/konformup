@@ -5,6 +5,10 @@ import {
 } from "@/lib/email-config";
 import { createClient } from "@/lib/supabase/server";
 import { buildPrivateAppUrl } from "@/lib/public-config";
+import {
+  buildParisDateTimeIso,
+  getAttendanceSlotTimes
+} from "@/lib/attendance-schedule";
 import type {
   AttendanceCandidateResponse,
   AttendanceOverview,
@@ -20,6 +24,8 @@ type AttendanceSlotRow = {
   slot_label: string;
   slot_date: string;
   period: "morning" | "afternoon" | "custom";
+  starts_at: string | null;
+  ends_at: string | null;
   status: "draft" | "sent" | "open" | "closed";
   sent_at: string | null;
   closed_at: string | null;
@@ -87,6 +93,8 @@ function buildDefaultSlotDefinitions(session: SessionItem) {
         slot_label: `Jour ${dayNumber} - matin`,
         slot_date: slotDate,
         period: "morning" as const,
+        starts_at: buildParisDateTimeIso(slotDate, "09:00"),
+        ends_at: buildParisDateTimeIso(slotDate, "12:00"),
         status: "draft" as const
       },
       {
@@ -94,6 +102,8 @@ function buildDefaultSlotDefinitions(session: SessionItem) {
         slot_label: `Jour ${dayNumber} - apres-midi`,
         slot_date: slotDate,
         period: "afternoon" as const,
+        starts_at: buildParisDateTimeIso(slotDate, "13:00"),
+        ends_at: buildParisDateTimeIso(slotDate, "17:00"),
         status: "draft" as const
       }
     ];
@@ -104,7 +114,7 @@ async function ensureAttendanceSlots(session: SessionItem) {
   const supabase = await createClient();
   const { data: existingSlots, error } = await supabase
     .from("attendance_slots")
-    .select("id, session_id, slot_label, slot_date, period, status, sent_at, closed_at")
+    .select("id, session_id, slot_label, slot_date, period, starts_at, ends_at, status, sent_at, closed_at")
     .eq("session_id", session.id)
     .order("slot_date", { ascending: true });
 
@@ -124,7 +134,7 @@ async function ensureAttendanceSlots(session: SessionItem) {
   const { data: insertedSlots, error: insertError } = await supabase
     .from("attendance_slots")
     .insert(defaultSlots)
-    .select("id, session_id, slot_label, slot_date, period, status, sent_at, closed_at")
+    .select("id, session_id, slot_label, slot_date, period, starts_at, ends_at, status, sent_at, closed_at")
     .order("slot_date", { ascending: true });
 
   if (insertError) {
@@ -267,6 +277,8 @@ export async function getAttendanceOverviewForSession(
       slot_label: slot.slot_label,
       slot_date: slot.slot_date,
       period: slot.period,
+      starts_at: slot.starts_at,
+      ends_at: slot.ends_at,
       status: slot.status,
       sent_at: slot.sent_at,
       closed_at: slot.closed_at,
@@ -308,6 +320,12 @@ function buildAttendanceEmailBody({
   reminder?: boolean;
   signatureLines: string[];
 }) {
+  const slotTimes = getAttendanceSlotTimes({
+    startsAt: slot.starts_at,
+    endsAt: slot.ends_at,
+    period: slot.period
+  });
+
   return [
     `Bonjour ${candidateName},`,
     "",
@@ -315,6 +333,7 @@ function buildAttendanceEmailBody({
       ? `Rappel : merci de confirmer votre presence pour ${session.title}.`
       : `Merci de confirmer votre presence pour ${session.title}.`,
     `Creneau : ${slot.slot_label} (${slot.slot_date})`,
+    `Horaires : ${slotTimes.start} - ${slotTimes.end}`,
     `Lieu : ${session.location}`,
     "",
     "Cliquez sur le lien ci-dessous pour confirmer votre presence :",
@@ -437,7 +456,7 @@ export async function sendAttendanceSlotRequests(
   const supabase = await createClient();
   const { data: slot, error: slotError } = await supabase
     .from("attendance_slots")
-    .select("id, session_id, slot_label, slot_date, period, status, sent_at, closed_at")
+    .select("id, session_id, slot_label, slot_date, period, starts_at, ends_at, status, sent_at, closed_at")
     .eq("id", slotId)
     .maybeSingle();
 

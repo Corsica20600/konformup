@@ -88,6 +88,8 @@ export default async function SessionDetailPage({
     attendanceSuccess?: string;
     attendanceClosed?: string;
     attendanceSlot?: string;
+    attendanceScheduleUpdated?: string;
+    attendanceScheduleError?: string;
     candidateUpdated?: string;
   }>;
 }) {
@@ -98,6 +100,8 @@ export default async function SessionDetailPage({
     attendanceSuccess,
     attendanceClosed,
     attendanceSlot,
+    attendanceScheduleUpdated,
+    attendanceScheduleError,
     candidateUpdated
   } = await searchParams;
   let data;
@@ -273,11 +277,19 @@ export default async function SessionDetailPage({
               feedback={{
                 success: attendanceSuccess
                   ? "Demandes de presence envoyees."
+                  : attendanceScheduleUpdated
+                    ? "Horaires de la journée mis à jour."
                   : attendanceClosed
                     ? "Creneau cloture."
                     : null,
-                error: attendanceError ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats." : null,
-                slotId: attendanceSlot ?? null
+                error: attendanceScheduleError
+                  ? attendanceScheduleError === "invalid"
+                    ? "L'heure de fin doit être postérieure à l'heure de début."
+                    : "Les horaires n'ont pas pu être enregistrés."
+                  : attendanceError
+                    ? "L'envoi des demandes a echoue. Verifie la configuration email et les donnees des candidats."
+                    : null,
+                slotId: attendanceScheduleError ? null : attendanceSlot ?? null
               }}
             />
           </div>

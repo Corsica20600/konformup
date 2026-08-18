@@ -10,8 +10,10 @@ import {
   closeAttendanceSlotFormAction,
   sendAttendanceSlotReminderFormAction,
   sendAttendanceSlotRequestsFormAction,
-  setAttendanceResponseOverrideFormAction
+  setAttendanceResponseOverrideFormAction,
+  updateAttendanceSlotScheduleFormAction
 } from "@/app/(dashboard)/sessions/actions";
+import { getAttendanceSlotTimes } from "@/lib/attendance-schedule";
 
 const slotStatusTone = {
   draft: "neutral",
@@ -36,12 +38,12 @@ function AttendancePdfLink({
 }) {
   return (
     <Link
-      href={documentUrl || `/api/pdf/attendance/${sessionId}`}
+      href={`/api/pdf/attendance/${sessionId}`}
       target="_blank"
       rel="noreferrer"
       className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-pine"
     >
-      {documentUrl ? "Ouvrir le fichier presences / absences" : "Generer le fichier presences / absences"}
+      {documentUrl ? "Ouvrir la feuille de présence à jour" : "Générer la feuille de présence"}
     </Link>
   );
 }
@@ -128,7 +130,14 @@ export async function AttendancePanel({
       ) : null}
 
       <div className="mt-6 grid gap-4">
-        {overview.slots.map((slot) => (
+        {overview.slots.map((slot) => {
+          const slotTimes = getAttendanceSlotTimes({
+            startsAt: slot.starts_at,
+            endsAt: slot.ends_at,
+            period: slot.period
+          });
+
+          return (
           <section key={slot.id} className="rounded-[24px] border border-ink/10 bg-sand/30 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -136,7 +145,9 @@ export async function AttendancePanel({
                   <h4 className="text-lg font-semibold text-ink">{slot.slot_label}</h4>
                   <Badge tone={slotStatusTone[slot.status]}>{slotStatusLabel[slot.status]}</Badge>
                 </div>
-                <p className="mt-2 text-sm text-ink/65">{formatDate(slot.slot_date)}</p>
+                <p className="mt-2 text-sm text-ink/65">
+                  {formatDate(slot.slot_date)} • {slotTimes.start} à {slotTimes.end}
+                </p>
                 <p className="mt-3 text-sm text-ink/70">
                   {slot.present_count}/{slot.total_candidates} presents confirmes • {slot.pending_count} en attente •{" "}
                   {slot.issue_count} probleme(s)
@@ -177,6 +188,42 @@ export async function AttendancePanel({
                 </form>
               </div>
             </div>
+
+            <form
+              action={updateAttendanceSlotScheduleFormAction}
+              className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl border border-ink/10 bg-white/75 p-4"
+            >
+              <input type="hidden" name="slotId" value={slot.id} />
+              <input type="hidden" name="sessionId" value={session.id} />
+              <label className="grid gap-1 text-sm font-medium text-ink/75">
+                <span>Début</span>
+                <input
+                  type="time"
+                  name="startTime"
+                  defaultValue={slotTimes.start}
+                  required
+                  className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink shadow-sm"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-ink/75">
+                <span>Fin</span>
+                <input
+                  type="time"
+                  name="endTime"
+                  defaultValue={slotTimes.end}
+                  required
+                  className="rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm text-ink shadow-sm"
+                />
+              </label>
+              <Button type="submit" variant="secondary">
+                Enregistrer les horaires
+              </Button>
+              {slot.sent_at ? (
+                <p className="basis-full text-xs text-ink/55">
+                  Une modification après envoi ne change pas les emails déjà reçus.
+                </p>
+              ) : null}
+            </form>
 
             <div className="mt-4 grid gap-2">
               {slot.responses.map((response) => {
@@ -257,7 +304,8 @@ export async function AttendancePanel({
               })}
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

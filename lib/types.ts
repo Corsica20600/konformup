@@ -347,6 +347,8 @@ export type AttendanceSlotSummary = {
   slot_label: string;
   slot_date: string;
   period: "morning" | "afternoon" | "custom";
+  starts_at: string | null;
+  ends_at: string | null;
   status: AttendanceSlotStatus;
   sent_at: string | null;
   closed_at: string | null;

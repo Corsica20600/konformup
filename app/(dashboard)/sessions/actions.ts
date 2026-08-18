@@ -8,6 +8,7 @@ import {
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
 import { closeAttendanceSlot, sendAttendanceSlotRequests } from "@/lib/attendance";
+import { buildParisDateTimeIso, isValidAttendanceTimeRange } from "@/lib/attendance-schedule";
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
 import { createQuote, duplicateQuote, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
@@ -678,6 +679,50 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
   }
 
   redirect(`/sessions/${sessionId}?attendanceSuccess=1&attendanceSlot=${encodeURIComponent(slotId)}`);
+}
+
+export async function updateAttendanceSlotScheduleFormAction(formData: FormData) {
+  await requireUser();
+
+  const slotId = formData.get("slotId")?.toString().trim();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  const startTime = formData.get("startTime")?.toString().trim() ?? "";
+  const endTime = formData.get("endTime")?.toString().trim() ?? "";
+
+  if (!slotId || !sessionId || !isValidAttendanceTimeRange(startTime, endTime)) {
+    redirect(`/sessions/${sessionId || ""}?attendanceScheduleError=invalid#emargement-session`);
+  }
+
+  const supabase = await createClient();
+  const { data: slot, error: slotError } = await supabase
+    .from("attendance_slots")
+    .select("id, slot_date")
+    .eq("id", slotId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+
+  if (slotError || !slot) {
+    redirect(`/sessions/${sessionId}?attendanceScheduleError=save#emargement-session`);
+  }
+
+  const { data: updatedSlot, error: updateError } = await supabase
+    .from("attendance_slots")
+    .update({
+      starts_at: buildParisDateTimeIso(slot.slot_date, startTime),
+      ends_at: buildParisDateTimeIso(slot.slot_date, endTime),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", slotId)
+    .eq("session_id", sessionId)
+    .select("id")
+    .maybeSingle();
+
+  if (updateError || !updatedSlot) {
+    redirect(`/sessions/${sessionId}?attendanceScheduleError=save#emargement-session`);
+  }
+
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}?attendanceScheduleUpdated=1#emargement-session`);
 }
 
 export async function sendAttendanceSlotReminderFormAction(formData: FormData) {
