@@ -27,6 +27,7 @@ export function EditSessionForm({
   const [state, formAction, pending] = useActionState(updateSessionAction, initialState);
   const [trainingType, setTrainingType] = useState<TrainingType>(session.training_type);
   const [trainerId, setTrainerId] = useState(session.trainer_id ?? "");
+  const [status, setStatus] = useState<SessionItem["status"]>(session.status);
   const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState(
     session.mac_previous_certificate_date ?? ""
   );
@@ -42,7 +43,8 @@ export function EditSessionForm({
 
   useEffect(() => {
     setTrainerId(session.trainer_id ?? "");
-  }, [session.trainer_id]);
+    setStatus(session.status);
+  }, [session.status, session.trainer_id]);
 
   return (
     <div className="grid gap-4">
@@ -171,7 +173,8 @@ export function EditSessionForm({
           <span>Statut</span>
           <select
             name="status"
-            defaultValue={session.status}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as SessionItem["status"])}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
           >
             <option value="draft">Brouillon</option>
