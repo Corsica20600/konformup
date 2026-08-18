@@ -7,7 +7,7 @@ import { EditCompanyForm } from "@/components/companies/edit-company-form";
 import { CreateQuoteForm } from "@/components/sessions/create-quote-form";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CompanyNotFoundError, getClientCompanyById, getSessions } from "@/lib/queries";
+import { CompanyNotFoundError, getClientCompanyById, getSessions, getTrainerOptions } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +31,10 @@ export default async function CompanyDetailPage({
   } as const;
 
   try {
-    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions] = await Promise.all([
+    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions, trainers] = await Promise.all([
       getClientCompanyById(companyId),
-      getSessions()
+      getSessions(),
+      getTrainerOptions()
     ]);
     const normalizedCompany = company as unknown as {
       id: string;
@@ -129,6 +130,7 @@ export default async function CompanyDetailPage({
                 candidateCount: candidates.length
               }
             ]}
+            trainers={trainers}
           />
         </Card>
 

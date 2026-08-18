@@ -139,24 +139,44 @@ export const createTrainerSchema = z.object({
   phone: z.string().optional().default("")
 });
 
-export const createQuoteSchema = z.object({
-  sessionId: z.string().uuid().optional().or(z.literal("")),
-  companyId: z.string().uuid("La société est requise."),
-  title: z.string().trim().min(2, "L'intitulé est requis."),
-  description: z.string().optional().default(""),
-  trainingType: trainingTypeSchema.default("sst_initial"),
-  durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
-  prerequisites: z.string().optional().default(""),
-  objectives: z.string().optional().default(""),
-  programmeOutline: z.string().optional().default(""),
-  accessibilityDetails: z.string().optional().default(""),
-  macPreviousCertificateDate: optionalFormStringSchema,
-  macPreviousCertificateRef: optionalFormStringSchema,
-  candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
-  priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
-  vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
-  notes: z.string().optional().default("")
-});
+export const createQuoteSchema = z
+  .object({
+    sessionId: z.string().uuid().optional().or(z.literal("")),
+    companyId: z.string().uuid("La société est requise."),
+    title: z.string().trim().min(2, "L'intitulé est requis."),
+    description: z.string().optional().default(""),
+    trainingType: trainingTypeSchema.default("sst_initial"),
+    durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
+    prerequisites: z.string().optional().default(""),
+    objectives: z.string().optional().default(""),
+    programmeOutline: z.string().optional().default(""),
+    accessibilityDetails: z.string().optional().default(""),
+    macPreviousCertificateDate: optionalFormStringSchema,
+    macPreviousCertificateRef: optionalFormStringSchema,
+    candidateCount: z.coerce.number().int().min(0, "Le nombre de candidats doit être positif."),
+    sessionStartDate: optionalFormStringSchema,
+    sessionEndDate: optionalFormStringSchema,
+    location: optionalFormStringSchema,
+    trainerId: z.preprocess((value) => value ?? "", z.string().uuid().or(z.literal(""))),
+    priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
+    vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
+    notes: z.string().optional().default("")
+  })
+  .superRefine((data, context) => {
+    if (Boolean(data.sessionStartDate) !== Boolean(data.sessionEndDate)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Renseignez la date de début et la date de fin.",
+        path: [data.sessionStartDate ? "sessionEndDate" : "sessionStartDate"]
+      });
+    } else if (data.sessionStartDate && data.sessionEndDate < data.sessionStartDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La date de fin doit être postérieure ou égale à la date de début.",
+        path: ["sessionEndDate"]
+      });
+    }
+  });
 
 export const updateQuoteSchema = z
   .object({
@@ -175,24 +195,27 @@ export const updateQuoteSchema = z
     sessionStartDate: z.string().optional().default(""),
     sessionEndDate: z.string().optional().default(""),
     location: z.string().optional().default(""),
-    trainerName: z.string().optional().default(""),
+    trainerId: z.preprocess((value) => value ?? "", z.string().uuid().or(z.literal(""))),
+    currentTrainerName: optionalFormStringSchema,
     priceHt: z.coerce.number().min(0, "Le prix HT doit être positif."),
     vatRate: z.coerce.number().min(0, "Le taux de TVA doit être positif.").max(100, "Le taux de TVA semble invalide."),
     notes: z.string().optional().default("")
   })
-  .refine(
-    (data) => {
-      if (!data.sessionStartDate || !data.sessionEndDate) {
-        return true;
-      }
-
-      return data.sessionEndDate >= data.sessionStartDate;
-    },
-    {
-      message: "La date de fin doit être postérieure ou égale à la date de début.",
-      path: ["sessionEndDate"]
+  .superRefine((data, context) => {
+    if (Boolean(data.sessionStartDate) !== Boolean(data.sessionEndDate)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Renseignez la date de début et la date de fin.",
+        path: [data.sessionStartDate ? "sessionEndDate" : "sessionStartDate"]
+      });
+    } else if (data.sessionStartDate && data.sessionEndDate < data.sessionStartDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "La date de fin doit être postérieure ou égale à la date de début.",
+        path: ["sessionEndDate"]
+      });
     }
-  );
+  });
 
 export const upsertInvoiceComplaintSchema = z.object({
   invoiceId: z.string().uuid("La facture est introuvable."),

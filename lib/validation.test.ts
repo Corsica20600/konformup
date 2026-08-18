@@ -53,6 +53,39 @@ describe("training form validation", () => {
     expect(populated.macPreviousCertificateRef).toBe("SST-2024-001");
   });
 
+  it("accepts selectable training dates and a registered trainer on a quote", () => {
+    const result = createQuoteSchema.parse({
+      ...baseQuote,
+      trainingType: "sst_initial",
+      sessionStartDate: "2026-09-10",
+      sessionEndDate: "2026-09-11",
+      location: "Ajaccio",
+      trainerId: "00000000-0000-4000-8000-000000000020"
+    });
+
+    expect(result.sessionStartDate).toBe("2026-09-10");
+    expect(result.sessionEndDate).toBe("2026-09-11");
+    expect(result.trainerId).toBe("00000000-0000-4000-8000-000000000020");
+  });
+
+  it("rejects an incomplete or reversed quote date range", () => {
+    const missingEndDate = createQuoteSchema.safeParse({
+      ...baseQuote,
+      trainingType: "sst_initial",
+      sessionStartDate: "2026-09-10",
+      sessionEndDate: ""
+    });
+    const reversedRange = createQuoteSchema.safeParse({
+      ...baseQuote,
+      trainingType: "sst_initial",
+      sessionStartDate: "2026-09-11",
+      sessionEndDate: "2026-09-10"
+    });
+
+    expect(missingEndDate.success).toBe(false);
+    expect(reversedRange.success).toBe(false);
+  });
+
   it("normalizes missing MAC fields for session creation", () => {
     const result = createSessionSchema.parse({
       title: "Session SST initiale",

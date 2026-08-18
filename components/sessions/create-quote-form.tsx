@@ -5,8 +5,10 @@ import { useActionState, useEffect, useState } from "react";
 import { createQuoteAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select-field";
 import type { TrainingType } from "@/lib/database.types";
 import { buildDefaultQuoteDescription, buildDefaultQuoteTitle, computeQuoteTotalTtc } from "@/lib/quote-utils";
+import { getDefaultTrainerId } from "@/lib/session-form";
 import {
   TRAINING_TYPE_LABELS,
   TRAINING_TYPE_OPTIONS,
@@ -14,7 +16,8 @@ import {
   getTrainingProgramDefaults,
   isMacSstTraining
 } from "@/lib/training-programs";
-import { formatCurrency, formatDateRange } from "@/lib/utils";
+import type { TrainerOption } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
 
 type QuoteCompanyOption = {
   id: string;
@@ -30,7 +33,8 @@ export function CreateQuoteForm({
   startDate,
   endDate,
   location,
-  companies
+  companies,
+  trainers
 }: {
   sessionId?: string | null;
   sessionTitle?: string | null;
@@ -38,6 +42,7 @@ export function CreateQuoteForm({
   endDate?: string | null;
   location?: string | null;
   companies: QuoteCompanyOption[];
+  trainers: TrainerOption[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createQuoteAction, initialState);
@@ -67,6 +72,9 @@ export function CreateQuoteForm({
   const [notes, setNotes] = useState("");
   const [macPreviousCertificateDate, setMacPreviousCertificateDate] = useState("");
   const [macPreviousCertificateRef, setMacPreviousCertificateRef] = useState("");
+  const [sessionStartDate, setSessionStartDate] = useState(startDate ?? "");
+  const [sessionEndDate, setSessionEndDate] = useState(endDate ?? "");
+  const [trainingLocation, setTrainingLocation] = useState(location ?? "");
 
   useEffect(() => {
     if (state.success) {
@@ -180,19 +188,48 @@ export function CreateQuoteForm({
               onChange={(event) => setDurationHours(event.target.value)}
             />
 
-            {sessionTitle ? (
-              <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
-                <span>Dates / lieu</span>
-                <input
-                  value={`${formatDateRange(startDate ?? null, endDate ?? null)} • ${location || "Lieu à confirmer"}`}
-                  disabled
-                  className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm disabled:text-ink"
-                />
-              </label>
+            <Input
+              label="Date de début de formation"
+              name="sessionStartDate"
+              type="date"
+              value={sessionStartDate}
+              onChange={(event) => setSessionStartDate(event.target.value)}
+              disabled={Boolean(sessionId)}
+            />
+            <Input
+              label="Date de fin de formation"
+              name="sessionEndDate"
+              type="date"
+              value={sessionEndDate}
+              onChange={(event) => setSessionEndDate(event.target.value)}
+              disabled={Boolean(sessionId)}
+            />
+            <Input
+              label="Lieu de formation"
+              name="location"
+              value={trainingLocation}
+              onChange={(event) => setTrainingLocation(event.target.value)}
+              disabled={Boolean(sessionId)}
+              placeholder="À confirmer"
+            />
+            {trainers.length ? (
+              <SelectField
+                label="Formateur"
+                name="trainerId"
+                defaultValue={getDefaultTrainerId(trainers)}
+                disabled={Boolean(sessionId)}
+              >
+                <option value="">À confirmer</option>
+                {trainers.map((trainer) => (
+                  <option key={trainer.id} value={trainer.id}>
+                    {trainer.first_name} {trainer.last_name}
+                  </option>
+                ))}
+              </SelectField>
             ) : (
-              <div className="rounded-2xl border border-dashed border-ink/10 bg-white px-4 py-3 text-sm text-ink/65">
-                Les dates et le lieu pourront être renseignés plus tard.
-              </div>
+              <SelectField label="Formateur" name="trainerId" disabled hint="Aucun formateur enregistré.">
+                <option value="">À confirmer</option>
+              </SelectField>
             )}
 
             <div className="md:col-span-2">

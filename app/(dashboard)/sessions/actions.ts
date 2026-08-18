@@ -840,6 +840,10 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
     macPreviousCertificateDate: formData.get("macPreviousCertificateDate"),
     macPreviousCertificateRef: formData.get("macPreviousCertificateRef"),
     candidateCount: formData.get("candidateCount"),
+    sessionStartDate: formData.get("sessionStartDate"),
+    sessionEndDate: formData.get("sessionEndDate"),
+    location: formData.get("location"),
+    trainerId: formData.get("trainerId"),
     priceHt: formData.get("priceHt"),
     vatRate: formData.get("vatRate"),
     notes: formData.get("notes")
@@ -864,6 +868,10 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
       macPreviousCertificateDate: parsed.data.macPreviousCertificateDate,
       macPreviousCertificateRef: parsed.data.macPreviousCertificateRef,
       candidateCount: parsed.data.candidateCount,
+      sessionStartDate: parsed.data.sessionStartDate,
+      sessionEndDate: parsed.data.sessionEndDate,
+      location: parsed.data.location,
+      trainerId: parsed.data.trainerId,
       priceHt: parsed.data.priceHt,
       vatRate: parsed.data.vatRate,
       notes: parsed.data.notes

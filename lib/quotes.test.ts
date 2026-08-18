@@ -33,7 +33,8 @@ describe("quote to session mapping", () => {
         created_at: "2026-08-17T00:00:00.000Z",
         updated_at: "2026-08-17T00:00:00.000Z"
       },
-      "trainer-user-1"
+      "trainer-user-1",
+      "trainer-record-1"
     );
 
     expect(payload.training_type).toBe("mac_sst");
@@ -41,5 +42,6 @@ describe("quote to session mapping", () => {
     expect(payload.programme_outline).toContain("Mises en situation");
     expect(payload.mac_previous_certificate_ref).toBe("SST-2024-001");
     expect(payload.trainer_user_id).toBe("trainer-user-1");
+    expect(payload.trainer_id).toBe("trainer-record-1");
   });
 });

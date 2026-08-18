@@ -15,9 +15,11 @@ import {
 } from "@/app/(dashboard)/quotes/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select-field";
 import type { QuoteEditData } from "@/lib/quotes";
 import type { Database } from "@/lib/database.types";
 import type { TrainingType } from "@/lib/database.types";
+import type { TrainerOption } from "@/lib/types";
 import {
   TRAINING_TYPE_LABELS,
   TRAINING_TYPE_OPTIONS,
@@ -33,11 +35,13 @@ export function EditQuoteForm({
   quote,
   invoice,
   programmeFileUrl,
-  trainingAgreement
+  trainingAgreement,
+  trainers
 }: {
   quote: QuoteEditData;
   invoice: InvoiceSummary;
   programmeFileUrl: string | null;
+  trainers: TrainerOption[];
   trainingAgreement: {
     id: string;
     fileUrl: string | null;
@@ -76,6 +80,12 @@ export function EditQuoteForm({
   const canGenerateTrainingAgreement = quote.status === "accepted";
   const trainingAgreementFileUrl = trainingAgreement?.fileUrl ?? `/api/pdf/training-agreement/${quote.id}`;
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
+  const assignedTrainerId =
+    trainers.find(
+      (trainer) =>
+        `${trainer.first_name} ${trainer.last_name}`.trim().toLocaleLowerCase("fr-FR") ===
+        quote.trainer_name?.trim().toLocaleLowerCase("fr-FR")
+    )?.id ?? "";
 
   return (
     <div className="grid gap-4">
@@ -344,7 +354,20 @@ export function EditQuoteForm({
           required
         />
         <Input label="Lieu" name="location" defaultValue={quote.location ?? ""} />
-        <Input label="Formateur" name="trainerName" defaultValue={quote.trainer_name ?? ""} />
+        <input type="hidden" name="currentTrainerName" value={quote.trainer_name ?? ""} />
+        <SelectField
+          label="Formateur"
+          name="trainerId"
+          defaultValue={assignedTrainerId}
+          hint={quote.trainer_name && !assignedTrainerId ? `${quote.trainer_name} est conservé tant qu'aucun autre formateur n'est choisi.` : undefined}
+        >
+          <option value="">À confirmer</option>
+          {trainers.map((trainer) => (
+            <option key={trainer.id} value={trainer.id}>
+              {trainer.first_name} {trainer.last_name}
+            </option>
+          ))}
+        </SelectField>
         <Input label="Date de debut" name="sessionStartDate" type="date" defaultValue={quote.session_start_date ?? ""} />
         <Input label="Date de fin" name="sessionEndDate" type="date" defaultValue={quote.session_end_date ?? ""} />
 

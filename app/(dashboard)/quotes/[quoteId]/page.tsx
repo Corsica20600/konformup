@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { getInvoiceByQuoteId } from "@/lib/invoices";
 import { getProgrammeDocumentByQuoteId, getQuoteForEdit, QuoteError } from "@/lib/quotes";
 import { getTrainingAgreementDocumentByQuoteId } from "@/lib/training-agreements";
+import { getTrainerOptions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +16,12 @@ export default async function QuoteDetailPage({
   const { quoteId } = await params;
 
   try {
-    const [quote, invoice, programme, trainingAgreement] = await Promise.all([
+    const [quote, invoice, programme, trainingAgreement, trainers] = await Promise.all([
       getQuoteForEdit(quoteId),
       getInvoiceByQuoteId(quoteId),
       getProgrammeDocumentByQuoteId(quoteId),
-      getTrainingAgreementDocumentByQuoteId(quoteId)
+      getTrainingAgreementDocumentByQuoteId(quoteId),
+      getTrainerOptions()
     ]);
 
     return (
@@ -29,6 +31,7 @@ export default async function QuoteDetailPage({
             quote={quote}
             invoice={invoice}
             programmeFileUrl={programme?.fileUrl ?? null}
+            trainers={trainers}
             trainingAgreement={
               trainingAgreement
                 ? {

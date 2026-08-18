@@ -37,7 +37,10 @@ type CreateQuoteInput = {
   macPreviousCertificateDate?: string;
   macPreviousCertificateRef?: string;
   candidateCount: number;
-  trainerName?: string;
+  sessionStartDate?: string;
+  sessionEndDate?: string;
+  location?: string;
+  trainerId?: string;
   priceHt: number;
   vatRate: number;
   notes: string;
@@ -246,6 +249,48 @@ async function selectCompanyById(companyId: string): Promise<QuoteCompanyRow | n
   };
 }
 
+async function selectTrainerById(trainerId: string | null | undefined) {
+  if (!trainerId) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select("id, first_name, last_name")
+    .eq("id", trainerId)
+    .maybeSingle<{ id: string; first_name: string; last_name: string }>();
+
+  if (error || !data) {
+    throw new QuoteError("Le formateur sélectionné est introuvable.");
+  }
+
+  return {
+    id: data.id,
+    name: `${data.first_name} ${data.last_name}`.trim()
+  };
+}
+
+async function selectTrainerIdByName(trainerName: string | null) {
+  if (!trainerName) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("trainers").select("id, first_name, last_name");
+
+  if (error) {
+    throw new QuoteError("Impossible de retrouver le formateur du devis.");
+  }
+
+  const normalizedName = trainerName.trim().toLocaleLowerCase("fr-FR");
+  const trainer = (data ?? []).find(
+    (item) => `${item.first_name} ${item.last_name}`.trim().toLocaleLowerCase("fr-FR") === normalizedName
+  );
+
+  return trainer?.id ?? null;
+}
+
 async function selectCandidateForCompany(candidateId: string): Promise<CandidateCompanyLookup | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -395,7 +440,10 @@ async function insertQuote({
   macPreviousCertificateDate,
   macPreviousCertificateRef,
   candidateCount,
-  trainerName,
+  sessionStartDate,
+  sessionEndDate,
+  location,
+  trainerId,
   priceHt,
   vatRate,
   notes
@@ -417,6 +465,7 @@ async function insertQuote({
     accessibilityDetails?.trim() || session?.accessibility_details || defaults.accessibility;
   const resolvedMacDate = macPreviousCertificateDate?.trim() || session?.mac_previous_certificate_date || null;
   const resolvedMacRef = macPreviousCertificateRef?.trim() || session?.mac_previous_certificate_ref || null;
+  const selectedTrainer = session ? null : await selectTrainerById(trainerId);
 
   const { data, error } = await supabase
     .from("quotes")
@@ -430,10 +479,10 @@ async function insertQuote({
       title: getTrainingDocumentTitle(resolvedTrainingType, title),
       description: description.trim() || null,
       candidate_count: candidateCount,
-      session_start_date: session?.start_date ?? null,
-      session_end_date: session?.end_date ?? null,
-      location: session?.location ?? null,
-      trainer_name: session?.trainer_name ?? (trainerName?.trim() || null),
+      session_start_date: session?.start_date ?? (sessionStartDate?.trim() || null),
+      session_end_date: session?.end_date ?? (sessionEndDate?.trim() || null),
+      location: session?.location ?? (location?.trim() || null),
+      trainer_name: session?.trainer_name ?? selectedTrainer?.name ?? null,
       duration_hours: resolvedDurationHours,
       prerequisites: resolvedPrerequisites,
       objectives: resolvedObjectives,
@@ -811,7 +860,8 @@ export async function updateQuote({
   sessionStartDate,
   sessionEndDate,
   location,
-  trainerName,
+  trainerId,
+  currentTrainerName,
   priceHt,
   vatRate,
   notes
@@ -831,7 +881,8 @@ export async function updateQuote({
   sessionStartDate: string;
   sessionEndDate: string;
   location: string;
-  trainerName: string;
+  trainerId: string;
+  currentTrainerName: string;
   priceHt: number;
   vatRate: number;
   notes: string;
@@ -839,6 +890,7 @@ export async function updateQuote({
   const supabase = await createClient();
   const resolvedTrainingType = normalizeTrainingType(trainingType);
   const defaults = getTrainingProgramDefaults(resolvedTrainingType);
+  const selectedTrainer = await selectTrainerById(trainerId);
   const { data, error } = await supabase
     .from("quotes")
     .update({
@@ -850,7 +902,7 @@ export async function updateQuote({
       session_start_date: sessionStartDate || null,
       session_end_date: sessionEndDate || null,
       location: location.trim() || null,
-      trainer_name: trainerName.trim() || null,
+      trainer_name: selectedTrainer?.name ?? (currentTrainerName.trim() || null),
       duration_hours: durationHours === "" || typeof durationHours === "undefined" ? null : durationHours,
       prerequisites: prerequisites.trim() || defaults.prerequisites,
       objectives: objectives.trim() || defaults.objectives.join("\n"),
@@ -988,7 +1040,11 @@ export async function updateQuoteStatus(quoteId: string, status: QuoteRow["statu
   return data;
 }
 
-export function buildSessionPayloadFromQuote(quote: QuoteBaseRow, trainerUserId: string): TrainingSessionInsertRow {
+export function buildSessionPayloadFromQuote(
+  quote: QuoteBaseRow,
+  trainerUserId: string,
+  trainerId: string | null = null
+): TrainingSessionInsertRow {
   return {
     title: quote.title,
     start_date: quote.session_start_date!,
@@ -998,6 +1054,7 @@ export function buildSessionPayloadFromQuote(quote: QuoteBaseRow, trainerUserId:
     training_type: quote.training_type,
     training_family: quote.training_family,
     source_quote_id: quote.id,
+    trainer_id: trainerId,
     trainer_user_id: trainerUserId,
     trainer_name: quote.trainer_name,
     duration_hours: quote.duration_hours,
@@ -1030,7 +1087,8 @@ export async function createSessionFromQuote(quoteId: string, trainerUserId: str
   }
 
   const supabase = await createClient();
-  const sessionPayload = buildSessionPayloadFromQuote(quote, trainerUserId);
+  const trainerId = await selectTrainerIdByName(quote.trainer_name);
+  const sessionPayload = buildSessionPayloadFromQuote(quote, trainerUserId, trainerId);
 
   const { data: session, error: sessionError } = await supabase
     .from("training_sessions")
