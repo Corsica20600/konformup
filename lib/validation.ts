@@ -57,13 +57,13 @@ export const createCandidateSchema = z.object({
   firstName: z.string().min(2, "Le prénom est requis."),
   lastName: z.string().min(2, "Le nom est requis."),
   email: z.string().email("Email invalide.").or(z.literal("")),
-  company: z.string().optional().default(""),
+  company: optionalFormStringSchema,
   companyId: z.string().uuid().or(z.literal("")),
-  phone: z.string().optional().default(""),
-  jobTitle: z.string().optional().default(""),
-  address: z.string().optional().default(""),
-  postalCode: z.string().optional().default(""),
-  city: z.string().optional().default(""),
+  phone: optionalFormStringSchema,
+  jobTitle: optionalFormStringSchema,
+  address: optionalFormStringSchema,
+  postalCode: optionalFormStringSchema,
+  city: optionalFormStringSchema,
   validationStatus: z.enum(["pending", "validated", "not_validated"]).default("pending")
 });
 

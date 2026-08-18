@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createQuoteSchema, createSessionSchema } from "@/lib/validation";
+import { createCandidateSchema, createQuoteSchema, createSessionSchema } from "@/lib/validation";
 
 const baseQuote = {
   sessionId: "",
@@ -67,5 +67,27 @@ describe("training form validation", () => {
 
     expect(result.macPreviousCertificateDate).toBe("");
     expect(result.macPreviousCertificateRef).toBe("");
+  });
+
+  it("accepts the compact session candidate form with hidden optional fields", () => {
+    const result = createCandidateSchema.parse({
+      sessionId: "00000000-0000-4000-8000-000000000010",
+      companyId: "00000000-0000-4000-8000-000000000001",
+      firstName: "Jean",
+      lastName: "Dupont",
+      email: "",
+      phone: "",
+      jobTitle: "",
+      company: null,
+      address: null,
+      postalCode: null,
+      city: null,
+      validationStatus: "pending"
+    });
+
+    expect(result.company).toBe("");
+    expect(result.address).toBe("");
+    expect(result.postalCode).toBe("");
+    expect(result.city).toBe("");
   });
 });
