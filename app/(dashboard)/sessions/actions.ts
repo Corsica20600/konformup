@@ -10,8 +10,9 @@ import {
 import { closeAttendanceSlot, sendAttendanceSlotRequests } from "@/lib/attendance";
 import { buildParisDateTimeIso, isValidAttendanceTimeRange } from "@/lib/attendance-schedule";
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
+import { sendTrainingAgreementEmail } from "@/lib/training-agreement-email";
 import { sendAttestationToSessionCompany } from "@/lib/company-attestation-email";
-import { createQuote, duplicateQuote, updateQuoteStatus } from "@/lib/quotes";
+import { createQuote, duplicateQuote, getQuoteForEdit, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
 import { createClient } from "@/lib/supabase/server";
@@ -1045,17 +1046,19 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
   }
 
   try {
+    const currentQuote = await getQuoteForEdit(quoteId);
     const quote = await updateQuoteStatus(quoteId, statusValue);
     let agreementWarning: string | null = null;
 
-    if (statusValue === "accepted") {
+    if (statusValue === "accepted" && currentQuote.status !== "accepted") {
       try {
         await createTrainingAgreementDocumentForQuote(quoteId);
+        await sendTrainingAgreementEmail(currentQuote);
       } catch (error) {
         agreementWarning =
           error instanceof Error
-            ? ` Statut accepte enregistre, mais la convention n'a pas pu etre generee automatiquement : ${error.message}`
-            : " Statut accepte enregistre, mais la convention n'a pas pu etre generee automatiquement.";
+            ? ` Statut accepte enregistre, mais la convention n'a pas pu etre envoyee automatiquement : ${error.message}`
+            : " Statut accepte enregistre, mais la convention n'a pas pu etre envoyee automatiquement.";
       }
     }
 
@@ -1069,7 +1072,7 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
     revalidatePath(`/companies/${quote.company_id}`);
 
     return {
-      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status]}.${agreementWarning ?? ""}`
+      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status]}.${statusValue === "accepted" && currentQuote.status !== "accepted" && !agreementWarning ? " Convention envoyee par email." : ""}${agreementWarning ?? ""}`
     };
   } catch (error) {
     if (error instanceof Error) {
