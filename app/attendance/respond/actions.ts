@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { confirmAttendanceResponse } from "@/lib/attendance";
 import { submitCandidateSatisfactionSurvey } from "@/lib/attendance";
@@ -23,12 +24,17 @@ export async function confirmAttendanceResponseFormAction(formData: FormData) {
   const userAgent = headerStore.get("user-agent");
 
   try {
-    await confirmAttendanceResponse({
+    const attendance = await confirmAttendanceResponse({
       token,
       responseStatus,
       ipAddress,
       userAgent
     });
+    if (attendance?.session_id) {
+      revalidatePath(`/sessions/${attendance.session_id}`);
+      revalidatePath("/sessions");
+      revalidatePath("/dashboard");
+    }
   } catch (error) {
     console.error("[attendance] public confirm failed", {
       token,
