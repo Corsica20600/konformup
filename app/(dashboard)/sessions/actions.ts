@@ -298,11 +298,21 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
     return { error: "Impossible d'ajouter le candidat à la session." };
   }
 
+  let welcomePackWarning = false;
   if (candidate?.id && candidate.session_id) {
-    await ensureWelcomePackDocument({
-      sessionId: candidate.session_id,
-      candidateId: candidate.id
-    });
+    try {
+      await ensureWelcomePackDocument({
+        sessionId: candidate.session_id,
+        candidateId: candidate.id
+      });
+    } catch (error) {
+      welcomePackWarning = true;
+      console.error("[candidate-welcome-pack-error]", {
+        candidateId: candidate.id,
+        sessionId: candidate.session_id,
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   }
 
   if (parsed.data.sessionId) {
@@ -310,7 +320,11 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
   }
   revalidatePath("/dashboard");
   revalidatePath("/sessions");
-  return { success: "Candidat ajouté." };
+  return {
+    success: welcomePackWarning
+      ? "Candidat ajouté. Le livret n'a pas pu être préparé automatiquement ; vous pourrez le générer depuis la session."
+      : "Candidat ajouté."
+  };
 }
 
 export async function updateCandidateAction(_: ActionState, formData: FormData): Promise<ActionState> {

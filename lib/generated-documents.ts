@@ -109,12 +109,25 @@ const DOCUMENT_CONFIG: Record<
   welcome_pack: {
     prefix: "PACK",
     buildPath: ({ candidateId }) => `/api/pdf/welcome-pack/${candidateId}`,
-    storageBucket: "documents",
-    buildStoragePath: ({ candidateId }) =>
-      candidateId ? `welcome_pack/${candidateId}/livret_reglement.pdf` : null,
+    storageBucket: "generated-documents",
+    buildStoragePath: ({ sessionId, candidateId }) =>
+      candidateId ? `sessions/${sessionId}/candidates/${candidateId}/welcome-pack/livret-reglement.pdf` : null,
     requiresCandidate: true
   }
 };
+
+export function resolveGeneratedDocumentStorageTarget(params: {
+  sessionId: string;
+  candidateId: string | null;
+  type: SupportedGeneratedDocumentType;
+}) {
+  const config = DOCUMENT_CONFIG[params.type];
+
+  return {
+    bucket: config.storageBucket,
+    objectPath: config.buildStoragePath?.(params) ?? null
+  };
+}
 
 export class DocumentGenerationError extends Error {
   constructor(message: string) {
@@ -522,7 +535,7 @@ export async function createDocument({
           ref: documentRef
         })
       : null;
-    const storageObjectPath = config.buildStoragePath?.({ sessionId, candidateId }) ?? null;
+    const storageTarget = resolveGeneratedDocumentStorageTarget({ sessionId, candidateId, type });
 
     if (!filePath) {
       throw new DocumentGenerationError(
@@ -572,8 +585,8 @@ export async function createDocument({
     await persistGeneratedDocumentPdfToStorage({
       documentId: generatedDocument.id,
       sourcePath: filePath,
-      storageBucket: config.storageBucket,
-      storageObjectPath: storageObjectPath ?? undefined
+      storageBucket: storageTarget.bucket,
+      storageObjectPath: storageTarget.objectPath ?? undefined
     });
 
     const supabase = await createClient();
