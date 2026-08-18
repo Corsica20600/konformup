@@ -35,6 +35,7 @@ export function SessionCandidateBanner({
     result: evaluation?.result
   });
   const visibleDocuments = deduplicateCandidateDocuments(documents);
+  const sentDocumentCount = visibleDocuments.filter((document) => document.status === "sent").length;
 
   return (
     <Card className="grid gap-4">
@@ -61,7 +62,10 @@ export function SessionCandidateBanner({
               {candidate.phone ? ` • ${candidate.phone}` : ""}
             </p>
             {candidate.job_title ? <p className="mt-1 text-sm text-ink/55">{candidate.job_title}</p> : null}
-            <p className="mt-2 text-sm text-ink/55">{visibleDocuments.length} document(s) disponible(s)</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink/55">
+              <span>{visibleDocuments.length} document(s) disponible(s)</span>
+              {sentDocumentCount > 0 ? <Badge tone="success">{sentDocumentCount} envoyé(s)</Badge> : null}
+            </div>
           </div>
         </div>
 

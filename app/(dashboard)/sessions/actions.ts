@@ -393,6 +393,10 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
   revalidatePath("/sessions");
   revalidatePath("/candidates");
 
+  if (parsed.data.sessionId) {
+    redirect(`/sessions/${parsed.data.sessionId}?candidateUpdated=1#candidats-session`);
+  }
+
   return { success: "Candidat mis à jour." };
 }
 

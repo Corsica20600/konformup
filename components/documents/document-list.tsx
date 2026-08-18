@@ -34,6 +34,13 @@ const initialQuoteMailState: QuoteEditorActionState = {};
 const initialInvoiceMailState: InvoiceActionState = {};
 const initialStatusState: ActionState = {};
 const DOCUMENT_QUOTE_STATUS_OPTIONS: QuoteStatus[] = ["draft", "sent", "accepted"];
+const DOCUMENT_STATUS_LABELS: Record<GeneratedDocumentItem["status"], string> = {
+  draft: "Brouillon",
+  generated: "Préparé",
+  sent: "Envoyé",
+  signed: "Signé",
+  archived: "Archivé"
+};
 
 function documentLabel(type: string) {
   return getGeneratedDocumentLabel(type);
@@ -114,7 +121,9 @@ function DocumentRow({
                 <Badge tone={getQuoteStatusTone(quoteStatus)}>{QUOTE_STATUS_LABELS[quoteStatus]}</Badge>
               </div>
             ) : (
-              <span>Statut : {document.status}</span>
+              <Badge tone={document.status === "sent" ? "success" : "neutral"}>
+                {DOCUMENT_STATUS_LABELS[document.status]}
+              </Badge>
             )}
             <span>Crée le {formatDate(document.created_at)}</span>
           </div>

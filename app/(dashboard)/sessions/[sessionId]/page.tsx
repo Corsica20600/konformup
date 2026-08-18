@@ -88,6 +88,7 @@ export default async function SessionDetailPage({
     attendanceSuccess?: string;
     attendanceClosed?: string;
     attendanceSlot?: string;
+    candidateUpdated?: string;
   }>;
 }) {
   const { sessionId } = await params;
@@ -96,7 +97,8 @@ export default async function SessionDetailPage({
     attendanceError,
     attendanceSuccess,
     attendanceClosed,
-    attendanceSlot
+    attendanceSlot,
+    candidateUpdated
   } = await searchParams;
   let data;
 
@@ -368,6 +370,11 @@ export default async function SessionDetailPage({
       </section>
 
       <section id="candidats-session" className="grid gap-4">
+        {candidateUpdated === "1" ? (
+          <p role="status" className="rounded-2xl border border-pine/20 bg-pine/10 px-4 py-3 text-sm font-medium text-pine">
+            Candidat mis à jour.
+          </p>
+        ) : null}
         <div className="px-1">
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Candidats</p>
           <h2 className="mt-2 text-2xl font-bold">{candidates.length} candidat(s)</h2>
