@@ -184,7 +184,7 @@ function DocumentRow({
               </Button>
             </form>
           ) : null}
-          {document.candidate_id && document.file_url && !isPreTrainingDocumentType(document.document_type) ? (
+          {document.candidate_id && document.file_url && !isPreTrainingDocumentType(document.document_type) && document.document_type !== "attestation" ? (
             <form action={sendCandidateDocumentFormAction}>
               <input type="hidden" name="documentId" value={document.id} />
               <input type="hidden" name="sessionId" value={document.session_id ?? ""} />

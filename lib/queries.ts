@@ -22,7 +22,8 @@ import type {
   SessionSourceQuote,
   TrainingQuiz,
   TrainerDocument,
-  TrainerOption
+  TrainerOption,
+  CandidateSatisfactionSurvey
 } from "@/lib/types";
 
 type SessionModuleRow = {
@@ -1980,4 +1981,21 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
     session,
     documents
   };
+}
+
+export async function getCandidateSatisfactionSurveys(candidateId: string): Promise<CandidateSatisfactionSurvey[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("candidate_satisfaction_surveys")
+    .select("id, submitted_at, answers")
+    .eq("candidate_id", candidateId)
+    .order("submitted_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((survey) => ({
+    id: survey.id,
+    submitted_at: survey.submitted_at,
+    answers: (survey.answers && typeof survey.answers === "object" && !Array.isArray(survey.answers)
+      ? survey.answers
+      : {}) as Record<string, string>
+  }));
 }

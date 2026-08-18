@@ -14,6 +14,7 @@ import type {
   AttendanceOverview,
   AttendanceSlotSummary,
   PublicAttendanceResponse,
+  CandidateSatisfactionContext,
   SessionCandidate,
   SessionItem
 } from "@/lib/types";
@@ -311,6 +312,7 @@ function buildAttendanceEmailBody({
   slot,
   url,
   reminder = false,
+  includesSatisfactionSurvey = false,
   signatureLines
 }: {
   candidateName: string;
@@ -318,6 +320,7 @@ function buildAttendanceEmailBody({
   slot: AttendanceSlotRow;
   url: string;
   reminder?: boolean;
+  includesSatisfactionSurvey?: boolean;
   signatureLines: string[];
 }) {
   const slotTimes = getAttendanceSlotTimes({
@@ -340,6 +343,9 @@ function buildAttendanceEmailBody({
     url,
     "",
     "Ce lien est personnel et doit etre utilise uniquement pour votre emargement.",
+    ...(includesSatisfactionSurvey
+      ? ["Après votre émargement, le questionnaire de satisfaction de fin de formation s'affichera sur cette même page."]
+      : []),
     "",
     ...signatureLines
   ].join("\n");
@@ -351,7 +357,8 @@ async function sendAttendanceEmailToResponse({
   session,
   response,
   emailContext,
-  reminder
+  reminder,
+  includesSatisfactionSurvey
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   slot: AttendanceSlotRow;
@@ -375,6 +382,7 @@ async function sendAttendanceEmailToResponse({
   };
   emailContext: TransactionalEmailContext;
   reminder: boolean;
+  includesSatisfactionSurvey: boolean;
 }) {
   const candidateRecord = Array.isArray(response.candidates) ? response.candidates[0] : response.candidates;
 
@@ -398,6 +406,7 @@ async function sendAttendanceEmailToResponse({
     slot,
     url: responseUrl,
     reminder,
+    includesSatisfactionSurvey,
     signatureLines: emailContext.signatureLines
   });
 
@@ -493,6 +502,16 @@ export async function sendAttendanceSlotRequests(
     throw new Error("Impossible de charger les candidats pour ce creneau.");
   }
 
+  const { data: latestSlot } = await supabase
+    .from("attendance_slots")
+    .select("id")
+    .eq("session_id", slot.session_id)
+    .order("slot_date", { ascending: false })
+    .order("ends_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  const includesSatisfactionSurvey = latestSlot?.id === slot.id;
+
   const emailContext = await getTransactionalEmailContext();
   let sentCount = 0;
   let failedCount = 0;
@@ -526,7 +545,8 @@ export async function sendAttendanceSlotRequests(
       session,
       response,
       emailContext,
-      reminder: options?.reminder ?? Boolean(slot.sent_at)
+      reminder: options?.reminder ?? Boolean(slot.sent_at),
+      includesSatisfactionSurvey
     });
 
     if (result.sent) {
@@ -729,6 +749,20 @@ export async function getPublicAttendanceResponse(token: string) {
   }
 
   return extractPublicAttendanceRow(data);
+}
+
+export async function getCandidateSatisfactionContext(token: string): Promise<CandidateSatisfactionContext> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_candidate_satisfaction_context", { p_token: token });
+  if (error || !data) return { is_final_slot: false, submitted: false };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { is_final_slot: row?.is_final_slot === true, submitted: row?.submitted === true };
+}
+
+export async function submitCandidateSatisfactionSurvey(token: string, answers: Record<string, string>) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("submit_candidate_satisfaction_survey", { p_token: token, p_answers: answers });
+  if (error) throw new Error("Impossible d'enregistrer le questionnaire.");
 }
 
 export async function confirmAttendanceResponse(input: {

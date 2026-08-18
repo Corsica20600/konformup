@@ -209,6 +209,39 @@ export type Database = {
           }
         ];
       };
+      candidate_satisfaction_surveys: {
+        Row: {
+          id: string;
+          candidate_id: string;
+          session_id: string;
+          attendance_response_id: string;
+          answers: Json;
+          submitted_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          session_id: string;
+          attendance_response_id: string;
+          answers?: Json;
+          submitted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          candidate_id?: string;
+          session_id?: string;
+          attendance_response_id?: string;
+          answers?: Json;
+          submitted_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       candidates: {
         Row: {
           id: string;

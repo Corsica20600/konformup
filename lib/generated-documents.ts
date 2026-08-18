@@ -15,7 +15,6 @@ export type DocumentLifecycleStatus = "draft" | "generated" | "sent" | "signed" 
 export type SupportedGeneratedDocumentType =
   | "attestation"
   | "certificat"
-  | "certificat_realisation"
   | "bilan_session"
   | "synthese_societe"
   | "convocation"
@@ -63,11 +62,6 @@ const DOCUMENT_CONFIG: Record<
   certificat: {
     prefix: "CERT",
     buildPath: ({ candidateId }) => `/api/pdf/certificate/${candidateId}`,
-    requiresCandidate: true
-  },
-  certificat_realisation: {
-    prefix: "REAL",
-    buildPath: ({ candidateId }) => `/api/pdf/training-completion/${candidateId}`,
     requiresCandidate: true
   },
   bilan_session: {

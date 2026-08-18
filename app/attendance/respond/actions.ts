@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { confirmAttendanceResponse } from "@/lib/attendance";
+import { submitCandidateSatisfactionSurvey } from "@/lib/attendance";
 
 export async function confirmAttendanceResponseFormAction(formData: FormData) {
   const token = formData.get("token")?.toString().trim();
@@ -37,4 +38,20 @@ export async function confirmAttendanceResponseFormAction(formData: FormData) {
   }
 
   redirect(`/attendance/respond?token=${encodeURIComponent(token)}&submitted=1`);
+}
+
+export async function submitSatisfactionSurveyFormAction(formData: FormData) {
+  const token = formData.get("token")?.toString().trim();
+  if (!token) redirect("/attendance/respond");
+  const answers = Object.fromEntries(
+    Array.from(formData.entries())
+      .filter(([key, value]) => key !== "token" && typeof value === "string")
+      .map(([key, value]) => [key, value.toString().trim()])
+  );
+  try {
+    await submitCandidateSatisfactionSurvey(token, answers);
+  } catch {
+    redirect(`/attendance/respond?token=${encodeURIComponent(token)}&surveyError=1`);
+  }
+  redirect(`/attendance/respond?token=${encodeURIComponent(token)}&surveySubmitted=1`);
 }

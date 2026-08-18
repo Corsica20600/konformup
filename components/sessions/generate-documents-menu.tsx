@@ -9,8 +9,7 @@ import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 const initialState: ActionState = {};
 
 const documentOptions = [
-  { value: "attestation", label: getGeneratedDocumentLabel("attestation") },
-  { value: "certificat_realisation", label: "Certificat de realisation" }
+  { value: "attestation", label: getGeneratedDocumentLabel("attestation") }
 ] as const;
 
 export function GenerateDocumentsMenu({

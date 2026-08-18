@@ -393,3 +393,7 @@ export type PublicAttendanceResponse = {
   trainer_override_status: AttendanceResponseStatus | null;
   responded_at: string | null;
 };
+
+export type CandidateSatisfactionContext = { is_final_slot: boolean; submitted: boolean };
+
+export type CandidateSatisfactionSurvey = { id: string; submitted_at: string; answers: Record<string, string> };

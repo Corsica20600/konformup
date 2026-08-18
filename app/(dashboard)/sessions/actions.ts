@@ -10,6 +10,7 @@ import {
 import { closeAttendanceSlot, sendAttendanceSlotRequests } from "@/lib/attendance";
 import { buildParisDateTimeIso, isValidAttendanceTimeRange } from "@/lib/attendance-schedule";
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
+import { sendAttestationToSessionCompany } from "@/lib/company-attestation-email";
 import { createQuote, duplicateQuote, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
@@ -379,15 +380,6 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
   }
 
   if (parsed.data.sessionId) {
-    const sessionData = await getSessionById(parsed.data.sessionId);
-    await ensureCandidatePreTrainingDocuments({
-      sessionId: parsed.data.sessionId,
-      candidateId: parsed.data.candidateId,
-      trainingType: sessionData.session.training_type
-    });
-  }
-
-  if (parsed.data.sessionId) {
     revalidatePath(`/sessions/${parsed.data.sessionId}`);
   }
   revalidatePath(`/candidates/${parsed.data.candidateId}`);
@@ -634,10 +626,19 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
       type: type as SupportedGeneratedDocumentType
     });
 
+    let deliveryWarning = "";
+    if (type === "attestation") {
+      try {
+        await sendAttestationToSessionCompany(document.id);
+      } catch (emailError) {
+        deliveryWarning = emailError instanceof Error ? ` Attestation générée, mais l'envoi à l'entreprise a échoué : ${emailError.message}` : " Attestation générée, mais l'envoi à l'entreprise a échoué.";
+      }
+    }
+
     revalidatePath(`/sessions/${sessionId}`);
 
     return {
-      success: `${type[0].toUpperCase()}${type.slice(1)} généré.`,
+      success: `${type[0].toUpperCase()}${type.slice(1)} généré.${deliveryWarning}`,
       fileUrl: document.file_url ?? undefined
     };
   } catch (error) {
