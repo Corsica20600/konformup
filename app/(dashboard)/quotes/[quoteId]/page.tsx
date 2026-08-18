@@ -5,6 +5,8 @@ import { getInvoiceByQuoteId } from "@/lib/invoices";
 import { getProgrammeDocumentByQuoteId, getQuoteForEdit, QuoteError } from "@/lib/quotes";
 import { getTrainingAgreementDocumentByQuoteId } from "@/lib/training-agreements";
 import { getTrainerOptions } from "@/lib/queries";
+import { getLatestTrainingNeedsAnalysisForQuote } from "@/lib/training-needs/internal";
+import { TrainingNeedsSummaryCard } from "@/components/training-needs/internal-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +18,13 @@ export default async function QuoteDetailPage({
   const { quoteId } = await params;
 
   try {
-    const [quote, invoice, programme, trainingAgreement, trainers] = await Promise.all([
+    const [quote, invoice, programme, trainingAgreement, trainers, analysis] = await Promise.all([
       getQuoteForEdit(quoteId),
       getInvoiceByQuoteId(quoteId),
       getProgrammeDocumentByQuoteId(quoteId),
       getTrainingAgreementDocumentByQuoteId(quoteId),
-      getTrainerOptions()
+      getTrainerOptions(),
+      getLatestTrainingNeedsAnalysisForQuote(quoteId)
     ]);
 
     return (
@@ -52,6 +55,11 @@ export default async function QuoteDetailPage({
                 : null
             }
           />
+        </Card>
+        <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Analyse des besoins</p>
+          <h2 className="mt-2 text-2xl font-bold">Analyse des besoins</h2>
+          <div className="mt-4">{analysis ? <TrainingNeedsSummaryCard analysis={analysis} /> : <p className="text-sm text-ink/65">L’analyse des besoins sera créée et envoyée avec le devis.</p>}</div>
         </Card>
       </main>
     );

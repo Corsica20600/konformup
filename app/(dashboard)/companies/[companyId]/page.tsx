@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CompanyNotFoundError, getClientCompanyById, getSessions, getTrainerOptions } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
+import { listTrainingNeedsAnalysesForCompany } from "@/lib/training-needs/internal";
+import { TrainingNeedsSummaryCard } from "@/components/training-needs/internal-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +33,11 @@ export default async function CompanyDetailPage({
   } as const;
 
   try {
-    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions, trainers] = await Promise.all([
+    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions, trainers, analyses] = await Promise.all([
       getClientCompanyById(companyId),
       getSessions(),
-      getTrainerOptions()
+      getTrainerOptions(),
+      listTrainingNeedsAnalysesForCompany(companyId)
     ]);
     const normalizedCompany = company as unknown as {
       id: string;
@@ -132,6 +135,12 @@ export default async function CompanyDetailPage({
             ]}
             trainers={trainers}
           />
+        </Card>
+
+        <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Analyses des besoins</p>
+          <h3 className="mt-2 text-2xl font-bold">Analyses des besoins</h3>
+          <div className="mt-5 grid gap-3">{analyses.length ? analyses.map((analysis) => <TrainingNeedsSummaryCard key={analysis.id} analysis={analysis} />) : <p className="text-sm text-ink/65">Aucune analyse des besoins n’est encore associée à cette société. Elle sera créée automatiquement lors de l’envoi d’un devis.</p>}</div>
         </Card>
 
         <Card id="sessions">

@@ -92,6 +92,7 @@ export async function sendBrevoTransactionalEmail({
   to,
   subject,
   textContent,
+  htmlContent,
   attachment,
   errorLabel
 }: {
@@ -99,6 +100,7 @@ export async function sendBrevoTransactionalEmail({
   to: BrevoRecipient[];
   subject: string;
   textContent: string;
+  htmlContent?: string;
   attachment?: BrevoAttachment[];
   errorLabel: string;
 }) {
@@ -115,6 +117,7 @@ export async function sendBrevoTransactionalEmail({
       to,
       subject,
       textContent,
+      ...(htmlContent ? { htmlContent } : {}),
       ...(attachment?.length ? { attachment } : {})
     })
   });
