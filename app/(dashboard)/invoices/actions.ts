@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getInvoiceStatusAfterSend, getInvoiceById, setInvoiceCompanySatisfaction, updateInvoiceStatus } from "@/lib/invoices";
 import { sendInvoiceEmail } from "@/lib/invoice-email";
 import { setInvoiceComplaintSendWithInvoice, upsertInvoiceComplaint } from "@/lib/invoice-complaints";
+import { createComplaintAttachmentSignedUrl, uploadComplaintAttachment } from "@/lib/complaint-attachments";
 import { upsertInvoiceComplaintSchema } from "@/lib/validation";
 
 export type InvoiceActionState = {
@@ -17,7 +18,20 @@ export type InvoiceActionState = {
 export type InvoiceComplaintActionState = {
   error?: string;
   success?: string;
+  url?: string;
 };
+export async function uploadInvoiceComplaintAttachmentAction(_: InvoiceComplaintActionState, formData: FormData): Promise<InvoiceComplaintActionState> {
+  const complaintId = formData.get("invoiceComplaintId")?.toString(); const file = formData.get("file");
+  if (!complaintId || !(file instanceof File) || file.size === 0) return { error: "Sélectionnez un fichier valide." };
+  try { await uploadComplaintAttachment(complaintId, file); revalidatePath("/invoices"); return { success: "Document retourné ajouté." }; }
+  catch (error) { return { error: error instanceof Error ? error.message : "Impossible d’ajouter le document." }; }
+}
+export async function openInvoiceComplaintAttachmentAction(_: InvoiceComplaintActionState, formData: FormData): Promise<InvoiceComplaintActionState> {
+  const attachmentId = formData.get("attachmentId")?.toString();
+  if (!attachmentId) return { error: "Document manquant." };
+  try { const result = await createComplaintAttachmentSignedUrl(attachmentId); return { success: "Document prêt.", url: result.url }; }
+  catch { return { error: "Impossible d’ouvrir ce document." }; }
+}
 
 export async function sendInvoiceEmailAction(
   _: InvoiceActionState,

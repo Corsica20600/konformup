@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   updateInvoiceStatus: vi.fn(),
   sendInvoiceEmail: vi.fn(),
   setInvoiceComplaintSendWithInvoice: vi.fn(),
-  revalidatePath: vi.fn()
+  revalidatePath: vi.fn(), uploadComplaintAttachment: vi.fn(), createComplaintAttachmentSignedUrl: vi.fn()
 }));
 
 vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
@@ -20,6 +20,7 @@ vi.mock("@/lib/invoices", () => ({
 }));
 vi.mock("@/lib/invoice-email", () => ({ sendInvoiceEmail: mocks.sendInvoiceEmail }));
 vi.mock("@/lib/invoice-complaints", () => ({ setInvoiceComplaintSendWithInvoice: mocks.setInvoiceComplaintSendWithInvoice }));
+vi.mock("@/lib/complaint-attachments", () => ({ uploadComplaintAttachment: mocks.uploadComplaintAttachment, createComplaintAttachmentSignedUrl: mocks.createComplaintAttachmentSignedUrl }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { sendInvoiceEmailAction } from "@/app/(dashboard)/invoices/actions";

@@ -5,6 +5,7 @@ import { InvoiceComplaintForm } from "@/components/invoices/invoice-complaint-fo
 import { Card } from "@/components/ui/card";
 import { getInvoiceById, InvoiceError } from "@/lib/invoices";
 import { getInvoiceComplaintByInvoiceId } from "@/lib/invoice-complaints";
+import { listComplaintAttachments } from "@/lib/complaint-attachments";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,12 @@ export default async function InvoiceDetailPage({
       getInvoiceComplaintByInvoiceId(invoiceId)
     ]);
     const statusLabel = invoice.status === "sent" ? "Emise" : invoice.status === "draft" ? "En preparation" : invoice.status;
+    let attachments: { id: string; original_filename: string; mime_type: string; size_bytes: number; created_at: string }[] = [];
+    let attachmentsError: string | null = null;
+    if (complaint) {
+      try { attachments = await listComplaintAttachments(complaint.id); }
+      catch { attachmentsError = "Impossible de charger les documents retournés."; }
+    }
 
     return (
       <main className="grid gap-4">
@@ -67,7 +74,7 @@ export default async function InvoiceDetailPage({
             </Link>
           </div>
 
-          <InvoiceComplaintForm invoiceId={invoice.id} complaint={complaint} />
+          <InvoiceComplaintForm invoiceId={invoice.id} complaint={complaint} attachments={attachments} attachmentsError={attachmentsError} />
         </Card>
       </main>
     );

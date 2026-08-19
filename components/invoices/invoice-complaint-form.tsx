@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { saveInvoiceComplaintAction, type InvoiceComplaintActionState } from "@/app/(dashboard)/invoices/actions";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { openInvoiceComplaintAttachmentAction, saveInvoiceComplaintAction, uploadInvoiceComplaintAttachmentAction, type InvoiceComplaintActionState } from "@/app/(dashboard)/invoices/actions";
 import {
   INVOICE_COMPLAINT_SEVERITY_OPTIONS,
   INVOICE_COMPLAINT_STATUS_OPTIONS
@@ -28,11 +28,18 @@ const severityLabels = {
 export function InvoiceComplaintForm({
   invoiceId,
   complaint
+  , attachments = [], attachmentsError = null
 }: {
   invoiceId: string;
   complaint: InvoiceComplaint | null;
+  attachments?: { id: string; original_filename: string; mime_type: string; size_bytes: number; created_at: string }[];
+  attachmentsError?: string | null;
 }) {
   const [state, formAction, pending] = useActionState(saveInvoiceComplaintAction, initialState);
+  const [uploadState, uploadAction, uploading] = useActionState(uploadInvoiceComplaintAttachmentAction, initialState); const [fileName, setFileName] = useState(""); const fileRef = useRef<HTMLInputElement>(null);
+  const [openState, openAction, opening] = useActionState(openInvoiceComplaintAttachmentAction, initialState);
+  useEffect(() => { if (openState.url) window.open(openState.url, "_blank", "noopener,noreferrer"); }, [openState.url]);
+  useEffect(() => { if (uploadState.success && fileRef.current) { fileRef.current.value = ""; setFileName(""); } }, [uploadState.success]);
 
   return (
     <form action={formAction} className="grid gap-4 md:grid-cols-2">
@@ -174,6 +181,8 @@ export function InvoiceComplaintForm({
           Dernier envoi avec la facture : {new Date(complaint.sent_with_invoice_at).toLocaleString("fr-FR")}
         </p>
       ) : null}
+
+      {complaint ? <section className="md:col-span-2 rounded-2xl border border-ink/10 p-4"><h4 className="font-semibold">Documents retournés par le client</h4><p className="mt-1 text-sm text-ink/60">PDF, JPEG ou PNG · 10 Mo maximum</p><input type="hidden" name="invoiceComplaintId" value={complaint.id} /><div className="mt-3 flex flex-wrap gap-2"><input ref={fileRef} required name="file" type="file" accept="application/pdf,image/jpeg,image/png" onChange={(event) => setFileName(event.currentTarget.files?.[0] ? `${event.currentTarget.files[0].name} (${Math.ceil(event.currentTarget.files[0].size / 1024)} Ko)` : "")} /><span className="text-sm">{fileName}</span><Button disabled={uploading} formAction={uploadAction} onClick={(event) => { if (!window.confirm(`Ajouter ${fileName || "ce document"} ?`)) event.preventDefault(); }} type="submit">{uploading ? "Téléversement…" : "Ajouter"}</Button></div>{uploadState.error ? <p className="mt-2 text-sm text-accent">{uploadState.error}</p> : null}{uploadState.success ? <p className="mt-2 text-sm text-pine">{uploadState.success}</p> : null}{attachmentsError ? <p className="mt-2 text-sm text-accent">{attachmentsError}</p> : attachments.length ? <ul className="mt-3 grid gap-2">{attachments.map((item) => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2"><span className="max-w-xs truncate">{item.original_filename} · {Math.ceil(item.size_bytes / 1024)} Ko · {new Date(item.created_at).toLocaleDateString("fr-FR")}</span><Button disabled={opening} formAction={openAction} name="attachmentId" value={item.id} type="submit">Ouvrir</Button></li>)}</ul> : <p className="mt-2 text-sm text-ink/60">Aucun document retourné</p>}{openState.error ? <p className="mt-2 text-sm text-accent">{openState.error}</p> : null}</section> : null}
 
       {state.error ? <p className="text-sm text-accent md:col-span-2">{state.error}</p> : null}
       {state.success ? <p className="text-sm text-pine md:col-span-2">{state.success}</p> : null}
