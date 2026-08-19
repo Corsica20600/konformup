@@ -86,7 +86,6 @@ export function calculateSessionClosureSummary(candidates: SessionCandidate[]): 
 export function getFinalDocumentSet(trainingType: TrainingType) {
   const baseDocuments = [
     "Attestation interne de fin de formation",
-    "Certificat de realisation",
     "Bilan session",
     "Synthese societe / dossier final"
   ];
@@ -108,12 +107,4 @@ export function getSstCertificateNotice(trainingType: TrainingType) {
   }
 
   return "Certificat SST a renseigner dans le registre FORPREV lorsque la validation est acquise.";
-}
-
-export function getTrainingCompletionWording(trainingType: TrainingType) {
-  if (trainingType === "hygiene") {
-    return "Ce certificat de realisation atteste que le participant a suivi l'action de formation Hygiene indiquee.";
-  }
-
-  return "Ce certificat de realisation atteste que le participant a suivi l'action de formation. Il est distinct du certificat SST officiel lorsque celui-ci est applicable.";
 }

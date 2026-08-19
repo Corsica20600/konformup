@@ -4,12 +4,11 @@ import {
   calculateSessionClosureSummary,
   getForprevStatusForCandidate,
   isSstTrainingType,
-  getSstCertificateNotice,
-  getTrainingCompletionWording
+  getSstCertificateNotice
 } from "@/lib/session-closure";
 import { getTrainingDocumentTitle, getTrainingTypeLabel } from "@/lib/training-programs";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
-import { formatDateRange, formatDurationHours } from "@/lib/utils";
+import { formatDateRange } from "@/lib/utils";
 import { getPdfOrganizationFooterLine } from "@/lib/pdf/organization-branding";
 
 const styles = StyleSheet.create({
@@ -156,15 +155,6 @@ const styles = StyleSheet.create({
   }
 });
 
-function DetailRow({ label, value, isLast = false }: { label: string; value: string; isLast?: boolean }) {
-  return (
-    <View style={isLast ? [styles.row, styles.lastRow] : styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-    </View>
-  );
-}
-
 function evaluationLine(candidateSession: SessionCandidate) {
   const evaluation = getGlobalEvaluation(candidateSession.evaluations);
   if (!evaluation) {
@@ -206,51 +196,6 @@ function Header({
         <Image src={organizationSettings.resolved_logo_url} style={styles.logo} />
       ) : null}
     </View>
-  );
-}
-
-export function TrainingCompletionCertificateDocument({
-  session,
-  candidateSession,
-  organizationSettings,
-  documentRef
-}: {
-  session: SessionItem;
-  candidateSession: SessionCandidate;
-  organizationSettings: OrganizationBranding;
-  documentRef?: string | null;
-}) {
-  const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
-  const wording = getTrainingCompletionWording(session.training_type);
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <Header title="Certificat de realisation" session={session} organizationSettings={organizationSettings} />
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Participant</Text>
-          <DetailRow label="Nom" value={candidateFullName} />
-          <DetailRow label="Societe" value={candidateSession.candidate.company || "Non renseignee"} />
-          <DetailRow label="Reference document" value={documentRef || "A attribuer"} isLast />
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Action realisee</Text>
-          <DetailRow label="Formation" value={getTrainingTypeLabel(session.training_type)} />
-          <DetailRow label="Dates" value={formatDateRange(session.start_date, session.end_date)} />
-          <DetailRow label="Duree" value={formatDurationHours(session.duration_hours)} />
-          <DetailRow label="Lieu" value={session.location} />
-          <DetailRow label="Formateur" value={session.trainer_name || "Non renseigne"} isLast />
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Objet du document</Text>
-          <Text style={styles.paragraph}>{wording}</Text>
-        </View>
-        <Text style={styles.footer}>
-          {getPdfOrganizationFooterLine(organizationSettings)} - certificat de realisation distinct de l'attestation interne
-          {isSstTrainingType(session.training_type) ? " et du certificat SST officiel." : "."}
-        </Text>
-      </Page>
-    </Document>
   );
 }
 

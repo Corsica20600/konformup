@@ -22,6 +22,7 @@ import {
   DOCUMENT_PHASE_LABELS,
   getDocumentPhase,
   getGeneratedDocumentLabel,
+  isRetiredGeneratedDocumentType,
   type DocumentPhase
 } from "@/lib/document-labels";
 import { getQuoteStatusTone, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
@@ -331,7 +332,10 @@ export function DocumentList({
 }) {
   const visibleDocuments = deduplicateCandidateDocuments(
     documents.filter(
-      (document) => document.document_type !== "invoice" && (!hideCandidateDocuments || !document.candidate_id)
+      (document) =>
+        document.document_type !== "invoice" &&
+        !isRetiredGeneratedDocumentType(document.document_type) &&
+        (!hideCandidateDocuments || !document.candidate_id)
     )
   );
   const phaseOrder: DocumentPhase[] = ["before", "during", "after", "other"];

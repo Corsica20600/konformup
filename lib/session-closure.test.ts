@@ -3,8 +3,7 @@ import {
   calculateSessionClosureSummary,
   getFinalDocumentSet,
   getForprevStatusForCandidate,
-  getSessionClosureReadiness,
-  getTrainingCompletionWording
+  getSessionClosureReadiness
 } from "@/lib/session-closure";
 import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 import type { SessionCandidate } from "@/lib/types";
@@ -68,12 +67,10 @@ describe("session closure", () => {
   it("keeps FORPREV non applicable for Hygiene", () => {
     expect(getForprevStatusForCandidate("hygiene", buildCandidate({}))).toBe("non_applicable");
     expect(getFinalDocumentSet("hygiene").join(" ")).not.toMatch(/SST|FORPREV/i);
-    expect(getTrainingCompletionWording("hygiene")).not.toMatch(/SST|FORPREV/i);
   });
 
-  it("distinguishes the completion certificate from the SST certificate", () => {
-    expect(getTrainingCompletionWording("sst_initial")).toContain("distinct du certificat SST officiel");
-    expect(getFinalDocumentSet("sst_initial")).toContain("Certificat de realisation");
+  it("lists only the retained final documents", () => {
+    expect(getFinalDocumentSet("sst_initial")).not.toContain("Certificat de realisation");
   });
 
   it("labels the historical certificat type as an internal attestation", () => {
