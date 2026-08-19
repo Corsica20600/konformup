@@ -286,79 +286,6 @@ export type Database = {
           },
         ]
       }
-      company_satisfaction_surveys: {
-        Row: {
-          id: string
-          company_id: string
-          invoice_id: string
-          session_id: string | null
-          quote_id: string | null
-          token_hash: string
-          status: string
-          sent_at: string | null
-          delivery_error_at: string | null
-          submitted_at: string | null
-          overall_rating: number | null
-          organization_rating: number | null
-          needs_rating: number | null
-          comment: string | null
-          publication_consent: boolean
-          public_identity: string | null
-          moderation_status: string
-          moderated_at: string | null
-          moderated_by: string | null
-          published_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          company_id: string
-          invoice_id: string
-          session_id?: string | null
-          quote_id?: string | null
-          token_hash: string
-          status?: string
-          sent_at?: string | null
-          delivery_error_at?: string | null
-          submitted_at?: string | null
-          overall_rating?: number | null
-          organization_rating?: number | null
-          needs_rating?: number | null
-          comment?: string | null
-          publication_consent?: boolean
-          public_identity?: string | null
-          moderation_status?: string
-          moderated_at?: string | null
-          moderated_by?: string | null
-          published_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          status?: string
-          sent_at?: string | null
-          delivery_error_at?: string | null
-          submitted_at?: string | null
-          overall_rating?: number | null
-          organization_rating?: number | null
-          needs_rating?: number | null
-          comment?: string | null
-          publication_consent?: boolean
-          public_identity?: string | null
-          moderation_status?: string
-          moderated_at?: string | null
-          moderated_by?: string | null
-          published_at?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          { foreignKeyName: "company_satisfaction_surveys_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "client_companies"; referencedColumns: ["id"] },
-          { foreignKeyName: "company_satisfaction_surveys_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"] },
-          { foreignKeyName: "company_satisfaction_surveys_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"] },
-          { foreignKeyName: "company_satisfaction_surveys_session_id_fkey"; columns: ["session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }
-        ]
-      }
       candidates: {
         Row: {
           address: string | null
@@ -503,6 +430,117 @@ export type Database = {
         }
         Relationships: []
       }
+      company_satisfaction_surveys: {
+        Row: {
+          comment: string | null
+          company_id: string
+          created_at: string
+          delivery_error_at: string | null
+          id: string
+          invoice_id: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_status: string
+          needs_rating: number | null
+          organization_rating: number | null
+          overall_rating: number | null
+          public_identity: string | null
+          publication_consent: boolean
+          published_at: string | null
+          quote_id: string | null
+          sent_at: string | null
+          session_id: string | null
+          status: string
+          submitted_at: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          company_id: string
+          created_at?: string
+          delivery_error_at?: string | null
+          id?: string
+          invoice_id: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_status?: string
+          needs_rating?: number | null
+          organization_rating?: number | null
+          overall_rating?: number | null
+          public_identity?: string | null
+          publication_consent?: boolean
+          published_at?: string | null
+          quote_id?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          company_id?: string
+          created_at?: string
+          delivery_error_at?: string | null
+          id?: string
+          invoice_id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_status?: string
+          needs_rating?: number | null
+          organization_rating?: number | null
+          overall_rating?: number | null
+          public_identity?: string | null
+          publication_consent?: boolean
+          published_at?: string | null
+          quote_id?: string | null
+          sent_at?: string | null
+          session_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_satisfaction_surveys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "client_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_satisfaction_surveys_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_satisfaction_surveys_moderated_by_fkey"
+            columns: ["moderated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_satisfaction_surveys_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_satisfaction_surveys_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_documents: {
         Row: {
           candidate_id: string | null
@@ -566,6 +604,57 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_complaint_attachments: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          invoice_complaint_id: string
+          mime_type: string
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          invoice_complaint_id: string
+          mime_type: string
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          invoice_complaint_id?: string
+          mime_type?: string
+          original_filename?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_complaint_attachments_invoice_complaint_id_fkey"
+            columns: ["invoice_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_complaint_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1481,6 +1570,22 @@ export type Database = {
           trainer_override_status: string
         }[]
       }
+      create_or_get_company_satisfaction_survey: {
+        Args: {
+          p_company_id: string
+          p_invoice_id: string
+          p_quote_id: string
+          p_session_id: string
+          p_token_hash: string
+        }
+        Returns: {
+          id: string
+          invoice_id: string
+          status: string
+          submitted_at: string
+          token_hash: string
+        }[]
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1511,31 +1616,34 @@ export type Database = {
           submitted: boolean
         }[]
       }
-      invoice_complaint_attachments: {
-        Row: { id: string; invoice_complaint_id: string; bucket_id: string; storage_path: string; original_filename: string; mime_type: string; size_bytes: number; uploaded_by: string; created_at: string }
-        Insert: { id?: string; invoice_complaint_id: string; bucket_id?: string; storage_path: string; original_filename: string; mime_type: string; size_bytes: number; uploaded_by: string; created_at?: string }
-        Update: { original_filename?: string; mime_type?: string; size_bytes?: number }
-        Relationships: [
-          { foreignKeyName: "invoice_complaint_attachments_invoice_complaint_id_fkey"; columns: ["invoice_complaint_id"]; isOneToOne: false; referencedRelation: "invoice_complaints"; referencedColumns: ["id"] },
-          { foreignKeyName: "invoice_complaint_attachments_uploaded_by_fkey"; columns: ["uploaded_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
-        ]
-      }
       get_company_satisfaction_context: {
         Args: { p_token: string }
-        Returns: { available: boolean; completed: boolean; company_name: string; training_title: string | null }[]
+        Returns: {
+          available: boolean
+          company_name: string
+          completed: boolean
+          training_title: string
+        }[]
       }
       is_operational_manager: { Args: never; Returns: boolean }
-      create_or_get_company_satisfaction_survey: {
-        Args: { p_company_id: string; p_invoice_id: string; p_quote_id: string; p_session_id: string | null; p_token_hash: string }
-        Returns: { id: string; invoice_id: string; token_hash: string; status: string; submitted_at: string | null }[]
+      mark_company_satisfaction_delivery: {
+        Args: { p_success: boolean; p_survey_id: string }
+        Returns: boolean
       }
-      mark_company_satisfaction_delivery: { Args: { p_survey_id: string; p_success: boolean }; Returns: boolean }
       submit_candidate_satisfaction_survey: {
         Args: { p_answers: Json; p_token: string }
         Returns: boolean
       }
       submit_company_satisfaction_survey: {
-        Args: { p_token: string; p_overall_rating: number; p_organization_rating: number; p_needs_rating: number; p_comment: string | null; p_publication_consent: boolean; p_public_identity: string | null }
+        Args: {
+          p_comment: string
+          p_needs_rating: number
+          p_organization_rating: number
+          p_overall_rating: number
+          p_public_identity: string
+          p_publication_consent: boolean
+          p_token: string
+        }
         Returns: string
       }
       uuid_or_null: { Args: { p_value: string }; Returns: string }
