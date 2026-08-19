@@ -124,3 +124,26 @@ export async function markInvoiceComplaintSentWithInvoice(invoiceId: string) {
     throw new InvoiceComplaintError("La fiche de reclamation n'a pas pu etre marquee comme envoyee.");
   }
 }
+
+export async function setInvoiceComplaintSendWithInvoice(
+  invoice: Pick<InvoiceDetail, "id" | "company" | "quote">,
+  sendWithInvoice: boolean
+) {
+  const supabase = await createClient();
+  const existing = await getInvoiceComplaintByInvoiceId(invoice.id);
+  if (existing) {
+    const { error } = await supabase
+      .from("invoice_complaints")
+      .update({ send_with_invoice: sendWithInvoice })
+      .eq("id", existing.id);
+    if (error) throw new InvoiceComplaintError("Impossible d'enregistrer l'option de fiche de réclamation.");
+    return;
+  }
+  const { error } = await supabase.from("invoice_complaints").insert({
+    invoice_id: invoice.id,
+    company_id: invoice.company.id,
+    quote_id: invoice.quote.id,
+    send_with_invoice: sendWithInvoice
+  });
+  if (error) throw new InvoiceComplaintError("Impossible d'enregistrer l'option de fiche de réclamation.");
+}

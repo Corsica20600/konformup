@@ -8,6 +8,22 @@ function buildInvoiceEmailSubject(invoiceNumber: string) {
   return `Envoi de votre facture ${invoiceNumber}`;
 }
 
+type PdfPayload = {
+  buffer: ArrayBuffer;
+  contentType: string | null;
+};
+
+function buildPdfAttachment(name: string, pdf: PdfPayload) {
+  if (pdf.buffer.byteLength === 0 || !pdf.contentType?.toLowerCase().includes("application/pdf")) {
+    throw new Error("Le PDF à joindre à la facture est invalide.");
+  }
+
+  return {
+    name,
+    content: Buffer.from(pdf.buffer).toString("base64")
+  };
+}
+
 function buildInvoiceEmailBody(invoice: InvoiceDetail, signatureLines: string[]) {
   return [
     "Bonjour,",
@@ -40,6 +56,11 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
     complaint?.send_with_invoice
       ? `${body}\n\nUne fiche de reclamation / insatisfaction vierge est jointe a cet envoi pour etre completee en cas de retour client.`
       : body;
+  const invoiceAttachment = buildPdfAttachment(`facture-${invoice.invoice_number ?? invoice.id}.pdf`, pdf);
+  const complaintAttachment = complaintPdf
+    ? buildPdfAttachment(`fiche-reclamation-${invoice.invoice_number ?? invoice.id}.pdf`, complaintPdf)
+    : null;
+
   await sendBrevoTransactionalEmail({
     context: emailContext,
     to: [
@@ -50,28 +71,16 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
     ],
     subject: buildInvoiceEmailSubject(invoice.invoice_number ?? `FACT-${invoice.id}`),
     textContent: bodyWithComplaintNote,
-    attachment: [
-        {
-          name: `facture-${invoice.invoice_number ?? invoice.id}.pdf`,
-          content: Buffer.from(pdf.buffer).toString("base64")
-        },
-        ...(complaintPdf
-          ? [
-              {
-                name: `fiche-reclamation-${invoice.invoice_number ?? invoice.id}.pdf`,
-                content: Buffer.from(complaintPdf.buffer).toString("base64")
-              }
-            ]
-          : [])
-      ],
+    attachment: [invoiceAttachment, ...(complaintAttachment ? [complaintAttachment] : [])],
     errorLabel: "l'envoi de la facture"
   });
 
-  if (complaint?.send_with_invoice) {
+  if (complaintAttachment) {
     await markInvoiceComplaintSentWithInvoice(invoice.id);
   }
 
   return {
-    fileUrl: pdfPath
+    fileUrl: pdfPath,
+    complaintAttached: Boolean(complaintAttachment)
   };
 }

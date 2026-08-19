@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getInvoiceStatusAfterSend, getInvoiceById, updateInvoiceStatus } from "@/lib/invoices";
 import { sendInvoiceEmail } from "@/lib/invoice-email";
-import { upsertInvoiceComplaint } from "@/lib/invoice-complaints";
+import { setInvoiceComplaintSendWithInvoice, upsertInvoiceComplaint } from "@/lib/invoice-complaints";
 import { upsertInvoiceComplaintSchema } from "@/lib/validation";
 
 export type InvoiceActionState = {
@@ -25,6 +25,11 @@ export async function sendInvoiceEmailAction(
   await requireUser();
 
   const invoiceId = formData.get("invoiceId")?.toString().trim();
+  // Some existing entry points (the document list) do not expose this option.
+  // Only persist it when the sending form explicitly provided a value.
+  const sendWithInvoiceValues = formData.getAll("sendWithInvoice").map((value) => value.toString());
+  const sendWithInvoice =
+    sendWithInvoiceValues.length > 0 ? sendWithInvoiceValues.at(-1) === "true" : undefined;
 
   if (!invoiceId) {
     return { error: "Facture manquante." };
@@ -32,7 +37,10 @@ export async function sendInvoiceEmailAction(
 
   try {
     const invoice = await getInvoiceById(invoiceId);
-    const { fileUrl } = await sendInvoiceEmail(invoice);
+    if (sendWithInvoice !== undefined) {
+      await setInvoiceComplaintSendWithInvoice(invoice, sendWithInvoice);
+    }
+    const { fileUrl, complaintAttached } = await sendInvoiceEmail(invoice);
     const nextStatus = getInvoiceStatusAfterSend(invoice.status);
 
     if (nextStatus !== invoice.status) {
@@ -46,7 +54,12 @@ export async function sendInvoiceEmailAction(
     revalidatePath(`/companies/${invoice.company.id}`);
 
     return {
-      success: nextStatus === "sent" ? "Facture envoyee." : "Email envoye.",
+      success:
+        nextStatus === "sent"
+          ? complaintAttached
+            ? "Facture et fiche de réclamation envoyées."
+            : "Facture envoyée."
+          : "Email envoyé.",
       fileUrl
     };
   } catch (error) {

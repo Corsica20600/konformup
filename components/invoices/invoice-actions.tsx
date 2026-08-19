@@ -9,10 +9,12 @@ const initialState: InvoiceActionState = {};
 
 export function InvoiceActions({
   invoiceId,
-  quoteId
+  quoteId,
+  sendWithInvoice = false
 }: {
   invoiceId: string;
   quoteId: string;
+  sendWithInvoice?: boolean;
 }) {
   const [sendState, sendAction, sendPending] = useActionState(sendInvoiceEmailAction, initialState);
 
@@ -21,6 +23,11 @@ export function InvoiceActions({
       <div className="flex flex-wrap gap-2">
         <form action={sendAction}>
           <input type="hidden" name="invoiceId" value={invoiceId} />
+          <input type="hidden" name="sendWithInvoice" value="false" />
+          <label className="mb-2 flex items-center gap-2 text-sm text-ink/75">
+            <input type="checkbox" name="sendWithInvoice" value="true" defaultChecked={sendWithInvoice} />
+            Joindre une fiche de réclamation vierge
+          </label>
           <Button type="submit" variant="secondary" disabled={sendPending}>
             {sendPending ? "Envoi..." : "Envoyer"}
           </Button>
