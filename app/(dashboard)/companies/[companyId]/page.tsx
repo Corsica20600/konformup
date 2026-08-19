@@ -11,6 +11,8 @@ import { CompanyNotFoundError, getClientCompanyById, getSessions, getTrainerOpti
 import { formatDate } from "@/lib/utils";
 import { listTrainingNeedsAnalysesForCompany } from "@/lib/training-needs/internal";
 import { TrainingNeedsSummaryCard } from "@/components/training-needs/internal-summary";
+import { getCompanyQuality } from "@/lib/company-quality";
+import { ComplaintAttachmentOpenButton } from "@/components/invoices/complaint-attachment-open-button";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +35,11 @@ export default async function CompanyDetailPage({
   } as const;
 
   try {
-    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions, trainers, analyses] = await Promise.all([
+    const [{ company, candidates, documents, candidateDocuments, sessions: companySessions, quotes, invoices, complaints }, sessions, trainers, analyses, quality] = await Promise.all([
       getClientCompanyById(companyId),
       getSessions(),
       getTrainerOptions(),
-      listTrainingNeedsAnalysesForCompany(companyId)
+      listTrainingNeedsAnalysesForCompany(companyId), getCompanyQuality(companyId)
     ]);
     const normalizedCompany = company as unknown as {
       id: string;
@@ -218,6 +220,9 @@ export default async function CompanyDetailPage({
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Qualite</p>
           <h3 className="mt-2 text-2xl font-bold">Reclamations et insatisfactions</h3>
+          <div className="mt-4 grid gap-2 text-sm md:grid-cols-4"><p>Ouvertes : {quality.complaints?.filter((item) => item.status === "open").length ?? "—"}</p><p>En cours : {quality.complaints?.filter((item) => item.status === "in_progress").length ?? "—"}</p><p>Clôturées : {quality.complaints?.filter((item) => item.status === "closed" || item.status === "resolved").length ?? "—"}</p><p>Niveau max : {quality.complaints?.some((item) => item.severity === "high") ? "Haut" : quality.complaints?.some((item) => item.severity === "medium") ? "Moyen" : quality.complaints?.length ? "Faible" : "—"}</p><p>Satisfactions envoyées : {quality.satisfaction?.filter((item) => item.status === "sent" || item.status === "pending").length ?? "—"}</p><p>Complétées : {quality.satisfaction?.filter((item) => item.status === "completed").length ?? "—"}</p><p>Moyenne : {(() => { const values = quality.satisfaction?.filter((item) => item.status === "completed" && item.overall_rating != null).map((item) => item.overall_rating as number) ?? []; return values.length ? (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1) : "—"; })()}</p><p>Consentements : {quality.satisfaction?.filter((item) => item.publication_consent).length ?? "—"}</p></div>
+          {quality.complaintsError ? <p className="mt-3 text-sm text-accent">{quality.complaintsError}</p> : null}
+          {quality.complaints?.map((complaint) => <details key={complaint.id} className="mt-3 rounded-xl border border-ink/10 p-3"><summary className="cursor-pointer">{complaint.dissatisfaction_summary || "Réclamation"} · {complaint.attachments.length} pièce(s)</summary>{complaint.attachments.map((attachment) => <div key={attachment.id} className="mt-2 flex flex-wrap items-center gap-2 text-sm"><span>{attachment.original_filename} · {attachment.mime_type} · {Math.ceil(attachment.size_bytes / 1024)} Ko · {formatDate(attachment.created_at)}</span><ComplaintAttachmentOpenButton attachmentId={attachment.id} /></div>)}</details>)}
           <div className="mt-6 grid gap-3">
             {complaints.length ? (
               complaints.map((complaint) => (
@@ -252,6 +257,7 @@ export default async function CompanyDetailPage({
               <p className="text-sm text-ink/65">Aucune fiche qualite n&apos;est encore enregistree pour cette societe.</p>
             )}
           </div>
+          <div className="mt-6 border-t border-ink/10 pt-5"><h4 className="font-semibold">Satisfaction entreprise</h4>{quality.satisfactionError ? <p className="mt-2 text-sm text-accent">{quality.satisfactionError}</p> : quality.satisfaction?.length ? <div className="mt-3 grid gap-3">{quality.satisfaction.map((survey) => <div key={survey.id} className="rounded-2xl border border-ink/10 bg-canvas/60 p-4"><p className="font-medium">{survey.status} · {survey.submitted_at ? `Répondu le ${formatDate(survey.submitted_at)}` : "En attente"}</p><p className="mt-1 text-sm text-ink/65">Global {survey.overall_rating ?? "—"} · Organisation {survey.organization_rating ?? "—"} · Besoins {survey.needs_rating ?? "—"}</p>{survey.comment ? <p className="mt-2 whitespace-pre-wrap text-sm">{survey.comment}</p> : null}<p className="mt-2 text-xs text-ink/55">Consentement : {survey.publication_consent ? "Oui" : "Non"} · Modération : {survey.moderation_status}</p></div>)}</div> : <p className="mt-2 text-sm text-ink/65">Aucune satisfaction entreprise.</p>}</div>
         </Card>
 
         <Card>
