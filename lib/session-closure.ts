@@ -84,11 +84,7 @@ export function calculateSessionClosureSummary(candidates: SessionCandidate[]): 
 }
 
 export function getFinalDocumentSet(trainingType: TrainingType) {
-  const baseDocuments = [
-    "Attestation interne de fin de formation",
-    "Bilan session",
-    "Synthese societe / dossier final"
-  ];
+  const baseDocuments = ["Attestation interne de fin de formation", "Bilan session"];
 
   if (!isSstTrainingType(trainingType)) {
     return baseDocuments;

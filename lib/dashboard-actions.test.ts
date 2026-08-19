@@ -37,7 +37,7 @@ describe("dashboard actions", () => {
       ["Émargements en attente", 1],
       ["Évaluations à compléter", 1],
       ["Sessions à clôturer", 1],
-      ["Documents finaux à générer", 1]
+      ["Bilans de session à générer", 1]
     ]);
   });
 
@@ -60,6 +60,6 @@ describe("dashboard actions", () => {
     );
 
     expect(actions.find((action) => action.label === "Candidats à ajouter")?.count).toBe(0);
-    expect(actions.find((action) => action.label === "Documents finaux à générer")?.count).toBe(0);
+    expect(actions.find((action) => action.label === "Bilans de session à générer")?.count).toBe(0);
   });
 });

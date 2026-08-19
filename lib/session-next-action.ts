@@ -23,7 +23,6 @@ export function getSessionNextAction({
   if (session.closure_status === "closed" || session.status === "completed") {
     const availableDocuments = documents.filter((document) => FINAL_DOCUMENT_STATUSES.has(document.status));
     const hasBilan = availableDocuments.some((document) => document.document_type === "bilan_session");
-    const hasSynthese = availableDocuments.some((document) => document.document_type === "synthese_societe");
     const admittedCandidateIds = candidates
       .filter((candidate) => candidate.evaluations?.some((evaluation) => evaluation.evaluation_type === "globale" && evaluation.result === "admis"))
       .map((candidate) => candidate.candidate.id);
@@ -34,20 +33,17 @@ export function getSessionNextAction({
     );
     const missingAttestationCount = admittedCandidateIds.filter((candidateId) => !attestationCandidateIds.has(candidateId)).length;
 
-    if (hasBilan && hasSynthese && missingAttestationCount === 0) {
+    if (hasBilan && missingAttestationCount === 0) {
       return {
         label: "Consulter les documents finaux",
-        description: `Bilan et synthèse générés. Attestations : ${admittedCandidateIds.length}/${admittedCandidateIds.length}.`,
+        description: `Bilan généré. Attestations : ${admittedCandidateIds.length}/${admittedCandidateIds.length}.`,
         href: "#cloture-session"
       };
     }
 
-    const missing = [!hasBilan ? "bilan" : null, !hasSynthese ? "synthèse" : null]
-      .filter(Boolean)
-      .join(", ");
     return {
       label: "Finaliser les documents",
-      description: `${missing ? `À générer : ${missing}. ` : ""}Attestations manquantes : ${missingAttestationCount}.`,
+      description: `${hasBilan ? "" : "Bilan à générer. "}Attestations manquantes : ${missingAttestationCount}.`,
       href: "#cloture-session"
     };
   }

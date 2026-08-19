@@ -16,7 +16,6 @@ export type SupportedGeneratedDocumentType =
   | "attestation"
   | "certificat"
   | "bilan_session"
-  | "synthese_societe"
   | "convocation"
   | "feuille_presence"
   | "invoice"
@@ -67,11 +66,6 @@ const DOCUMENT_CONFIG: Record<
   bilan_session: {
     prefix: "BILAN",
     buildPath: ({ sessionId }) => `/api/pdf/session-report/${sessionId}`,
-    requiresCandidate: false
-  },
-  synthese_societe: {
-    prefix: "FINAL",
-    buildPath: ({ sessionId }) => `/api/pdf/company-final-summary/${sessionId}`,
     requiresCandidate: false
   },
   convocation: {

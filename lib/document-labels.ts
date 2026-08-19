@@ -7,7 +7,6 @@ export function getGeneratedDocumentLabel(type: string) {
   if (type === "welcome_pack") return "Livret d'accueil + reglement interieur";
   if (type === "attestation" || type === "certificat") return "Attestation interne de fin de formation";
   if (type === "bilan_session") return "Bilan session";
-  if (type === "synthese_societe") return "Synthese societe";
   if (type === "convocation") return "Convocation";
   if (type === "feuille_presence") return "Feuille de presence";
   return type;
@@ -31,7 +30,7 @@ export function getDocumentPhase(type: string): DocumentPhase {
     return "during";
   }
 
-  if (["attestation", "certificat", "bilan_session", "synthese_societe"].includes(type)) {
+  if (["attestation", "certificat", "bilan_session"].includes(type)) {
     return "after";
   }
 
@@ -39,5 +38,5 @@ export function getDocumentPhase(type: string): DocumentPhase {
 }
 
 export function isRetiredGeneratedDocumentType(type: string) {
-  return type === "certificat_realisation";
+  return ["certificat_realisation", "synthese_societe"].includes(type);
 }

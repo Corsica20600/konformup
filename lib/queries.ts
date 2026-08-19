@@ -1672,7 +1672,7 @@ export async function getDashboardWorkflowSnapshot(): Promise<DashboardWorkflowS
     supabase
       .from("generated_documents")
       .select("session_id, document_type")
-      .in("document_type", ["bilan_session", "synthese_societe"])
+      .eq("document_type", "bilan_session")
       .in("status", ["generated", "sent", "signed", "archived"])
       .not("session_id", "is", null)
   ]);

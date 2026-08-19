@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { generateDocumentAction, generateMissingCandidateAttestationsAction, updateSessionClosureAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +25,8 @@ export function SessionClosurePanel({
   const readiness = getSessionClosureReadiness(candidates);
   const documents = getFinalDocumentSet(session.training_type);
   const [closureState, closureFormAction, closurePending] = useActionState(updateSessionClosureAction, initialState);
-  const [documentState, documentFormAction, documentPending] = useActionState(generateDocumentAction, initialState);
   const [attestationState, attestationFormAction, attestationPending] = useActionState(generateMissingCandidateAttestationsAction, initialState);
+  const [documentState, documentFormAction, documentPending] = useActionState(generateDocumentAction, initialState);
 
   return (
     <div className="grid gap-4">
@@ -111,10 +110,7 @@ export function SessionClosurePanel({
         <form action={documentFormAction} className="mt-4 flex flex-wrap gap-2">
           <input type="hidden" name="sessionId" value={session.id} />
           <Button type="submit" name="type" value="bilan_session" variant="secondary" disabled={documentPending}>
-            Générer bilan
-          </Button>
-          <Button type="submit" name="type" value="synthese_societe" variant="secondary" disabled={documentPending}>
-            Générer synthèse
+            Générer le bilan
           </Button>
         </form>
         <form action={attestationFormAction} className="mt-3">
@@ -133,16 +129,6 @@ export function SessionClosurePanel({
           </ul>
         ) : null}
         {documentState.error ? <p className="mt-2 text-sm text-accent">{documentState.error}</p> : null}
-        {documentState.success ? (
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-pine">
-            <p>{documentState.success}</p>
-            {documentState.fileUrl ? (
-              <Link href={documentState.fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-pine">
-                Ouvrir le PDF
-              </Link>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </div>
   );

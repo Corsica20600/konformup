@@ -85,13 +85,13 @@ export function getDashboardActions(
       href: "/sessions"
     },
     {
-      label: "Documents finaux à générer",
-      description: "Sessions clôturées sans bilan ou synthèse société finalisés.",
+      label: "Bilans de session à générer",
+      description: "Sessions clôturées sans bilan de session finalisé.",
       count: workflow
         ? sessions.filter((session) => {
             if (session.status !== "completed" && session.closure_status !== "closed") return false;
             const types = finalDocumentTypesBySession.get(session.id);
-            return !types?.has("bilan_session") || !types.has("synthese_societe");
+            return !types?.has("bilan_session");
           }).length
         : 0,
       href: "/sessions"
