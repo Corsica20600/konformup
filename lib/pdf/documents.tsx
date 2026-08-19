@@ -1681,13 +1681,15 @@ export function CertificateDocument({
   candidateSession,
   organizationSettings,
   documentRef = null,
-  verificationQrCodeDataUrl = null
+  verificationQrCodeDataUrl = null,
+  trainerSignatureUrl = null
 }: {
   session: SessionItem;
   candidateSession: SessionCandidate;
   organizationSettings: OrganizationBranding;
   documentRef?: string | null;
   verificationQrCodeDataUrl?: string | null;
+  trainerSignatureUrl?: string | null;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
   const globalEvaluation = getGlobalEvaluation(candidateSession.evaluations);
@@ -1831,8 +1833,8 @@ export function CertificateDocument({
 
               <View style={certificateStyles.signatureCompactColumn}>
                 <Text style={certificateStyles.signatureLabel}>Attestation etablie par</Text>
-                {organizationSettings.resolved_signature_url ? (
-                  <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImageSlim} />
+                {trainerSignatureUrl || organizationSettings.resolved_signature_url ? (
+                  <Image src={trainerSignatureUrl || organizationSettings.resolved_signature_url!} style={certificateStyles.signatureImageSlim} />
                 ) : (
                   <View style={certificateStyles.signatureLineSlim} />
                 )}
@@ -1851,12 +1853,14 @@ export function ConvocationDocument({
   session,
   candidateSession,
   organizationSettings,
-  welcomePackUrl
+  welcomePackUrl,
+  trainerSignatureUrl = null
 }: {
   session: SessionItem;
   candidateSession: SessionCandidate;
   organizationSettings: OrganizationBranding;
   welcomePackUrl?: string | null;
+  trainerSignatureUrl?: string | null;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
   const addressLine = [session.location, session.start_date ? formatDateRange(session.start_date, session.end_date) : null]
@@ -1938,8 +1942,8 @@ export function ConvocationDocument({
               <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim, { marginTop: 8 }]}>
                 Convocation etablie par
               </Text>
-              {organizationSettings.resolved_signature_url ? (
-                <Image src={organizationSettings.resolved_signature_url} style={certificateStyles.signatureImageSlim} />
+              {trainerSignatureUrl || organizationSettings.resolved_signature_url ? (
+                <Image src={trainerSignatureUrl || organizationSettings.resolved_signature_url!} style={certificateStyles.signatureImageSlim} />
               ) : (
                 <View style={[certificateStyles.signatureLine, certificateStyles.signatureLineSlim]} />
               )}
@@ -3177,6 +3181,13 @@ const trainingAgreementStyles = StyleSheet.create({
     borderTopColor: "#9da6a1",
     paddingTop: 6
   },
+  signatureImage: {
+    width: 116,
+    height: 42,
+    objectFit: "contain",
+    marginTop: 16,
+    marginBottom: 6
+  },
   footer: {
     marginTop: 14,
     fontSize: 9,
@@ -3214,10 +3225,12 @@ function TrainingAgreementContinuationHeader({
 
 export function TrainingAgreementDocument({
   agreement,
-  organizationSettings
+  organizationSettings,
+  trainerSignatureUrl = null
 }: {
   agreement: TrainingAgreementPdfData;
   organizationSettings: OrganizationBranding;
+  trainerSignatureUrl?: string | null;
 }) {
   const companyAddressLines = formatAddressLines({
     address: agreement.client.address,
@@ -3458,9 +3471,13 @@ export function TrainingAgreementDocument({
             <Text style={trainingAgreementStyles.signatureRole}>
               {agreement.organization.representativeTitle || "Representant de l'organisme"}
             </Text>
-            <View style={trainingAgreementStyles.signatureLine}>
-              <Text style={trainingAgreementStyles.line}>Signature et cachet</Text>
-            </View>
+            {trainerSignatureUrl ? (
+              <Image src={trainerSignatureUrl} style={trainingAgreementStyles.signatureImage} />
+            ) : (
+              <View style={trainingAgreementStyles.signatureLine}>
+                <Text style={trainingAgreementStyles.line}>Signature et cachet</Text>
+              </View>
+            )}
           </View>
 
           <View style={[trainingAgreementStyles.signatureBox, trainingAgreementStyles.signatureBoxLast]}>

@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb"
     }
+  },
+  outputFileTracingIncludes: {
+    "/api/pdf/certificate/**": ["./documents/Signature/Signature_Karine.jpg"],
+    "/api/pdf/convocation/**": ["./documents/Signature/Signature_Karine.jpg"],
+    "/api/pdf/training-agreement/**": ["./documents/Signature/Signature_Karine.jpg"]
   }
 };
 

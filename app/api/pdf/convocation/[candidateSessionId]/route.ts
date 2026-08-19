@@ -4,6 +4,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { accessErrorResponse } from "@/lib/api-errors";
 import { assertCanAccessCandidate } from "@/lib/auth";
 import { ConvocationDocument } from "@/lib/pdf/documents";
+import { resolveKarineTrainerSignature } from "@/lib/document-signatures";
 import { getOrganizationBranding } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionCandidate, SessionItem } from "@/lib/types";
@@ -137,12 +138,14 @@ export async function GET(request: Request, context: { params: Promise<{ candida
     sessionId: session.id,
     candidateId: candidateRow.id
   });
+  const trainerSignature = await resolveKarineTrainerSignature(session.trainer_user_id);
   const welcomePackUrl = welcomePack.file_url ? new URL(welcomePack.file_url, origin).toString() : null;
   const document = createElement(ConvocationDocument as never, {
     session,
     candidateSession,
     organizationSettings,
-    welcomePackUrl
+    welcomePackUrl,
+    trainerSignatureUrl: trainerSignature.signature?.src ?? null
   });
   const buffer = await renderToBuffer(document as never);
 

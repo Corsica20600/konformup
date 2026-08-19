@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { accessErrorResponse } from "@/lib/api-errors";
 import { assertCanAccessCandidate } from "@/lib/auth";
 import { buildDocumentVerificationUrl, resolvePublicAppOrigin } from "@/lib/generated-documents";
+import { resolveKarineTrainerSignature } from "@/lib/document-signatures";
 import { CertificateDocument } from "@/lib/pdf/documents";
 import { getOrganizationBranding } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
@@ -150,12 +151,14 @@ export async function GET(request: Request, context: { params: Promise<{ candida
         }
       })
     : null;
+  const trainerSignature = await resolveKarineTrainerSignature(session.trainer_user_id);
   const document = createElement(CertificateDocument as never, {
     session,
     candidateSession,
     organizationSettings,
     documentRef,
-    verificationQrCodeDataUrl
+    verificationQrCodeDataUrl,
+    trainerSignatureUrl: trainerSignature.signature?.src ?? null
   });
   const buffer = await renderToBuffer(document as never);
 

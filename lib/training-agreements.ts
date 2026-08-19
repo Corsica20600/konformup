@@ -76,6 +76,7 @@ export type TrainingAgreementPdfData = {
     pedagogicalMeans: string[];
     evaluationMethods: string[];
     trainerName: string;
+    trainerProfileId: string | null;
     participantCount: number;
     participantLabel: string;
     participants: TrainingAgreementParticipant[];
@@ -232,6 +233,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         trainerId: quote.session?.trainer_id,
         trainerName: quote.session?.trainer_name || quote.trainer_name
       }),
+      trainerProfileId: null,
       durationHours: quote.duration_hours ?? quote.session?.duration_hours ?? null,
       objectives: quote.objectives ?? quote.session?.objectives ?? null,
       programmeOutline: quote.programme_outline ?? quote.session?.programme_outline ?? null,
@@ -260,6 +262,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
         trainerId: sessionData.session.trainer_id ?? quote.session?.trainer_id,
         trainerName: sessionData.session.trainer_name || quote.session?.trainer_name || quote.trainer_name
       }),
+      trainerProfileId: sessionData.session.trainer_user_id,
       durationHours: quote.duration_hours ?? sessionData.session.duration_hours ?? quote.session?.duration_hours ?? null,
       objectives: quote.objectives ?? sessionData.session.objectives ?? quote.session?.objectives ?? null,
       programmeOutline:
@@ -277,6 +280,7 @@ async function getSessionAgreementContext(quote: QuotePdfData) {
           trainerId: quote.session?.trainer_id,
           trainerName: quote.session?.trainer_name || quote.trainer_name
         }),
+        trainerProfileId: null,
         durationHours: quote.duration_hours ?? quote.session?.duration_hours ?? null,
         objectives: quote.objectives ?? quote.session?.objectives ?? null,
         programmeOutline: quote.programme_outline ?? quote.session?.programme_outline ?? null,
@@ -330,6 +334,7 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
       pedagogical_means: data.training.pedagogicalMeans,
       evaluation_methods: data.training.evaluationMethods,
       trainer_name: data.training.trainerName,
+      trainer_profile_id: data.training.trainerProfileId,
       participant_count: data.training.participantCount,
       participants: data.training.participants.map((participant) => ({
         id: participant.id,
@@ -439,6 +444,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
         "Evaluation finale ou validation des acquis selon le programme de formation."
       ],
       trainerName: sessionContext.trainerName,
+      trainerProfileId: sessionContext.trainerProfileId,
       participantCount,
       participantLabel: participantCount > 0 ? `${participantCount} participant(s)` : "Effectif a confirmer",
       participants: sessionContext.participants

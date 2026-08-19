@@ -5,6 +5,7 @@ import { accessErrorResponse } from "@/lib/api-errors";
 import { assertCanAccessQuote } from "@/lib/auth";
 import { getOrganizationBranding } from "@/lib/organization";
 import { TrainingAgreementDocument } from "@/lib/pdf/documents";
+import { resolveKarineTrainerSignature } from "@/lib/document-signatures";
 import { QuoteError } from "@/lib/quotes";
 import { buildTrainingAgreementPdfData, getTrainingAgreementDocumentByQuoteId } from "@/lib/training-agreements";
 
@@ -20,7 +21,12 @@ export async function GET(request: Request, context: { params: Promise<{ quoteId
       getOrganizationBranding(new URL(request.url).origin)
     ]);
     const agreement = await buildTrainingAgreementPdfData(quoteId, existingDocument?.document_ref ?? undefined);
-    const document = createElement(TrainingAgreementDocument as never, { agreement, organizationSettings });
+    const trainerSignature = await resolveKarineTrainerSignature(agreement.training.trainerProfileId);
+    const document = createElement(TrainingAgreementDocument as never, {
+      agreement,
+      organizationSettings,
+      trainerSignatureUrl: trainerSignature.signature?.src ?? null
+    });
     const buffer = await renderToBuffer(document as never);
     const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
 
