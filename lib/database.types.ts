@@ -1511,6 +1511,15 @@ export type Database = {
           submitted: boolean
         }[]
       }
+      invoice_complaint_attachments: {
+        Row: { id: string; invoice_complaint_id: string; bucket_id: string; storage_path: string; original_filename: string; mime_type: string; size_bytes: number; uploaded_by: string; created_at: string }
+        Insert: { id?: string; invoice_complaint_id: string; bucket_id?: string; storage_path: string; original_filename: string; mime_type: string; size_bytes: number; uploaded_by: string; created_at?: string }
+        Update: { original_filename?: string; mime_type?: string; size_bytes?: number }
+        Relationships: [
+          { foreignKeyName: "invoice_complaint_attachments_invoice_complaint_id_fkey"; columns: ["invoice_complaint_id"]; isOneToOne: false; referencedRelation: "invoice_complaints"; referencedColumns: ["id"] },
+          { foreignKeyName: "invoice_complaint_attachments_uploaded_by_fkey"; columns: ["uploaded_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ]
+      }
       get_company_satisfaction_context: {
         Args: { p_token: string }
         Returns: { available: boolean; completed: boolean; company_name: string; training_title: string | null }[]
