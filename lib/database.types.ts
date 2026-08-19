@@ -286,6 +286,79 @@ export type Database = {
           },
         ]
       }
+      company_satisfaction_surveys: {
+        Row: {
+          id: string
+          company_id: string
+          invoice_id: string
+          session_id: string | null
+          quote_id: string | null
+          token_hash: string
+          status: string
+          sent_at: string | null
+          delivery_error_at: string | null
+          submitted_at: string | null
+          overall_rating: number | null
+          organization_rating: number | null
+          needs_rating: number | null
+          comment: string | null
+          publication_consent: boolean
+          public_identity: string | null
+          moderation_status: string
+          moderated_at: string | null
+          moderated_by: string | null
+          published_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          invoice_id: string
+          session_id?: string | null
+          quote_id?: string | null
+          token_hash: string
+          status?: string
+          sent_at?: string | null
+          delivery_error_at?: string | null
+          submitted_at?: string | null
+          overall_rating?: number | null
+          organization_rating?: number | null
+          needs_rating?: number | null
+          comment?: string | null
+          publication_consent?: boolean
+          public_identity?: string | null
+          moderation_status?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: string
+          sent_at?: string | null
+          delivery_error_at?: string | null
+          submitted_at?: string | null
+          overall_rating?: number | null
+          organization_rating?: number | null
+          needs_rating?: number | null
+          comment?: string | null
+          publication_consent?: boolean
+          public_identity?: string | null
+          moderation_status?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          published_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "company_satisfaction_surveys_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "client_companies"; referencedColumns: ["id"] },
+          { foreignKeyName: "company_satisfaction_surveys_invoice_id_fkey"; columns: ["invoice_id"]; isOneToOne: false; referencedRelation: "invoices"; referencedColumns: ["id"] },
+          { foreignKeyName: "company_satisfaction_surveys_quote_id_fkey"; columns: ["quote_id"]; isOneToOne: false; referencedRelation: "quotes"; referencedColumns: ["id"] },
+          { foreignKeyName: "company_satisfaction_surveys_session_id_fkey"; columns: ["session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }
+        ]
+      }
       candidates: {
         Row: {
           address: string | null
@@ -636,6 +709,7 @@ export type Database = {
           issue_date: string | null
           notes: string | null
           quote_id: string
+          send_company_satisfaction: boolean
           status: string
           subtotal: number
           tax_amount: number
@@ -652,6 +726,7 @@ export type Database = {
           issue_date?: string | null
           notes?: string | null
           quote_id: string
+          send_company_satisfaction?: boolean
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -668,6 +743,7 @@ export type Database = {
           issue_date?: string | null
           notes?: string | null
           quote_id?: string
+          send_company_satisfaction?: boolean
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -1435,10 +1511,23 @@ export type Database = {
           submitted: boolean
         }[]
       }
+      get_company_satisfaction_context: {
+        Args: { p_token: string }
+        Returns: { available: boolean; completed: boolean; company_name: string; training_title: string | null }[]
+      }
       is_operational_manager: { Args: never; Returns: boolean }
+      create_or_get_company_satisfaction_survey: {
+        Args: { p_company_id: string; p_invoice_id: string; p_quote_id: string; p_session_id: string | null; p_token_hash: string }
+        Returns: { id: string; invoice_id: string; token_hash: string; status: string; submitted_at: string | null }[]
+      }
+      mark_company_satisfaction_delivery: { Args: { p_survey_id: string; p_success: boolean }; Returns: boolean }
       submit_candidate_satisfaction_survey: {
         Args: { p_answers: Json; p_token: string }
         Returns: boolean
+      }
+      submit_company_satisfaction_survey: {
+        Args: { p_token: string; p_overall_rating: number; p_organization_rating: number; p_needs_rating: number; p_comment: string | null; p_publication_consent: boolean; p_public_identity: string | null }
+        Returns: string
       }
       uuid_or_null: { Args: { p_value: string }; Returns: string }
       verify_generated_document: {

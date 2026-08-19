@@ -44,6 +44,7 @@ type InvoiceQuoteRow = {
   title: string;
   training_type: QuoteRow["training_type"];
   status: QuoteRow["status"];
+  session_id: string | null;
 };
 
 type InvoiceRelations = {
@@ -507,7 +508,8 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
         quote_number,
         title,
         training_type,
-        status
+        status,
+        session_id
       )
     `)
     .eq("id", invoiceId)
@@ -548,7 +550,8 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
           quote_number,
           title,
           training_type,
-          status
+          status,
+          session_id
         )
       `)
       .eq("id", invoiceId)
@@ -683,7 +686,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
 
   const quoteSelect = await supabase
     .from("quotes")
-    .select("id, quote_number, title, training_type, status")
+    .select("id, quote_number, title, training_type, status, session_id")
     .eq("id", invoice.quote_id)
     .maybeSingle<InvoiceQuoteRow>();
 
