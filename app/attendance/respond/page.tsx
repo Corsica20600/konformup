@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function AttendanceRespondPage({
   searchParams
 }: {
-  searchParams: Promise<{ token?: string; submitted?: string; error?: string; surveySubmitted?: string; surveyError?: string }>;
+  searchParams: Promise<{ token?: string; submitted?: string; error?: string; surveySubmitted?: string; surveyAlreadyCompleted?: string; surveyError?: string }>;
 }) {
-  const { token, submitted, error, surveySubmitted, surveyError } = await searchParams;
+  const { token, submitted, error, surveySubmitted, surveyAlreadyCompleted, surveyError } = await searchParams;
   const trimmedToken = token?.trim() ?? "";
 
   if (!trimmedToken) {
@@ -122,8 +122,8 @@ export default async function AttendanceRespondPage({
           <section className="mt-6 border-t border-ink/10 pt-6">
             <p className="text-sm uppercase tracking-[0.2em] text-ink/45">Questionnaire de satisfaction</p>
             <h2 className="mt-2 text-2xl font-bold">Votre avis compte</h2>
-            {satisfaction.submitted || surveySubmitted === "1" ? (
-              <p className="mt-3 rounded-2xl bg-pine/10 p-4 text-sm font-semibold text-pine">Merci, votre questionnaire a bien été enregistré.</p>
+            {satisfaction.submitted || surveySubmitted === "1" || surveyAlreadyCompleted === "1" ? (
+              <p className="mt-3 rounded-2xl bg-pine/10 p-4 text-sm font-semibold text-pine">{surveyAlreadyCompleted === "1" ? "Questionnaire déjà complété." : "Merci, votre questionnaire a bien été enregistré."}</p>
             ) : (
               <form action={submitSatisfactionSurveyFormAction} className="mt-5 grid gap-5">
                 <input type="hidden" name="token" value={trimmedToken} />

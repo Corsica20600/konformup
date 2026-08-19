@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { confirmAttendanceResponse } from "@/lib/attendance";
-import { submitCandidateSatisfactionSurvey } from "@/lib/attendance";
+import { submitCandidateSatisfactionSurvey, type CandidateSatisfactionSubmissionOutcome } from "@/lib/attendance";
 
 export async function confirmAttendanceResponseFormAction(formData: FormData) {
   const token = formData.get("token")?.toString().trim();
@@ -54,10 +54,15 @@ export async function submitSatisfactionSurveyFormAction(formData: FormData) {
       .filter(([key, value]) => key !== "token" && typeof value === "string")
       .map(([key, value]) => [key, value.toString().trim()])
   );
+  let outcome: CandidateSatisfactionSubmissionOutcome;
   try {
-    await submitCandidateSatisfactionSurvey(token, answers);
+    outcome = await submitCandidateSatisfactionSurvey(token, answers);
   } catch {
     redirect(`/attendance/respond?token=${encodeURIComponent(token)}&surveyError=1`);
   }
-  redirect(`/attendance/respond?token=${encodeURIComponent(token)}&surveySubmitted=1`);
+  redirect(
+    `/attendance/respond?token=${encodeURIComponent(token)}&${
+      outcome === "already_completed" ? "surveyAlreadyCompleted=1" : "surveySubmitted=1"
+    }`
+  );
 }

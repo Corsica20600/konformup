@@ -139,7 +139,11 @@ export async function sendCandidateDocumentEmail(documentId: string) {
   };
 }
 
-export async function sendCandidateSessionDocumentsEmail(candidateId: string, sessionId: string) {
+export async function sendCandidateSessionDocumentsEmail(
+  candidateId: string,
+  sessionId: string,
+  options?: { onlyUnsent?: boolean }
+) {
   const supabase = await createClient();
   const { data: candidate, error: candidateError } = await supabase
     .from("candidates")
@@ -169,7 +173,7 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
 
   const { data: preparedDocuments, error: preparedDocumentsError } = await supabase
     .from("generated_documents")
-    .select("id, document_type, document_ref, file_url, created_at")
+    .select("id, document_type, document_ref, file_url, created_at, status")
     .eq("candidate_id", candidateId)
     .eq("session_id", sessionId)
     .in("document_type", getRequiredPreTrainingDocumentTypes(session.training_type))
@@ -180,10 +184,13 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
     throw new Error("Impossible de charger les documents avant formation du candidat.");
   }
 
-  const deliverableDocuments = deduplicateDocumentsByType(preparedDocuments ?? []);
+  const allDocuments = deduplicateDocumentsByType(preparedDocuments ?? []);
+  const deliverableDocuments = options?.onlyUnsent
+    ? allDocuments.filter((document) => document.status !== "sent")
+    : allDocuments;
 
   if (!deliverableDocuments.length) {
-    throw new Error("Aucun document avant formation n'est disponible pour cet envoi.");
+    return { fileUrl: null, skipped: true };
   }
 
   const emailContext = await getTransactionalEmailContext();
@@ -232,6 +239,7 @@ export async function sendCandidateSessionDocumentsEmail(candidateId: string, se
   }
 
   return {
-    fileUrl: deliverableDocuments[0]?.file_url ?? null
+    fileUrl: deliverableDocuments[0]?.file_url ?? null,
+    skipped: false
   };
 }

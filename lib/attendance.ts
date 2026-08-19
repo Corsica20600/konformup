@@ -9,6 +9,7 @@ import {
   buildParisDateTimeIso,
   getAttendanceSlotTimes
 } from "@/lib/attendance-schedule";
+import { canSendAttendanceMessage } from "@/lib/attendance-delivery";
 import type {
   AttendanceCandidateResponse,
   AttendanceOverview,
@@ -518,25 +519,14 @@ export async function sendAttendanceSlotRequests(
   let skippedCount = 0;
 
   for (const response of responses ?? []) {
-    const isPending =
-      !response.responded_at &&
-      response.response_status === "pending" &&
-      response.trainer_override_status === null;
-    const pendingOnly = options?.pendingOnly ?? Boolean(slot.sent_at);
-
-    if (pendingOnly && !isPending) {
+    if (!canSendAttendanceMessage({
+      deliveryStatus: response.delivery_status,
+      responseStatus: response.response_status,
+      trainerOverrideStatus: response.trainer_override_status,
+      deliverySentAt: response.delivery_sent_at ?? null
+    }, { reminder: options?.reminder ?? Boolean(slot.sent_at), minimumHoursSinceLastSend: options?.minimumHoursSinceLastSend })) {
       skippedCount += 1;
       continue;
-    }
-
-    if (options?.minimumHoursSinceLastSend && response.delivery_sent_at) {
-      const hoursSinceLastSend =
-        (Date.now() - new Date(response.delivery_sent_at).getTime()) / (1000 * 60 * 60);
-
-      if (hoursSinceLastSend < options.minimumHoursSinceLastSend) {
-        skippedCount += 1;
-        continue;
-      }
     }
 
     const result = await sendAttendanceEmailToResponse({
@@ -759,10 +749,20 @@ export async function getCandidateSatisfactionContext(token: string): Promise<Ca
   return { is_final_slot: row?.is_final_slot === true, submitted: row?.submitted === true };
 }
 
-export async function submitCandidateSatisfactionSurvey(token: string, answers: Record<string, string>) {
+export type CandidateSatisfactionSubmissionOutcome = "submitted" | "already_completed";
+
+export function resolveCandidateSatisfactionSubmissionOutcome(value: boolean | null): CandidateSatisfactionSubmissionOutcome {
+  return value === false ? "already_completed" : "submitted";
+}
+
+export async function submitCandidateSatisfactionSurvey(
+  token: string,
+  answers: Record<string, string>
+): Promise<CandidateSatisfactionSubmissionOutcome> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("submit_candidate_satisfaction_survey", { p_token: token, p_answers: answers });
+  const { data, error } = await supabase.rpc("submit_candidate_satisfaction_survey", { p_token: token, p_answers: answers });
   if (error) throw new Error("Impossible d'enregistrer le questionnaire.");
+  return resolveCandidateSatisfactionSubmissionOutcome(data as boolean | null);
 }
 
 export async function confirmAttendanceResponse(input: {

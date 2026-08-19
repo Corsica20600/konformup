@@ -36,6 +36,9 @@ export function DashboardShell({
                 <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/sessions">
                   Sessions
                 </Link>
+                <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/candidates">
+                  Candidats
+                </Link>
                 <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/trainers">
                   Formateurs
                 </Link>

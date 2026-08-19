@@ -52,6 +52,57 @@ export type ActionState = {
   documentResults?: Array<{ candidateName: string; status: "generated" | "existing" }>;
 };
 
+export async function prepareMissingSessionDocumentsAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  if (!sessionId) return { error: "Session manquante." };
+  try {
+    const sessionData = await getSessionById(sessionId);
+    let failures = 0;
+    for (const candidate of sessionData.candidates) {
+      try {
+        await ensureCandidatePreTrainingDocuments({ sessionId, candidateId: candidate.candidate.id, trainingType: sessionData.session.training_type });
+      } catch (error) {
+        failures += 1;
+        console.error("[prepare-session-documents] candidate preparation failed", { sessionId, candidateId: candidate.candidate.id, message: error instanceof Error ? error.message : "Unknown error" });
+      }
+    }
+    revalidatePath(`/sessions/${sessionId}`);
+    return { success: failures ? `Préparation terminée avec ${failures} erreur(s).` : "Les documents avant formation manquants ont été préparés." };
+  } catch {
+    return { error: "Impossible de préparer les documents avant formation." };
+  }
+}
+
+export async function sendMissingSessionDocumentsAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  const confirmed = formData.get("confirmed")?.toString() === "true";
+  if (!sessionId || !confirmed) return { error: "Une confirmation explicite est nécessaire avant l’envoi." };
+  try {
+    const sessionData = await getSessionById(sessionId);
+    const selectedCandidateIds = new Set(formData.getAll("candidateId").map((value) => value.toString()));
+    let sent = 0;
+    let skipped = 0;
+    let failures = 0;
+    for (const candidate of sessionData.candidates) {
+      if (!selectedCandidateIds.has(candidate.candidate.id)) continue;
+      if (!candidate.candidate.email) { skipped += 1; continue; }
+      try {
+        const result = await sendCandidateSessionDocumentsEmail(candidate.candidate.id, sessionId, { onlyUnsent: true });
+        if (result.skipped) skipped += 1; else sent += 1;
+      } catch (error) {
+        failures += 1;
+        console.error("[send-session-documents] candidate email failed", { sessionId, candidateId: candidate.candidate.id, message: error instanceof Error ? error.message : "Unknown error" });
+      }
+    }
+    revalidatePath(`/sessions/${sessionId}`);
+    return { success: `${sent} envoi(s) effectué(s), ${skipped} ignoré(s) et ${failures} erreur(s).` };
+  } catch {
+    return { error: "Impossible de préparer l’envoi des documents avant formation." };
+  }
+}
+
 function buildCandidateSignature({
   first_name,
   last_name,
@@ -501,6 +552,35 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
   }
 
   const supabase = await createClient();
+  if (closureStatus === "closed") {
+    // Attendance is a separate, optional migration in older environments. When
+    // it is available, all its slots and responses must be settled before the
+    // session can be closed; manual decisions remain valid evidence.
+    const { data: slots, error: slotsError } = await supabase
+      .from("attendance_slots")
+      .select("id, status")
+      .eq("session_id", parsed.data.sessionId);
+
+    if (!slotsError && (slots ?? []).length) {
+      const openSlotCount = (slots ?? []).filter((slot) => slot.status !== "closed").length;
+      if (openSlotCount) {
+        return { error: `Clôture impossible : ${openSlotCount} créneau(x) d’émargement ne sont pas clôturés.` };
+      }
+      const slotIds = (slots ?? []).map((slot) => slot.id);
+      const { data: responses, error: responsesError } = await supabase
+        .from("attendance_responses")
+        .select("response_status, trainer_override_status")
+        .in("attendance_slot_id", slotIds);
+      if (!responsesError) {
+        const unresolvedCount = (responses ?? []).filter(
+          (response) => (response.trainer_override_status ?? response.response_status) === "pending"
+        ).length;
+        if (unresolvedCount) {
+          return { error: `Clôture impossible : ${unresolvedCount} statut(s) d’émargement restent à renseigner.` };
+        }
+      }
+    }
+  }
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("training_sessions")
@@ -739,6 +819,63 @@ export async function sendAttendanceSlotRequestsFormAction(formData: FormData) {
   redirect(`/sessions/${sessionId}?attendanceSuccess=1&attendanceSlot=${encodeURIComponent(slotId)}`);
 }
 
+export async function sendMissingAttendanceRequestsFormAction(formData: FormData) {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  if (!sessionId) return;
+  const supabase = await createClient();
+  const { data: slots, error } = await supabase
+    .from("attendance_slots")
+    .select("id")
+    .eq("session_id", sessionId)
+    .neq("status", "closed");
+  if (error) redirect(`/sessions/${sessionId}?tab=attendance&attendanceError=1`);
+  for (const slot of slots ?? []) {
+    try { await sendAttendanceSlotRequests(slot.id, { pendingOnly: true }); } catch (error) {
+      console.error("[attendance] batch missing requests failed", { sessionId, slotId: slot.id, message: error instanceof Error ? error.message : "Unknown error" });
+    }
+  }
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}?tab=attendance&attendanceSuccess=1`);
+}
+
+export async function sendPendingAttendanceRemindersFormAction(formData: FormData) {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  if (!sessionId) return;
+  const supabase = await createClient();
+  const { data: slots, error } = await supabase.from("attendance_slots").select("id").eq("session_id", sessionId).eq("status", "open");
+  if (error) redirect(`/sessions/${sessionId}?tab=attendance&attendanceError=1`);
+  for (const slot of slots ?? []) {
+    try { await sendAttendanceSlotRequests(slot.id, { pendingOnly: true, reminder: true, minimumHoursSinceLastSend: 4, requireOpenSlot: true }); } catch (error) {
+      console.error("[attendance] batch reminders failed", { sessionId, slotId: slot.id, message: error instanceof Error ? error.message : "Unknown error" });
+    }
+  }
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}?tab=attendance&attendanceSuccess=1`);
+}
+
+export async function closeCompleteAttendanceSlotsFormAction(formData: FormData) {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  if (!sessionId) return;
+  const supabase = await createClient();
+  const { data: slots, error } = await supabase.from("attendance_slots").select("id").eq("session_id", sessionId).neq("status", "closed");
+  if (error) redirect(`/sessions/${sessionId}?tab=attendance&attendanceError=1`);
+  for (const slot of slots ?? []) {
+    const { data: responses, error: responsesError } = await supabase
+      .from("attendance_responses")
+      .select("response_status, trainer_override_status")
+      .eq("attendance_slot_id", slot.id);
+    if (responsesError || (responses ?? []).some((response) => (response.trainer_override_status ?? response.response_status) === "pending")) continue;
+    try { await closeAttendanceSlot(slot.id); } catch (closeError) {
+      console.error("[attendance] batch close failed", { sessionId, slotId: slot.id, message: closeError instanceof Error ? closeError.message : "Unknown error" });
+    }
+  }
+  revalidatePath(`/sessions/${sessionId}`);
+  redirect(`/sessions/${sessionId}?tab=attendance&attendanceSuccess=1`);
+}
+
 export async function updateAttendanceSlotScheduleFormAction(formData: FormData) {
   await requireUser();
 
@@ -796,7 +933,8 @@ export async function sendAttendanceSlotReminderFormAction(formData: FormData) {
   try {
     await sendAttendanceSlotRequests(slotId, {
       pendingOnly: true,
-      reminder: true
+      reminder: true,
+      minimumHoursSinceLastSend: 4
     });
     revalidatePath(`/sessions/${sessionId}`);
   } catch (error) {

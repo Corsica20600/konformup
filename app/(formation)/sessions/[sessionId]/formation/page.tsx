@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FormationModuleContent } from "@/components/sessions/formation-module-content";
+import { FormationFullscreenButton } from "@/components/sessions/formation-fullscreen-button";
 import { getFormationNavigation } from "@/lib/formation-navigation";
 import {
   getSessionById,
@@ -76,6 +77,7 @@ export default async function FormationModePage({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-ink/65">Progression {globalProgress}%</span>
+            <FormationFullscreenButton />
             <Link href={`/sessions/${session.id}`} className="rounded-full bg-sand px-4 py-2 text-sm font-semibold transition hover:bg-[#d8ceb9]">
               Retour à la session
             </Link>

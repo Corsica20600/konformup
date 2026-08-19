@@ -1893,6 +1893,32 @@ export async function getDocumentsBySessionId(sessionId: string) {
   return selectGeneratedDocumentsByForeignKey("session_id", sessionId);
 }
 
+export async function getCandidateDirectory() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("candidates")
+    .select("id, first_name, last_name, email, company, company_id, session_id, training_sessions(id, title, start_date)")
+    .order("last_name", { ascending: true })
+    .order("first_name", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((candidate) => {
+    const session = Array.isArray(candidate.training_sessions)
+      ? candidate.training_sessions[0] ?? null
+      : candidate.training_sessions;
+    return {
+      id: candidate.id,
+      first_name: candidate.first_name,
+      last_name: candidate.last_name,
+      email: candidate.email,
+      company: candidate.company,
+      session_id: candidate.session_id,
+      session: session ? { id: session.id, title: session.title, start_date: session.start_date } : null
+    };
+  });
+}
+
 export async function getCandidateById(candidateId: string): Promise<CandidateDashboard | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
