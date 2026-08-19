@@ -11,6 +11,6 @@ describe("session list next action", () => {
     expect(getSessionListAction(session("scheduled"))).toBe("Préparer candidats et convocations");
     expect(getSessionListAction(session("in_progress"))).toBe("Gérer émargement et évaluations");
     expect(getSessionListAction(session("in_progress", "ready"))).toBe("Clôturer la session");
-    expect(getSessionListAction(session("completed", "closed"))).toBe("Générer les documents finaux");
+    expect(getSessionListAction(session("completed", "closed"))).toBe("Consulter les documents finaux");
   });
 });

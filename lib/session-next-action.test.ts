@@ -14,7 +14,7 @@ const candidate = {
 } as unknown as SessionCandidate;
 
 function buildDocument(type: string): GeneratedDocumentItem {
-  return { candidate_id: "candidate-id", document_type: type } as GeneratedDocumentItem;
+  return { candidate_id: "candidate-id", document_type: type, status: "generated" } as GeneratedDocumentItem;
 }
 
 describe("session next action", () => {
@@ -24,7 +24,7 @@ describe("session next action", () => {
     );
   });
 
-  it("recommends final documents for a closed session", () => {
+  it("distinguishes missing and complete final documents for a closed session", () => {
     expect(
       getSessionNextAction({
         session: { ...session, status: "completed", closure_status: "closed" },
@@ -32,7 +32,21 @@ describe("session next action", () => {
         documents: [],
         globalProgress: 100
       }).label
-    ).toBe("Générer les documents finaux");
+    ).toBe("Finaliser les documents");
+
+    const admittedCandidate = {
+      ...candidate,
+      candidate: { ...candidate.candidate, validation_status: "validated" },
+      evaluations: [{ evaluation_type: "globale", result: "admis" }]
+    } as unknown as SessionCandidate;
+    expect(
+      getSessionNextAction({
+        session: { ...session, status: "completed", closure_status: "closed" },
+        candidates: [admittedCandidate],
+        documents: ["bilan_session", "synthese_societe", "attestation"].map(buildDocument),
+        globalProgress: 100
+      }).label
+    ).toBe("Consulter les documents finaux");
   });
 
   it("guides a populated session through documents and evaluations", () => {

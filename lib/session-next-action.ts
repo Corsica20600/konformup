@@ -7,6 +7,8 @@ export type SessionNextAction = {
   href: string;
 };
 
+const FINAL_DOCUMENT_STATUSES = new Set(["generated", "sent", "signed", "archived"]);
+
 export function getSessionNextAction({
   session,
   candidates,
@@ -19,9 +21,33 @@ export function getSessionNextAction({
   globalProgress: number;
 }): SessionNextAction {
   if (session.closure_status === "closed" || session.status === "completed") {
+    const availableDocuments = documents.filter((document) => FINAL_DOCUMENT_STATUSES.has(document.status));
+    const hasBilan = availableDocuments.some((document) => document.document_type === "bilan_session");
+    const hasSynthese = availableDocuments.some((document) => document.document_type === "synthese_societe");
+    const admittedCandidateIds = candidates
+      .filter((candidate) => candidate.evaluations?.some((evaluation) => evaluation.evaluation_type === "globale" && evaluation.result === "admis"))
+      .map((candidate) => candidate.candidate.id);
+    const attestationCandidateIds = new Set(
+      availableDocuments
+        .filter((document) => document.document_type === "attestation" && document.candidate_id)
+        .map((document) => document.candidate_id)
+    );
+    const missingAttestationCount = admittedCandidateIds.filter((candidateId) => !attestationCandidateIds.has(candidateId)).length;
+
+    if (hasBilan && hasSynthese && missingAttestationCount === 0) {
+      return {
+        label: "Consulter les documents finaux",
+        description: `Bilan et synthèse générés. Attestations : ${admittedCandidateIds.length}/${admittedCandidateIds.length}.`,
+        href: "#cloture-session"
+      };
+    }
+
+    const missing = [!hasBilan ? "bilan" : null, !hasSynthese ? "synthèse" : null]
+      .filter(Boolean)
+      .join(", ");
     return {
-      label: "Générer les documents finaux",
-      description: "La session est clôturée. Les documents de fin de formation sont disponibles.",
+      label: "Finaliser les documents",
+      description: `${missing ? `À générer : ${missing}. ` : ""}Attestations manquantes : ${missingAttestationCount}.`,
       href: "#cloture-session"
     };
   }

@@ -2,7 +2,7 @@ import type { SessionItem } from "@/lib/types";
 
 export function getSessionListAction(session: SessionItem) {
   if (session.closure_status === "closed" || session.status === "completed") {
-    return "Générer les documents finaux";
+    return "Consulter les documents finaux";
   }
 
   if (session.closure_status === "ready") {
