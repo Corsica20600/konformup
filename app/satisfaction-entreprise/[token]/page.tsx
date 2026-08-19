@@ -1,7 +1,10 @@
 import { CompanySatisfactionSurveyForm } from "@/components/company-satisfaction/survey-form";
 import { getCompanySatisfactionPublicContext } from "@/lib/company-satisfaction";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" };
 
 export default async function CompanySatisfactionPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
