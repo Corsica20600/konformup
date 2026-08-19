@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   getInvoiceById: vi.fn(),
   getInvoiceStatusAfterSend: vi.fn(),
+  setInvoiceCompanySatisfaction: vi.fn(),
   updateInvoiceStatus: vi.fn(),
   sendInvoiceEmail: vi.fn(),
   setInvoiceComplaintSendWithInvoice: vi.fn(),
@@ -14,6 +15,7 @@ vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
 vi.mock("@/lib/invoices", () => ({
   getInvoiceById: mocks.getInvoiceById,
   getInvoiceStatusAfterSend: mocks.getInvoiceStatusAfterSend,
+  setInvoiceCompanySatisfaction: mocks.setInvoiceCompanySatisfaction,
   updateInvoiceStatus: mocks.updateInvoiceStatus
 }));
 vi.mock("@/lib/invoice-email", () => ({ sendInvoiceEmail: mocks.sendInvoiceEmail }));

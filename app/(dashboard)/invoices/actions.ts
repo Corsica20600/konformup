@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { getInvoiceStatusAfterSend, getInvoiceById, updateInvoiceStatus } from "@/lib/invoices";
+import { getInvoiceStatusAfterSend, getInvoiceById, setInvoiceCompanySatisfaction, updateInvoiceStatus } from "@/lib/invoices";
 import { sendInvoiceEmail } from "@/lib/invoice-email";
 import { setInvoiceComplaintSendWithInvoice, upsertInvoiceComplaint } from "@/lib/invoice-complaints";
 import { upsertInvoiceComplaintSchema } from "@/lib/validation";
@@ -10,6 +10,7 @@ import { upsertInvoiceComplaintSchema } from "@/lib/validation";
 export type InvoiceActionState = {
   error?: string;
   success?: string;
+  warning?: string;
   fileUrl?: string;
 };
 
@@ -30,6 +31,9 @@ export async function sendInvoiceEmailAction(
   const sendWithInvoiceValues = formData.getAll("sendWithInvoice").map((value) => value.toString());
   const sendWithInvoice =
     sendWithInvoiceValues.length > 0 ? sendWithInvoiceValues.at(-1) === "true" : undefined;
+  const companySatisfactionValues = formData.getAll("sendCompanySatisfaction").map((value) => value.toString());
+  const sendCompanySatisfaction =
+    companySatisfactionValues.length > 0 ? companySatisfactionValues.at(-1) === "true" : undefined;
 
   if (!invoiceId) {
     return { error: "Facture manquante." };
@@ -40,7 +44,11 @@ export async function sendInvoiceEmailAction(
     if (sendWithInvoice !== undefined) {
       await setInvoiceComplaintSendWithInvoice(invoice, sendWithInvoice);
     }
-    const { fileUrl, complaintAttached } = await sendInvoiceEmail(invoice);
+    if (sendCompanySatisfaction !== undefined) {
+      await setInvoiceCompanySatisfaction(invoice.id, sendCompanySatisfaction);
+      invoice.send_company_satisfaction = sendCompanySatisfaction;
+    }
+    const { fileUrl, complaintAttached, satisfactionIncluded, trackingWarning } = await sendInvoiceEmail(invoice);
     const nextStatus = getInvoiceStatusAfterSend(invoice.status);
 
     if (nextStatus !== invoice.status) {
@@ -58,9 +66,12 @@ export async function sendInvoiceEmailAction(
         nextStatus === "sent"
           ? complaintAttached
             ? "Facture et fiche de réclamation envoyées."
-            : "Facture envoyée."
+            : satisfactionIncluded
+              ? "Facture envoyée avec le questionnaire de satisfaction."
+              : "Facture envoyée."
           : "Email envoyé.",
-      fileUrl
+      fileUrl,
+      ...(trackingWarning ? { warning: trackingWarning } : {})
     };
   } catch (error) {
     if (error instanceof Error) {

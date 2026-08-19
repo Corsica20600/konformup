@@ -501,6 +501,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
       tax_amount,
       total_ttc,
       notes,
+      send_company_satisfaction,
       created_at,
       updated_at,
       quotes (
@@ -605,6 +606,7 @@ export async function getInvoiceById(invoiceId: string): Promise<InvoiceDetail> 
       tax_amount,
       total_ttc,
       notes,
+      send_company_satisfaction,
       created_at,
       updated_at
     `)
@@ -750,4 +752,16 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
   }
 
   return data;
+}
+
+export async function setInvoiceCompanySatisfaction(invoiceId: string, enabled: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("invoices")
+    .update({ send_company_satisfaction: enabled, updated_at: new Date().toISOString() })
+    .eq("id", invoiceId);
+
+  if (error) {
+    throw new InvoiceError("Impossible d'enregistrer l'option de satisfaction entreprise.");
+  }
 }

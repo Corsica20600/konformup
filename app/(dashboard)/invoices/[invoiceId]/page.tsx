@@ -34,7 +34,7 @@ export default async function InvoiceDetailPage({
                 Societe : {invoice.company.company_name} • Creee le {formatDate(invoice.created_at)}
               </p>
             </div>
-            <InvoiceActions invoiceId={invoiceId} quoteId={invoice.quote.id} sendWithInvoice={complaint?.send_with_invoice ?? false} />
+            <InvoiceActions invoiceId={invoiceId} quoteId={invoice.quote.id} sendWithInvoice={complaint?.send_with_invoice ?? false} sendCompanySatisfaction={invoice.send_company_satisfaction} />
           </div>
 
           <div className="mt-6 grid gap-3 text-sm text-ink/75 md:grid-cols-2">

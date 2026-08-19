@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   getInvoiceComplaintByInvoiceId: vi.fn(),
   markInvoiceComplaintSentWithInvoice: vi.fn(),
   getTransactionalEmailContext: vi.fn(),
-  sendBrevoTransactionalEmail: vi.fn()
+  sendBrevoTransactionalEmail: vi.fn(),
+  getOrCreateCompanySatisfactionSurveyForInvoice: vi.fn(),
+  markCompanySatisfactionDelivery: vi.fn()
 }));
 
 vi.mock("@/lib/generated-documents", () => ({ fetchExistingPdf: mocks.fetchExistingPdf }));
@@ -17,6 +19,10 @@ vi.mock("@/lib/email-config", () => ({
   getTransactionalEmailContext: mocks.getTransactionalEmailContext,
   sendBrevoTransactionalEmail: mocks.sendBrevoTransactionalEmail
 }));
+vi.mock("@/lib/company-satisfaction", () => ({
+  getOrCreateCompanySatisfactionSurveyForInvoice: mocks.getOrCreateCompanySatisfactionSurveyForInvoice,
+  markCompanySatisfactionDelivery: mocks.markCompanySatisfactionDelivery
+}));
 
 import { sendInvoiceEmail } from "@/lib/invoice-email";
 
@@ -25,7 +31,7 @@ const invoice = {
   invoice_number: "FACT-2026-001",
   company: { id: "company-1", company_name: "Entreprise", contact_email: "client@example.test" },
   quote: { id: "quote-1", quote_number: "DEV-2026-001", title: "SST", training_type: "sst_initial" }
-} as never;
+};
 
 function pdf(content = "%PDF-1.4") {
   return { buffer: new TextEncoder().encode(content).buffer, contentType: "application/pdf" };
@@ -37,13 +43,14 @@ describe("sendInvoiceEmail", () => {
     mocks.getTransactionalEmailContext.mockResolvedValue({ signatureLines: ["Konform'up"] });
     mocks.sendBrevoTransactionalEmail.mockResolvedValue(undefined);
     mocks.markInvoiceComplaintSentWithInvoice.mockResolvedValue(undefined);
+    mocks.markCompanySatisfactionDelivery.mockResolvedValue(true);
   });
 
   it("sends only the invoice when the complaint option is disabled", async () => {
     mocks.getInvoiceComplaintByInvoiceId.mockResolvedValue({ send_with_invoice: false });
     mocks.fetchExistingPdf.mockResolvedValue(pdf());
 
-    const result = await sendInvoiceEmail(invoice);
+    const result = await sendInvoiceEmail(invoice as never);
 
     expect(mocks.sendBrevoTransactionalEmail).toHaveBeenCalledTimes(1);
     expect(mocks.sendBrevoTransactionalEmail.mock.calls[0]?.[0].attachment).toHaveLength(1);
@@ -55,7 +62,7 @@ describe("sendInvoiceEmail", () => {
     mocks.getInvoiceComplaintByInvoiceId.mockResolvedValue({ send_with_invoice: true });
     mocks.fetchExistingPdf.mockResolvedValueOnce(pdf("%PDF invoice")).mockResolvedValueOnce(pdf("%PDF complaint"));
 
-    const result = await sendInvoiceEmail(invoice);
+    const result = await sendInvoiceEmail(invoice as never);
 
     expect(mocks.sendBrevoTransactionalEmail).toHaveBeenCalledTimes(1);
     const payload = mocks.sendBrevoTransactionalEmail.mock.calls[0]?.[0];
@@ -74,9 +81,34 @@ describe("sendInvoiceEmail", () => {
     mocks.fetchExistingPdf.mockResolvedValue(pdf());
     mocks.sendBrevoTransactionalEmail.mockRejectedValue(new Error("Brevo indisponible"));
 
-    await expect(sendInvoiceEmail(invoice)).rejects.toThrow("Brevo indisponible");
+    await expect(sendInvoiceEmail(invoice as never)).rejects.toThrow("Brevo indisponible");
 
     expect(mocks.sendBrevoTransactionalEmail).toHaveBeenCalledTimes(1);
     expect(mocks.markInvoiceComplaintSentWithInvoice).not.toHaveBeenCalled();
+  });
+
+  it("includes the same reusable satisfaction link in the one Brevo email and marks it sent after success", async () => {
+    mocks.getInvoiceComplaintByInvoiceId.mockResolvedValue({ send_with_invoice: false });
+    mocks.fetchExistingPdf.mockResolvedValue(pdf());
+    mocks.getOrCreateCompanySatisfactionSurveyForInvoice.mockResolvedValue({ surveyId: "survey-1", submittedAt: null, url: "https://app.test/satisfaction-entreprise/token" });
+
+    await sendInvoiceEmail({ ...invoice, send_company_satisfaction: true } as never);
+
+    expect(mocks.sendBrevoTransactionalEmail).toHaveBeenCalledTimes(1);
+    const payload = mocks.sendBrevoTransactionalEmail.mock.calls[0]?.[0];
+    expect(payload.textContent).toContain("https://app.test/satisfaction-entreprise/token");
+    expect(payload.htmlContent).toContain("Donner mon avis");
+    expect(mocks.markCompanySatisfactionDelivery).toHaveBeenCalledWith("survey-1", true);
+  });
+
+  it("marks delivery_error after a failed Brevo attempt without sending a second email", async () => {
+    mocks.getInvoiceComplaintByInvoiceId.mockResolvedValue({ send_with_invoice: false });
+    mocks.fetchExistingPdf.mockResolvedValue(pdf());
+    mocks.getOrCreateCompanySatisfactionSurveyForInvoice.mockResolvedValue({ surveyId: "survey-1", submittedAt: null, url: "https://app.test/satisfaction-entreprise/token" });
+    mocks.sendBrevoTransactionalEmail.mockRejectedValue(new Error("Brevo indisponible"));
+
+    await expect(sendInvoiceEmail({ ...invoice, send_company_satisfaction: true } as never)).rejects.toThrow("Brevo indisponible");
+    expect(mocks.sendBrevoTransactionalEmail).toHaveBeenCalledTimes(1);
+    expect(mocks.markCompanySatisfactionDelivery).toHaveBeenCalledWith("survey-1", false);
   });
 });

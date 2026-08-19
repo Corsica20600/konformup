@@ -32,6 +32,11 @@ describe("company satisfaction foundation", () => {
     expect(hashCompanySatisfactionToken(first)).toHaveLength(64);
   });
 
+  it("fails before delivery work when the server-only token secret is absent", () => {
+    delete process.env.COMPANY_SATISFACTION_TOKEN_SECRET;
+    expect(() => buildCompanySatisfactionToken(invoice.id)).toThrow("Configuration du lien de satisfaction entreprise incomplète.");
+  });
+
   it("creates or retrieves the survey through the atomic RPC", async () => {
     const token = buildCompanySatisfactionToken(invoice.id, secret);
     mocks.getInvoiceById.mockResolvedValue(invoice);

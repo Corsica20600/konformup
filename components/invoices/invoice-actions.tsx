@@ -10,24 +10,32 @@ const initialState: InvoiceActionState = {};
 export function InvoiceActions({
   invoiceId,
   quoteId,
-  sendWithInvoice = false
+  sendWithInvoice = false,
+  sendCompanySatisfaction = false
 }: {
   invoiceId: string;
   quoteId: string;
   sendWithInvoice?: boolean;
+  sendCompanySatisfaction?: boolean;
 }) {
   const [sendState, sendAction, sendPending] = useActionState(sendInvoiceEmailAction, initialState);
 
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        <form action={sendAction}>
+        <form action={sendAction} onSubmit={(event) => { if (!window.confirm("Confirmer l’envoi de la facture avec les options sélectionnées ?")) event.preventDefault(); }}>
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <input type="hidden" name="sendWithInvoice" value="false" />
           <label className="mb-2 flex items-center gap-2 text-sm text-ink/75">
             <input type="checkbox" name="sendWithInvoice" value="true" defaultChecked={sendWithInvoice} />
             Joindre une fiche de réclamation vierge
           </label>
+          <input type="hidden" name="sendCompanySatisfaction" value="false" />
+          <label className="mb-2 flex items-center gap-2 text-sm text-ink/75">
+            <input type="checkbox" name="sendCompanySatisfaction" value="true" defaultChecked={sendCompanySatisfaction} />
+            Inclure le questionnaire de satisfaction entreprise
+          </label>
+          <p className="mb-2 text-xs text-ink/55">Destinataire : contact de la société · Facture jointe · Questionnaire facultatif si sélectionné.</p>
           <Button type="submit" variant="secondary" disabled={sendPending}>
             {sendPending ? "Envoi..." : "Envoyer"}
           </Button>
@@ -58,6 +66,7 @@ export function InvoiceActions({
           ) : null}
         </div>
       ) : null}
+      {sendState.warning ? <p className="mt-2 text-sm text-amber-700">{sendState.warning}</p> : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib
 import { fetchExistingPdf } from "@/lib/generated-documents";
 import { getInvoiceById, type InvoiceDetail } from "@/lib/invoices";
 import { getInvoiceComplaintByInvoiceId, markInvoiceComplaintSentWithInvoice } from "@/lib/invoice-complaints";
+import { getOrCreateCompanySatisfactionSurveyForInvoice, markCompanySatisfactionDelivery } from "@/lib/company-satisfaction";
 import { getTrainingDocumentTitle } from "@/lib/training-programs";
 
 function buildInvoiceEmailSubject(invoiceNumber: string) {
@@ -51,6 +52,8 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
   const complaint = await getInvoiceComplaintByInvoiceId(invoice.id);
   const complaintPdfPath = complaint?.send_with_invoice ? `/api/pdf/complaint/${invoice.id}` : null;
   const complaintPdf = complaintPdfPath ? await fetchExistingPdf(complaintPdfPath) : null;
+  const satisfaction = invoice.send_company_satisfaction ? await getOrCreateCompanySatisfactionSurveyForInvoice(invoice.id) : null;
+  const satisfactionIncluded = Boolean(satisfaction && !satisfaction.submittedAt);
   const body = buildInvoiceEmailBody(invoice, emailContext.signatureLines);
   const bodyWithComplaintNote =
     complaint?.send_with_invoice
@@ -61,7 +64,8 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
     ? buildPdfAttachment(`fiche-reclamation-${invoice.invoice_number ?? invoice.id}.pdf`, complaintPdf)
     : null;
 
-  await sendBrevoTransactionalEmail({
+  try {
+    await sendBrevoTransactionalEmail({
     context: emailContext,
     to: [
       {
@@ -69,18 +73,39 @@ export async function sendInvoiceEmail(invoiceOrId: InvoiceDetail | string) {
         name: invoice.company.company_name
       }
     ],
-    subject: buildInvoiceEmailSubject(invoice.invoice_number ?? `FACT-${invoice.id}`),
-    textContent: bodyWithComplaintNote,
+      subject: buildInvoiceEmailSubject(invoice.invoice_number ?? `FACT-${invoice.id}`),
+      textContent: `${bodyWithComplaintNote}${satisfactionIncluded && satisfaction ? `\n\nVotre avis compte\nCe questionnaire facultatif dure moins d'une minute : ${satisfaction.url}` : ""}`,
+      htmlContent:
+        satisfactionIncluded && satisfaction
+          ? `<p>${bodyWithComplaintNote.replace(/\n/g, "<br>")}</p><section><h2>Votre avis compte</h2><p>Ce questionnaire facultatif dure moins d’une minute.</p><p><a href="${satisfaction.url}">Donner mon avis</a></p></section>`
+          : undefined,
     attachment: [invoiceAttachment, ...(complaintAttachment ? [complaintAttachment] : [])],
-    errorLabel: "l'envoi de la facture"
-  });
+      errorLabel: "l'envoi de la facture"
+    });
+  } catch (error) {
+    if (satisfactionIncluded && satisfaction) {
+      await markCompanySatisfactionDelivery(satisfaction.surveyId, false).catch(() => undefined);
+    }
+    throw error;
+  }
 
   if (complaintAttachment) {
     await markInvoiceComplaintSentWithInvoice(invoice.id);
   }
 
+  let trackingWarning: string | undefined;
+  if (satisfactionIncluded && satisfaction) {
+    try {
+      await markCompanySatisfactionDelivery(satisfaction.surveyId, true);
+    } catch {
+      trackingWarning = "La facture a été envoyée, mais la traçabilité du questionnaire doit être vérifiée.";
+    }
+  }
+
   return {
     fileUrl: pdfPath,
-    complaintAttached: Boolean(complaintAttachment)
+    complaintAttached: Boolean(complaintAttachment),
+    satisfactionIncluded,
+    trackingWarning
   };
 }
