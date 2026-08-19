@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { generateDocumentAction, updateSessionClosureAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
+import { generateDocumentAction, generateMissingCandidateAttestationsAction, updateSessionClosureAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ export function SessionClosurePanel({
   const documents = getFinalDocumentSet(session.training_type);
   const [closureState, closureFormAction, closurePending] = useActionState(updateSessionClosureAction, initialState);
   const [documentState, documentFormAction, documentPending] = useActionState(generateDocumentAction, initialState);
+  const [attestationState, attestationFormAction, attestationPending] = useActionState(generateMissingCandidateAttestationsAction, initialState);
 
   return (
     <div className="grid gap-4">
@@ -116,6 +117,21 @@ export function SessionClosurePanel({
             Générer synthèse
           </Button>
         </form>
+        <form action={attestationFormAction} className="mt-3">
+          <input type="hidden" name="sessionId" value={session.id} />
+          <Button type="submit" disabled={attestationPending}>
+            {attestationPending ? "Génération des attestations..." : "Générer les attestations manquantes"}
+          </Button>
+        </form>
+        {attestationState.error ? <p className="mt-2 text-sm text-accent">{attestationState.error}</p> : null}
+        {attestationState.success ? <p className="mt-2 text-sm text-pine">{attestationState.success}</p> : null}
+        {attestationState.documentResults?.length ? (
+          <ul className="mt-2 text-sm text-ink/65">
+            {attestationState.documentResults.map((result) => (
+              <li key={result.candidateName}>{result.candidateName} : {result.status === "generated" ? "générée" : "déjà disponible"}</li>
+            ))}
+          </ul>
+        ) : null}
         {documentState.error ? <p className="mt-2 text-sm text-accent">{documentState.error}</p> : null}
         {documentState.success ? (
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-pine">

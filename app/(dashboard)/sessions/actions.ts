@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createDocument,
+  getLatestGeneratedDocumentByType,
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
@@ -48,6 +49,7 @@ export type ActionState = {
   error?: string;
   success?: string;
   fileUrl?: string;
+  documentResults?: Array<{ candidateName: string; status: "generated" | "existing" }>;
 };
 
 function buildCandidateSignature({
@@ -655,6 +657,60 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
     }
 
     return { error: "Impossible de générer le document." };
+  }
+}
+
+export async function generateMissingCandidateAttestationsAction(
+  _: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await requireUser();
+
+  const sessionId = formData.get("sessionId")?.toString();
+  if (!sessionId) return { error: "Session introuvable." };
+
+  try {
+    const { candidates } = await getSessionById(sessionId);
+    const admittedCandidates = candidates.filter((candidate) =>
+      candidate.evaluations?.some(
+        (evaluation) => evaluation.evaluation_type === "globale" && evaluation.result === "admis"
+      )
+    );
+
+    if (admittedCandidates.length === 0) {
+      return { error: "Aucun candidat admis ne nécessite une attestation." };
+    }
+
+    const documentResults: NonNullable<ActionState["documentResults"]> = [];
+    for (const candidate of admittedCandidates) {
+      const existing = await getLatestGeneratedDocumentByType({
+        sessionId,
+        candidateId: candidate.candidate.id,
+        type: "attestation"
+      });
+      if (!existing) {
+        await createDocument({ sessionId, candidateId: candidate.candidate.id, type: "attestation" });
+      }
+      documentResults.push({
+        candidateName: `${candidate.candidate.first_name} ${candidate.candidate.last_name}`.trim(),
+        status: existing ? "existing" : "generated"
+      });
+    }
+
+    const generatedCount = documentResults.filter((result) => result.status === "generated").length;
+    const existingCount = documentResults.length - generatedCount;
+    revalidatePath(`/sessions/${sessionId}`);
+
+    return {
+      success: `${generatedCount} attestation(s) générée(s)${existingCount ? `, ${existingCount} déjà disponible(s)` : ""}. Aucun email n'a été envoyé.`,
+      documentResults
+    };
+  } catch (error) {
+    console.error("[generateMissingCandidateAttestationsAction] generation failed", {
+      sessionId,
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+    return { error: error instanceof Error ? error.message : "Impossible de générer les attestations." };
   }
 }
 
