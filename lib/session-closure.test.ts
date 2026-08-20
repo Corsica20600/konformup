@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateSessionClosureSummary,
   getFinalDocumentSet,
+  getRequiredFinalDocumentTypes,
   getForprevStatusForCandidate,
   getSessionClosureReadiness
 } from "@/lib/session-closure";
@@ -71,6 +72,13 @@ describe("session closure", () => {
 
   it("lists only the retained final documents", () => {
     expect(getFinalDocumentSet("sst_initial")).not.toContain("Certificat de realisation");
+  });
+
+  it("does not treat external FORPREV administration as a generated final document", () => {
+    for (const type of ["sst_initial", "mac_sst", "hygiene"] as const) {
+      expect(getRequiredFinalDocumentTypes(type)).toEqual(["bilan_session", "attestation"]);
+      expect(getFinalDocumentSet(type).join(" ")).not.toMatch(/FORPREV/i);
+    }
   });
 
   it("labels the historical certificat type as an internal attestation", () => {

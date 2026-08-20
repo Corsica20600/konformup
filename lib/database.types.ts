@@ -301,6 +301,7 @@ export type Database = {
           id: string
           job_title: string | null
           last_name: string
+          mac_identity_id: string | null
           notes: string | null
           phone: string | null
           postal_code: string | null
@@ -325,6 +326,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           last_name: string
+          mac_identity_id?: string | null
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -349,6 +351,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           last_name?: string
+          mac_identity_id?: string | null
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -360,6 +363,13 @@ export type Database = {
           validation_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "candidates_mac_identity_id_fkey"
+            columns: ["mac_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "candidates_company_id_fkey"
             columns: ["company_id"]
@@ -1355,10 +1365,16 @@ export type Database = {
         Relationships: [{ foreignKeyName: "mac_sst_reminder_attempts_reminder_id_fkey"; columns: ["reminder_id"]; isOneToOne: false; referencedRelation: "mac_sst_reminders"; referencedColumns: ["id"] }]
       }
       mac_sst_reminders: {
-        Row: { id: string; candidate_id: string; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string; status: string; idempotency_key: string; attempt_count: number; last_attempt_at: string | null; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; candidate_id: string; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string; status?: string; idempotency_key: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; candidate_id?: string; reference_session_id?: string; certificate_end_date?: string; mac_due_date?: string; reminder_kind?: string; recipient_email?: string; status?: string; idempotency_key?: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
+        Row: { id: string; candidate_id: string; mac_identity_id: string | null; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string | null; status: string; idempotency_key: string; attempt_count: number; last_attempt_at: string | null; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; candidate_id: string; mac_identity_id?: string | null; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email?: string | null; status?: string; idempotency_key: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; candidate_id?: string; mac_identity_id?: string | null; reference_session_id?: string; certificate_end_date?: string; mac_due_date?: string; reminder_kind?: string; recipient_email?: string | null; status?: string; idempotency_key?: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
         Relationships: [{ foreignKeyName: "mac_sst_reminders_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "mac_sst_reminders_reference_session_id_fkey"; columns: ["reference_session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }]
+      }
+      candidate_mac_identities: {
+        Row: { id: string; created_at: string; created_by: string | null; notes: string | null }
+        Insert: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null }
+        Update: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null }
+        Relationships: []
       }
       session_archives: {
         Row: { id: string; session_id: string; version: number; previous_archive_id: string | null; status: string; manifest_version: string; manifest: Json; manifest_hash: string | null; storage_bucket: string; manifest_storage_path: string | null; missing_items: Json; error_summary: string | null; archived_at: string | null; archived_by: string | null; created_at: string; updated_at: string }

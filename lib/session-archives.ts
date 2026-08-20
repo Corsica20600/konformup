@@ -3,9 +3,26 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/database.types";
+import { getRequiredFinalDocumentTypes } from "@/lib/session-closure";
 
 const ARCHIVE_BUCKET = "session-archives";
 const MANIFEST_VERSION = "1";
+
+type StoredSource = { id: string; type: string; bucket: string; path: string; mimeType: string; required: boolean };
+
+function getStoredDocumentTarget(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const storage = (metadata as { storage?: unknown }).storage;
+  if (!storage || typeof storage !== "object" || Array.isArray(storage)) return null;
+  const value = storage as { bucket?: unknown; path?: unknown };
+  return typeof value.bucket === "string" && typeof value.path === "string" && value.bucket && value.path ? { bucket: value.bucket, path: value.path } : null;
+}
+
+export function buildSessionArchiveObjectPath(sessionId: string, version: number, source: Pick<StoredSource, "id" | "type" | "mimeType">) {
+  const extension = source.mimeType === "application/pdf" ? "pdf" : source.mimeType === "image/jpeg" ? "jpg" : source.mimeType === "image/png" ? "png" : "bin";
+  const folder = source.type === "complaint_attachment" ? "attachments" : "documents";
+  return `sessions/${sessionId}/archives/v${version}/${folder}/${source.id}.${extension}`;
+}
 
 export type ArchiveBlockers = {
   openSlots: number;
@@ -20,7 +37,8 @@ export function canCreateFinalArchive(blockers: ArchiveBlockers) {
 
 export async function getSessionArchiveBlockers(sessionId: string): Promise<ArchiveBlockers> {
   const supabase = await createClient();
-  const [{ data: slots }, { data: candidates }, { data: documents }] = await Promise.all([
+  const [{ data: session }, { data: slots }, { data: candidates }, { data: documents }] = await Promise.all([
+    supabase.from("training_sessions").select("training_type").eq("id", sessionId).maybeSingle(),
     supabase.from("attendance_slots").select("id, status").eq("session_id", sessionId),
     supabase.from("candidates").select("id").eq("session_id", sessionId),
     supabase.from("generated_documents").select("candidate_id, document_type, status").eq("session_id", sessionId)
@@ -45,10 +63,11 @@ export async function getSessionArchiveBlockers(sessionId: string): Promise<Arch
   }).length;
   const documentRows = documents ?? [];
   const missingDocuments: string[] = [];
-  if (!documentRows.some((document) => document.document_type === "bilan_session" && ["generated", "sent", "signed", "archived"].includes(document.status))) missingDocuments.push("Bilan de session");
+  const requiredTypes = getRequiredFinalDocumentTypes((session?.training_type as "sst_initial" | "mac_sst" | "hygiene") ?? "sst_initial");
+  if (requiredTypes.includes("bilan_session") && !documentRows.some((document) => document.document_type === "bilan_session" && ["generated", "sent", "signed", "archived"].includes(document.status))) missingDocuments.push("Bilan de session");
   for (const candidateId of candidateIds) {
     const global = (evaluations ?? []).filter((entry) => entry.candidate_id === candidateId && entry.evaluation_type === "globale").sort((a, b) => (b.evaluated_at ?? "").localeCompare(a.evaluated_at ?? ""))[0];
-    if (global?.result === "admis" && !documentRows.some((document) => document.candidate_id === candidateId && document.document_type === "attestation" && ["generated", "sent", "signed", "archived"].includes(document.status))) missingDocuments.push(`Attestation candidat ${candidateId}`);
+    if (requiredTypes.includes("attestation") && global?.result === "admis" && !documentRows.some((document) => document.candidate_id === candidateId && document.document_type === "attestation" && ["generated", "sent", "signed", "archived"].includes(document.status))) missingDocuments.push(`Attestation candidat ${candidateId}`);
   }
   return { openSlots, pendingAttendance, incompleteEvaluations, missingDocuments };
 }
@@ -61,8 +80,8 @@ export async function createOrGetSessionArchive({ sessionId, archivedBy, trainer
   const supabase = await createClient();
   const blockers = await getSessionArchiveBlockers(sessionId);
   if (!canCreateFinalArchive(blockers)) return { ok: false as const, blockers };
-  const { data: existing } = await supabase.from("session_archives").select("id, status, manifest_hash").eq("session_id", sessionId).eq("status", "complete").order("version", { ascending: false }).limit(1).maybeSingle();
-  if (existing) return { ok: true as const, existing: true, archiveId: existing.id, manifestHash: existing.manifest_hash };
+  const { data: existing } = await supabase.from("session_archives").select("id, status, manifest_hash").eq("session_id", sessionId).in("status", ["complete", "partial"]).order("version", { ascending: false }).limit(1).maybeSingle();
+  if (existing) return { ok: true as const, existing: true, archiveId: existing.id, manifestHash: existing.manifest_hash, archiveStatus: existing.status };
 
   const { data: session, error: sessionError } = await supabase.from("training_sessions").select("*").eq("id", sessionId).maybeSingle();
   if (sessionError || !session) return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Session inaccessible"] } };
@@ -87,35 +106,58 @@ export async function createOrGetSessionArchive({ sessionId, archivedBy, trainer
   const { data: previous } = await supabase.from("session_archives").select("id, version").eq("session_id", sessionId).order("version", { ascending: false }).limit(1).maybeSingle();
   const version = (previous?.version ?? 0) + 1;
   const manifestSession = { ...session, trainer_report: trainerReport ?? session.trainer_report, administrative_observations: administrativeObservations ?? session.administrative_observations };
-  const complaintFileHashes = new Map<string, string | null>();
-  await Promise.all((complaintAttachments ?? []).map(async (attachment) => {
-    const download = await supabase.storage.from(attachment.bucket_id).download(attachment.storage_path);
-    if (download.error || !download.data) { complaintFileHashes.set(attachment.id, null); return; }
-    complaintFileHashes.set(attachment.id, createHash("sha256").update(Buffer.from(await download.data.arrayBuffer())).digest("hex"));
-  }));
-  const manifestFiles = [
-    ...(documents ?? []).map((document) => ({ id: document.id, type: document.document_type, reference: document.document_ref, bucket: null, storage_path: null, size_bytes: null, sha256: null })),
-    ...(complaintAttachments ?? []).map((attachment) => ({ id: attachment.id, type: "complaint_attachment", reference: attachment.original_filename, bucket: attachment.bucket_id, storage_path: attachment.storage_path, size_bytes: attachment.size_bytes, sha256: complaintFileHashes.get(attachment.id) ?? null }))
+  const admittedCandidateIds = new Set((evaluations ?? []).filter((evaluation) => evaluation.evaluation_type === "globale" && evaluation.result === "admis").map((evaluation) => evaluation.candidate_id));
+  const sources: StoredSource[] = [
+    ...(documents ?? []).flatMap((document) => {
+      const target = getStoredDocumentTarget(document.metadata);
+      return target ? [{ id: document.id, type: document.document_type, bucket: target.bucket, path: target.path, mimeType: "application/pdf", required: document.document_type === "bilan_session" || (document.document_type === "attestation" && Boolean(document.candidate_id && admittedCandidateIds.has(document.candidate_id))) }] : [];
+    }),
+    ...(complaintAttachments ?? []).map((attachment) => ({ id: attachment.id, type: "complaint_attachment", bucket: attachment.bucket_id, path: attachment.storage_path, mimeType: attachment.mime_type, required: false }))
   ];
-  const manifest = { version: MANIFEST_VERSION, archived_at: new Date().toISOString(), session: manifestSession, source_quote: sourceQuote, invoices: invoices ?? [], candidates: candidates ?? [], attendance_slots: slots ?? [], attendance_responses: attendance ?? [], evaluations: evaluations ?? [], candidate_satisfaction: candidateSurveys ?? [], company_satisfaction: surveys ?? [], invoice_complaints: complaints ?? [], complaint_attachments: complaintAttachments ?? [], generated_documents: documents ?? [], files: manifestFiles, missing_items: [] as string[] };
-  const manifestHash = hashManifest(manifest);
-  const path = `sessions/${sessionId}/archives/${archiveId}/manifest.json`;
-  const { error: insertError } = await supabase.from("session_archives").insert({ id: archiveId, session_id: sessionId, version, previous_archive_id: previous?.id ?? null, status: "building", manifest_version: MANIFEST_VERSION, manifest: manifest as unknown as Json, manifest_hash: null, manifest_storage_path: null, missing_items: [] as unknown as Json, archived_by: archivedBy });
+  const requiredDocumentsWithoutStorage = (documents ?? []).filter((document) => (document.document_type === "bilan_session" || (document.document_type === "attestation" && Boolean(document.candidate_id && admittedCandidateIds.has(document.candidate_id)))) && !getStoredDocumentTarget(document.metadata));
+  const optionalDocumentsWithoutStorage = (documents ?? []).filter((document) => !getStoredDocumentTarget(document.metadata) && !requiredDocumentsWithoutStorage.some((required) => required.id === document.id));
+  if (requiredDocumentsWithoutStorage.length) return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Document final non archivable"] } };
+  const path = `sessions/${sessionId}/archives/v${version}/manifest.json`;
+  const { error: insertError } = await supabase.from("session_archives").insert({ id: archiveId, session_id: sessionId, version, previous_archive_id: previous?.id ?? null, status: "building", manifest_version: MANIFEST_VERSION, manifest: {} as Json, manifest_hash: null, manifest_storage_path: null, missing_items: [] as unknown as Json, archived_by: archivedBy });
   if (insertError) return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Registre d’archive indisponible"] } };
-  const upload = await supabase.storage.from(ARCHIVE_BUCKET).upload(path, Buffer.from(JSON.stringify(manifest)), { contentType: "application/json", upsert: false });
-  if (upload.error) {
-    await supabase.from("session_archives").update({ status: "error", error_summary: "Impossible d’enregistrer le manifeste privé." }).eq("id", archiveId);
-    return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Manifeste d’archive indisponible"] } };
+  const createdPaths: string[] = [];
+  const missingItems: string[] = optionalDocumentsWithoutStorage.map((document) => `Document facultatif non stocké: ${document.document_type}`);
+  const archivedFiles: Array<{ id: string; type: string; source_id: string; archive_path: string; mime_type: string; size_bytes: number; sha256: string }> = [];
+  const cleanup = async () => { await Promise.all(createdPaths.map((createdPath) => supabase.storage.from(ARCHIVE_BUCKET).remove([createdPath]))); };
+  for (const source of sources) {
+    const destination = buildSessionArchiveObjectPath(sessionId, version, source);
+    const sourceDownload = await supabase.storage.from(source.bucket).download(source.path);
+    if (sourceDownload.error || !sourceDownload.data) {
+      if (source.required) { await cleanup(); await supabase.from("session_archives").update({ status: "error", error_summary: "Document final obligatoire introuvable lors de l’archivage." }).eq("id", archiveId); return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Document final obligatoire non archivable"] } }; }
+      missingItems.push(`Fichier facultatif inaccessible: ${source.type}`); continue;
+    }
+    const bytes = Buffer.from(await sourceDownload.data.arrayBuffer());
+    const sha256 = createHash("sha256").update(bytes).digest("hex");
+    const upload = await supabase.storage.from(ARCHIVE_BUCKET).upload(destination, bytes, { contentType: source.mimeType, upsert: false });
+    if (upload.error) {
+      if (source.required) { await cleanup(); await supabase.from("session_archives").update({ status: "error", error_summary: "Copie d’un document final obligatoire échouée." }).eq("id", archiveId); return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Copie du document final obligatoire échouée"] } }; }
+      missingItems.push(`Copie facultative échouée: ${source.type}`); continue;
+    }
+    createdPaths.push(destination);
+    const verification = await supabase.storage.from(ARCHIVE_BUCKET).download(destination);
+    const verifiedHash = verification.error || !verification.data ? null : createHash("sha256").update(Buffer.from(await verification.data.arrayBuffer())).digest("hex");
+    if (verifiedHash !== sha256) { await cleanup(); await supabase.from("session_archives").update({ status: "error", error_summary: "Vérification cryptographique de l’archive échouée." }).eq("id", archiveId); return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Vérification de l’archive échouée"] } }; }
+    archivedFiles.push({ id: source.id, type: source.type, source_id: source.id, archive_path: destination, mime_type: source.mimeType, size_bytes: bytes.byteLength, sha256 });
   }
+  const manifest = { version: MANIFEST_VERSION, archived_at: new Date().toISOString(), session: manifestSession, source_quote: sourceQuote, invoices: invoices ?? [], candidates: candidates ?? [], attendance_slots: slots ?? [], attendance_responses: attendance ?? [], evaluations: evaluations ?? [], candidate_satisfaction: candidateSurveys ?? [], company_satisfaction: surveys ?? [], invoice_complaints: complaints ?? [], generated_documents: documents ?? [], files: archivedFiles, missing_items: missingItems };
+  const manifestHash = hashManifest(manifest);
+  const manifestUpload = await supabase.storage.from(ARCHIVE_BUCKET).upload(path, Buffer.from(JSON.stringify(manifest)), { contentType: "application/json", upsert: false });
+  if (manifestUpload.error) { await cleanup(); await supabase.from("session_archives").update({ status: "error", error_summary: "Impossible d’enregistrer le manifeste privé." }).eq("id", archiveId); return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Manifeste d’archive indisponible"] } }; }
+  createdPaths.push(path);
   const now = new Date().toISOString();
-  const { error: completeError } = await supabase.from("session_archives").update({ status: "complete", manifest: manifest as unknown as Json, manifest_hash: manifestHash, manifest_storage_path: path, archived_at: now }).eq("id", archiveId);
+  const { error: completeError } = await supabase.from("session_archives").update({ status: missingItems.length ? "partial" : "complete", manifest: manifest as unknown as Json, manifest_hash: manifestHash, manifest_storage_path: path, missing_items: missingItems as unknown as Json, archived_at: now }).eq("id", archiveId);
   if (completeError) return { ok: false as const, blockers: { ...blockers, missingDocuments: [...blockers.missingDocuments, "Vérification d’archive échouée"] } };
-  return { ok: true as const, existing: false, archiveId, manifestHash };
+  return { ok: true as const, existing: false, archiveId, manifestHash, archiveStatus: missingItems.length ? "partial" : "complete" };
 }
 
 export async function createSessionArchiveSignedUrl(archiveId: string) {
   const supabase = await createClient();
-  const { data: archive, error } = await supabase.from("session_archives").select("storage_bucket, manifest_storage_path").eq("id", archiveId).eq("status", "complete").maybeSingle();
+  const { data: archive, error } = await supabase.from("session_archives").select("storage_bucket, manifest_storage_path").eq("id", archiveId).in("status", ["complete", "partial"]).maybeSingle();
   if (error || !archive?.manifest_storage_path) throw new Error("Archive indisponible.");
   const { data, error: signedError } = await supabase.storage.from(archive.storage_bucket).createSignedUrl(archive.manifest_storage_path, 300);
   if (signedError || !data?.signedUrl) throw new Error("Archive indisponible.");

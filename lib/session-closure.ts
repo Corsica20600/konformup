@@ -84,13 +84,15 @@ export function calculateSessionClosureSummary(candidates: SessionCandidate[]): 
 }
 
 export function getFinalDocumentSet(trainingType: TrainingType) {
-  const baseDocuments = ["Attestation interne de fin de formation", "Bilan session"];
+  // The internal attestation is issued only to admitted candidates; the session report is mandatory.
+  // FORPREV remains an external register and is never a generated or required Konform'up document.
+  void trainingType;
+  return ["Attestation interne de fin de formation (candidats admis)", "Bilan session"];
+}
 
-  if (!isSstTrainingType(trainingType)) {
-    return baseDocuments;
-  }
-
-  return [...baseDocuments, "Trace administrative du certificat SST officiel / FORPREV"];
+export function getRequiredFinalDocumentTypes(trainingType: TrainingType) {
+  void trainingType;
+  return ["bilan_session", "attestation"] as const;
 }
 
 export function getSstCertificateNotice(trainingType: TrainingType) {

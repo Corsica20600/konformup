@@ -555,6 +555,7 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
 
   const supabase = await createClient();
   let archiveId: string | null = null;
+  let archiveStatus: "complete" | "partial" = "complete";
   if (closureStatus === "closed") {
     // Attendance is a separate, optional migration in older environments. When
     // it is available, all its slots and responses must be settled before the
@@ -595,6 +596,7 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
       return { error: `Clôture impossible : ${details.join(" ; ") || "archive indisponible"}.` };
     }
     archiveId = archive.archiveId;
+    archiveStatus = archive.archiveStatus === "partial" ? "partial" : "complete";
   }
   const now = new Date().toISOString();
   const { error } = await supabase
@@ -611,7 +613,7 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
       final_admitted_count: summary.admittedCount,
       final_not_admitted_count: summary.notAdmittedCount,
       final_absent_count: summary.absentCount,
-      archive_status: closureStatus === "closed" ? "complete" : sessionData.session.archive_status ?? "none",
+      archive_status: closureStatus === "closed" ? archiveStatus : sessionData.session.archive_status ?? "none",
       archived_at: closureStatus === "closed" ? now : sessionData.session.archived_at ?? null,
       archived_by: closureStatus === "closed" ? profile.id : sessionData.session.archived_by ?? null,
       current_archive_id: closureStatus === "closed" ? archiveId : sessionData.session.current_archive_id ?? null

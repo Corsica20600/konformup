@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateMacDates, getMacReminderEligibility } from "@/lib/mac-sst-reminders";
 
-const base = { candidateId: "candidate", email: "candidate@example.test", validationStatus: "validated", sessionId: "session", trainingType: "sst_initial", sessionStatus: "completed", closureStatus: "closed", endDate: "2024-01-31", globalResult: "admis" };
+const base = { candidateId: "candidate", macIdentityId: "11111111-1111-4111-8111-111111111111", email: "candidate@example.test", validationStatus: "validated", sessionId: "session", trainingType: "sst_initial", sessionStatus: "completed", closureStatus: "closed", endDate: "2024-01-31", globalResult: "admis" };
 
 describe("MAC SST reminders", () => {
   it("calculates 22, 23 and 24 months without losing end-of-month dates", () => {
@@ -21,5 +21,8 @@ describe("MAC SST reminders", () => {
   });
   it("does not process non-SST training", () => {
     expect(getMacReminderEligibility({ ...base, trainingType: "hygiene" }, "2025-11-30").reason).toBe("not_sst");
+  });
+  it("requires an explicit stable identity and never falls back to an email, name or company", () => {
+    expect(getMacReminderEligibility({ ...base, macIdentityId: null }, "2025-11-30")).toMatchObject({ eligible: false, reason: "identity_unverified" });
   });
 });

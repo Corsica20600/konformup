@@ -159,6 +159,7 @@ export default async function CandidateDetailPage({
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">MAC SST</p>
           <h3 className="mt-2 text-2xl font-bold">Rappels de renouvellement</h3>
+          <p className="mt-2 text-sm text-ink/65">Les rappels à 22 et 23 mois sont adressés uniquement à l’email renseigné du candidat. Aucun contact société n’est substitué automatiquement.</p>
           {macStatus.error ? <p className="mt-4 text-sm text-accent">{macStatus.error}</p> : null}
           {!macStatus.error && !macStatus.reminders.length ? <p className="mt-4 text-sm text-ink/65">Aucun rappel MAC SST programmé pour ce candidat.</p> : null}
           {macStatus.reminders.map((reminder) => <div key={reminder.id} className="mt-3 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold">Échéance : {formatDate(reminder.mac_due_date)}</p><p className="mt-1 text-ink/65">Rappel {reminder.reminder_kind === "month_22" ? "22 mois" : "23 mois"} · {reminder.status === "sent" ? "Envoyé" : reminder.status === "error" ? "Erreur" : reminder.status === "pending" ? "À envoyer" : "Ignoré"}</p>{reminder.sent_at ? <p className="mt-1 text-ink/55">Envoyé le {formatDate(reminder.sent_at)}</p> : null}{reminder.technical_error ? <p className="mt-1 text-accent">Envoi à vérifier.</p> : null}</div>)}
