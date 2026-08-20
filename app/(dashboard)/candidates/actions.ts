@@ -15,7 +15,8 @@ export async function linkCandidateMacIdentityAction(_: MacIdentityActionState, 
   const candidateId = formUuid(formData.get("candidateId"));
   const identityId = formUuid(formData.get("identityId"));
   const reason = typeof formData.get("reason") === "string" ? String(formData.get("reason")).trim() : "";
-  if (!candidateId || !identityId || !reason) return { error: "Identité et motif administratif requis." };
+  const confirmed = formData.get("confirmed") === "true";
+  if (!candidateId || !identityId || !reason || !confirmed) return { error: "Identité, motif administratif et confirmation requis." };
   try {
     await linkCandidateToMacIdentity(candidateId, identityId, reason);
     revalidatePath(`/candidates/${candidateId}`);
@@ -31,7 +32,8 @@ export async function mergeMacIdentitiesAction(_: MacIdentityActionState, formDa
   const secondaryIdentityId = formUuid(formData.get("secondaryIdentityId"));
   const candidateId = formUuid(formData.get("candidateId"));
   const reason = typeof formData.get("reason") === "string" ? String(formData.get("reason")).trim() : "";
-  if (!canonicalIdentityId || !secondaryIdentityId || !candidateId || !reason) return { error: "Identités et motif administratif requis." };
+  const confirmed = formData.get("confirmed") === "true";
+  if (!canonicalIdentityId || !secondaryIdentityId || !candidateId || !reason || !confirmed) return { error: "Identités, motif administratif et confirmation requis." };
   try {
     await mergeMacIdentities(canonicalIdentityId, secondaryIdentityId, reason);
     revalidatePath(`/candidates/${candidateId}`);

@@ -166,7 +166,7 @@ export default async function CandidateDetailPage({
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Identité MAC SST</p>
           <h3 className="mt-2 text-2xl font-bold">Suivi de la personne</h3>
-          <div className="mt-4"><MacIdentityPanel candidateId={candidate.id} identity={macIdentity} availableIdentities={availableIdentities} isAdmin={isAdmin} /></div>
+          <div className="mt-4"><MacIdentityPanel candidateId={candidate.id} candidateName={`${candidate.first_name} ${candidate.last_name}`.trim()} candidateEmail={candidate.email} identity={macIdentity} availableIdentities={availableIdentities} isAdmin={isAdmin} /></div>
         </Card>
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">MAC SST</p>

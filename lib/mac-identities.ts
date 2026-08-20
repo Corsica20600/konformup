@@ -2,6 +2,7 @@ import "server-only";
 
 import { AuthorizationError, assertCanAccessCandidate, requireAuthenticatedUser } from "@/lib/auth";
 import { calculateMacDates } from "@/lib/mac-sst-reminders";
+import type { MacIdentityOption } from "@/lib/mac-identity-presentation";
 
 type IdentitySessionRow = { id: string; session_id: string | null; training_sessions: { id: string; title: string; end_date: string; training_type: string } | { id: string; title: string; end_date: string; training_type: string }[] | null };
 
@@ -49,16 +50,55 @@ export async function getMacIdentityForCandidate(candidateId: string): Promise<M
   };
 }
 
-export async function getActiveMacIdentitiesForAdmin() {
+type IdentityOptionCandidateRow = {
+  id: string;
+  mac_identity_id: string | null;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  company: string | null;
+  training_sessions: { title: string; end_date: string; training_type: string } | { title: string; end_date: string; training_type: string }[] | null;
+};
+
+export async function getActiveMacIdentitiesForAdmin(): Promise<MacIdentityOption[]> {
   const { profile, supabase } = await requireAuthenticatedUser();
   if (profile.role !== "admin") throw new AuthorizationError();
-  const { data, error } = await supabase
+  const { data: identities, error } = await supabase
     .from("candidate_mac_identities")
     .select("id, created_at")
     .eq("status", "active")
     .order("created_at", { ascending: false });
   if (error) throw new Error("Les identités MAC sont temporairement indisponibles.");
-  return data ?? [];
+  const identityIds = (identities ?? []).map((identity) => identity.id);
+  if (!identityIds.length) return [];
+  const { data: rows, error: candidatesError } = await supabase
+    .from("candidates")
+    .select("id, mac_identity_id, first_name, last_name, email, company, training_sessions(title, end_date, training_type)")
+    .in("mac_identity_id", identityIds);
+  if (candidatesError) throw new Error("Les identités MAC sont temporairement indisponibles.");
+  const candidatesByIdentity = new Map<string, IdentityOptionCandidateRow[]>();
+  for (const row of (rows ?? []) as unknown as IdentityOptionCandidateRow[]) {
+    if (!row.mac_identity_id) continue;
+    candidatesByIdentity.set(row.mac_identity_id, [...(candidatesByIdentity.get(row.mac_identity_id) ?? []), row]);
+  }
+  return identityIds.map((id) => {
+    const candidates = candidatesByIdentity.get(id) ?? [];
+    const sessions = candidates
+      .map((candidate) => Array.isArray(candidate.training_sessions) ? candidate.training_sessions[0] ?? null : candidate.training_sessions)
+      .filter((session): session is { title: string; end_date: string; training_type: string } => Boolean(session))
+      .sort((left, right) => (right.end_date ?? "").localeCompare(left.end_date ?? ""));
+    const representative = candidates[0] ?? null;
+    const latestSession = sessions[0] ?? null;
+    return {
+      id,
+      status: "active",
+      candidateNames: candidates.map((candidate) => `${candidate.first_name} ${candidate.last_name}`.trim()).filter(Boolean),
+      candidateEmail: representative?.email ?? null,
+      company: representative?.company ?? null,
+      latestSession: latestSession ? { title: latestSession.title, endDate: latestSession.end_date, trainingType: latestSession.training_type } : null,
+      candidateCount: candidates.length
+    };
+  });
 }
 
 export async function linkCandidateToMacIdentity(candidateId: string, identityId: string, reason: string) {
