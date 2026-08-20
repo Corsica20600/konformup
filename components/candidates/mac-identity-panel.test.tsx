@@ -19,5 +19,6 @@ describe("MacIdentityPanel", () => {
     const html = renderToStaticMarkup(<MacIdentityPanel candidateId="candidate-1" candidateName="Alice Martin" candidateEmail="alice@example.test" identity={identity} availableIdentities={availableIdentities} isAdmin />);
     expect(html).toContain("Gérer l’identité MAC");
     expect(html).not.toContain("Identité créée le");
+    expect(html).not.toContain("value=\"22222222-2222-4222-8222-222222f86f3e\"");
   });
 });
