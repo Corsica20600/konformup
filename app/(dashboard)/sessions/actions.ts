@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   createDocument,
+  getOrCreateDocument,
   getLatestGeneratedDocumentByType,
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
@@ -703,7 +704,11 @@ export async function generateDocumentAction(_: ActionState, formData: FormData)
       };
     }
 
-    const document = await createDocument({
+    // A new document is created only when no document of the same type is
+    // already attached to this candidate/session. Explicit regeneration keeps
+    // using regenerateGeneratedDocument, so this entry point cannot create a
+    // second livret or convocation through repeated clicks.
+    const document = await getOrCreateDocument({
       sessionId,
       candidateId: candidateId || null,
       type: type as SupportedGeneratedDocumentType
