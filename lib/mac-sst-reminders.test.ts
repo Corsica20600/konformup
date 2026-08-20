@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMacDates, getMacReminderEligibility } from "@/lib/mac-sst-reminders";
+import { calculateMacDates, getMacReminderEligibility, hasAmbiguousMacReminderEmail, normalizeReminderEmail } from "@/lib/mac-sst-reminders";
 
 const base = { candidateId: "candidate", macIdentityId: "11111111-1111-4111-8111-111111111111", email: "candidate@example.test", validationStatus: "validated", sessionId: "session", trainingType: "sst_initial", sessionStatus: "completed", closureStatus: "closed", endDate: "2024-01-31", globalResult: "admis" };
 
@@ -24,5 +24,14 @@ describe("MAC SST reminders", () => {
   });
   it("requires an explicit stable identity and never falls back to an email, name or company", () => {
     expect(getMacReminderEligibility({ ...base, macIdentityId: null }, "2025-11-30")).toMatchObject({ eligible: false, reason: "identity_unverified" });
+  });
+  it("normalizes delivery email only and blocks shared addresses across active identities", () => {
+    const identities = new Map([["shared@example.test", new Set(["identity-a", "identity-b"])]]);
+    expect(normalizeReminderEmail(" Shared@Example.Test ")).toBe("shared@example.test");
+    expect(hasAmbiguousMacReminderEmail("identity-a", " Shared@Example.Test ", identities)).toBe(true);
+    expect(hasAmbiguousMacReminderEmail("identity-a", "changed@example.test", identities)).toBe(false);
+  });
+  it("does not infer a stable identity from names, companies or date-like values", () => {
+    expect(getMacReminderEligibility({ ...base, macIdentityId: null, email: "same@example.test" }, "2025-11-30").reason).toBe("identity_unverified");
   });
 });

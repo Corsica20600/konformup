@@ -11,6 +11,9 @@ import type { SessionCandidate } from "@/lib/types";
 import { formatDate, initials } from "@/lib/utils";
 import { deduplicateCandidateDocuments } from "@/lib/pre-training-documents";
 import { getMacSstReminderStatusForCandidate } from "@/lib/mac-sst-reminders";
+import { getActiveMacIdentitiesForAdmin, getMacIdentityForCandidate } from "@/lib/mac-identities";
+import { requireAuthenticatedUser } from "@/lib/auth";
+import { MacIdentityPanel } from "@/components/candidates/mac-identity-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,11 @@ export default async function CandidateDetailPage({
   params: Promise<{ candidateId: string }>;
 }) {
   const { candidateId } = await params;
-  const [candidateDashboard, companies, surveys, macStatus] = await Promise.all([getCandidateById(candidateId), getCompanyOptions(), getCandidateSatisfactionSurveys(candidateId), getMacSstReminderStatusForCandidate(candidateId)]);
+  const auth = await requireAuthenticatedUser();
+  const isAdmin = auth.profile.role === "admin";
+  const [candidateDashboard, companies, surveys, macStatus, macIdentity, availableIdentities] = await Promise.all([
+    getCandidateById(candidateId), getCompanyOptions(), getCandidateSatisfactionSurveys(candidateId), getMacSstReminderStatusForCandidate(candidateId), getMacIdentityForCandidate(candidateId), isAdmin ? getActiveMacIdentitiesForAdmin() : Promise.resolve([])
+  ]);
 
   if (!candidateDashboard) {
     notFound();
@@ -155,6 +162,11 @@ export default async function CandidateDetailPage({
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Satisfaction</p>
           <h3 className="mt-2 text-2xl font-bold">Questionnaire candidat</h3>
           {surveys.length ? surveys.map((survey) => <div key={survey.id} className="mt-4 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold text-pine">Répondu le {formatDate(survey.submitted_at)}</p><p className="mt-2">Satisfaction : {survey.answers.satisfaction_globale || "Non renseignée"} · Recommandation : {survey.answers.recommandation || "—"}/10</p>{survey.answers.remarques ? <p className="mt-2 text-ink/65">{survey.answers.remarques}</p> : null}</div>) : <p className="mt-4 text-sm text-ink/65">Aucun questionnaire retourné.</p>}
+        </Card>
+        <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Identité MAC SST</p>
+          <h3 className="mt-2 text-2xl font-bold">Suivi de la personne</h3>
+          <div className="mt-4"><MacIdentityPanel candidateId={candidate.id} identity={macIdentity} availableIdentities={availableIdentities} isAdmin={isAdmin} /></div>
         </Card>
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">MAC SST</p>

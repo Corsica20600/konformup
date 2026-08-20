@@ -17,7 +17,7 @@ create index if not exists mac_sst_reminders_identity_idx on public.mac_sst_remi
 alter table public.candidate_mac_identities enable row level security;
 create policy candidate_mac_identities_read on public.candidate_mac_identities for select to authenticated using (public.is_operational_manager());
 create policy candidate_mac_identities_write on public.candidate_mac_identities for all to authenticated using (public.is_operational_manager()) with check (public.is_operational_manager());
-revoke all on public.candidate_mac_identities from anon;
+revoke all on table public.candidate_mac_identities from anon;
 
 drop policy if exists session_archives_update_unfinished on public.session_archives;
 create policy session_archives_update_building_only on public.session_archives for update to authenticated

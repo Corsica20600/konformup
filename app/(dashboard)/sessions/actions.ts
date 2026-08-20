@@ -310,11 +310,14 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
 
 export async function createCandidateAction(_: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
+  const selectedExistingCandidateId = formData.get("existingCandidateId");
+  const reusingExistingCandidate = typeof selectedExistingCandidateId === "string" && selectedExistingCandidateId.length > 0;
 
   const parsed = createCandidateSchema.safeParse({
     sessionId: formData.get("sessionId"),
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
+    existingCandidateId: selectedExistingCandidateId,
+    firstName: formData.get("firstName") || (reusingExistingCandidate ? "Dossier existant" : ""),
+    lastName: formData.get("lastName") || (reusingExistingCandidate ? "Sélectionné" : ""),
     email: formData.get("email"),
     company: formData.get("company"),
     companyId: formData.get("companyId"),
@@ -331,24 +334,47 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
   }
 
   const supabase = await createClient();
+  const existingCandidateId = parsed.data.existingCandidateId || null;
+  const { data: existingCandidate } = existingCandidateId
+    ? await supabase
+        .from("candidates")
+        .select("first_name, last_name, email, company, company_id, phone, job_title, address, postal_code, city, validation_status, mac_identity_id")
+        .eq("id", existingCandidateId)
+        .maybeSingle()
+    : { data: null };
+
+  if (existingCandidateId && !existingCandidate) {
+    return { error: "Le dossier candidat sélectionné n’est pas accessible." };
+  }
+  if (existingCandidate?.mac_identity_id && parsed.data.sessionId) {
+    const { data: existingRegistration } = await supabase
+      .from("candidates")
+      .select("id")
+      .eq("session_id", parsed.data.sessionId)
+      .eq("mac_identity_id", existingCandidate.mac_identity_id)
+      .maybeSingle();
+    if (existingRegistration) return { success: "Ce dossier est déjà rattaché à cette session." };
+  }
+
   const companyLabel = await resolveCandidateCompanyLabel(parsed.data.companyId || null, parsed.data.company || null);
 
   const { data: candidate, error: candidateInsertError } = await supabase
     .from("candidates")
     .insert({
       session_id: parsed.data.sessionId || null,
-      company_id: parsed.data.companyId || null,
-      first_name: parsed.data.firstName,
-      last_name: parsed.data.lastName,
-      email: parsed.data.email || null,
-      company: companyLabel,
-      phone: parsed.data.phone || null,
-      job_title: parsed.data.jobTitle || null,
-      address: parsed.data.address || null,
-      postal_code: parsed.data.postalCode || null,
-      city: parsed.data.city || null,
-      validation_status: parsed.data.validationStatus,
-      validated_at: parsed.data.validationStatus === "validated" ? new Date().toISOString() : null
+      company_id: existingCandidate?.company_id ?? (parsed.data.companyId || null),
+      first_name: existingCandidate?.first_name ?? parsed.data.firstName,
+      last_name: existingCandidate?.last_name ?? parsed.data.lastName,
+      email: existingCandidate?.email ?? (parsed.data.email || null),
+      company: existingCandidate?.company ?? companyLabel,
+      phone: existingCandidate?.phone ?? (parsed.data.phone || null),
+      job_title: existingCandidate?.job_title ?? (parsed.data.jobTitle || null),
+      address: existingCandidate?.address ?? (parsed.data.address || null),
+      postal_code: existingCandidate?.postal_code ?? (parsed.data.postalCode || null),
+      city: existingCandidate?.city ?? (parsed.data.city || null),
+      validation_status: existingCandidate?.validation_status ?? parsed.data.validationStatus,
+      validated_at: (existingCandidate?.validation_status ?? parsed.data.validationStatus) === "validated" ? new Date().toISOString() : null,
+      mac_identity_id: existingCandidate?.mac_identity_id ?? null
     })
     .select("id, session_id")
     .maybeSingle<{ id: string; session_id: string | null }>();

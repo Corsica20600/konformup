@@ -1901,7 +1901,7 @@ export async function getCandidateDirectory() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("candidates")
-    .select("id, first_name, last_name, email, company, company_id, session_id, training_sessions(id, title, start_date)")
+    .select("id, first_name, last_name, email, company, company_id, session_id, mac_identity_id, candidate_mac_identities(status, verified_at), training_sessions(id, title, start_date)")
     .order("last_name", { ascending: true })
     .order("first_name", { ascending: true });
 
@@ -1911,12 +1911,18 @@ export async function getCandidateDirectory() {
     const session = Array.isArray(candidate.training_sessions)
       ? candidate.training_sessions[0] ?? null
       : candidate.training_sessions;
+    const macIdentity = Array.isArray(candidate.candidate_mac_identities)
+      ? candidate.candidate_mac_identities[0] ?? null
+      : candidate.candidate_mac_identities;
     return {
       id: candidate.id,
       first_name: candidate.first_name,
       last_name: candidate.last_name,
       email: candidate.email,
       company: candidate.company,
+      mac_identity_id: candidate.mac_identity_id,
+      mac_identity_status: macIdentity?.status ?? null,
+      mac_identity_verified_at: macIdentity?.verified_at ?? null,
       session_id: candidate.session_id,
       session: session ? { id: session.id, title: session.title, start_date: session.start_date } : null
     };
@@ -1930,6 +1936,7 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
     .select(
       `
         id,
+        mac_identity_id,
         session_id,
         company_id,
         first_name,
@@ -1987,6 +1994,7 @@ export async function getCandidateById(candidateId: string): Promise<CandidateDa
 
   const candidate: Candidate = {
     id: data.id,
+    mac_identity_id: data.mac_identity_id,
     session_id: data.session_id,
     company_id: data.company_id,
     first_name: data.first_name,

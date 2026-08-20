@@ -59,6 +59,7 @@ export type SessionItem = {
 
 export type Candidate = {
   id: string;
+  mac_identity_id?: string | null;
   session_id: string | null;
   company_id: string | null;
   first_name: string;

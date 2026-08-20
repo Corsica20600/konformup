@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createCandidateAction, type ActionState } from "@/app/(dashboard)/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,20 +12,25 @@ export function CreateCandidateForm({
   sessionId,
   companies,
   defaultCompanyId = "",
-  compact = false
+  compact = false,
+  existingCandidates = []
 }: {
   sessionId: string;
   companies: CompanyOption[];
   defaultCompanyId?: string;
   compact?: boolean;
+  existingCandidates?: Array<{ id: string; first_name: string; last_name: string; email: string | null; session: { title: string } | null }>;
 }) {
   const [state, formAction, pending] = useActionState(createCandidateAction, initialState);
+  const [existingCandidateId, setExistingCandidateId] = useState("");
+  const reusingExistingCandidate = Boolean(existingCandidateId);
 
   return (
     <form action={formAction} className="grid gap-4 md:grid-cols-2">
       <input type="hidden" name="sessionId" value={sessionId} />
-      <Input label="Prénom" name="firstName" required />
-      <Input label="Nom" name="lastName" required />
+      {existingCandidates.length ? <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2"><span>Réutiliser un dossier candidat existant (facultatif)</span><select name="existingCandidateId" value={existingCandidateId} onChange={(event) => setExistingCandidateId(event.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Créer une nouvelle personne et une nouvelle identité MAC</option>{existingCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.first_name} {candidate.last_name}{candidate.email ? ` — ${candidate.email}` : ""}{candidate.session ? ` (${candidate.session.title})` : ""}</option>)}</select><span className="font-normal text-ink/55">Le choix réutilise explicitement l’identité MAC existante ; aucun rapprochement par nom ou email n’est effectué.</span></label> : <input type="hidden" name="existingCandidateId" value="" />}
+      <Input label="Prénom" name="firstName" required={!reusingExistingCandidate} />
+      <Input label="Nom" name="lastName" required={!reusingExistingCandidate} />
       <Input label="Email" name="email" type="email" />
       <Input label="Téléphone" name="phone" />
       <Input label="Fonction" name="jobTitle" />
@@ -56,7 +61,7 @@ export function CreateCandidateForm({
             <span>Statut de validation</span>
             <select
               name="validationStatus"
-              defaultValue="pending"
+            defaultValue="pending"
               className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
             >
               <option value="pending">En attente</option>

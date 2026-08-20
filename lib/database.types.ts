@@ -1371,10 +1371,16 @@ export type Database = {
         Relationships: [{ foreignKeyName: "mac_sst_reminders_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "mac_sst_reminders_reference_session_id_fkey"; columns: ["reference_session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }]
       }
       candidate_mac_identities: {
-        Row: { id: string; created_at: string; created_by: string | null; notes: string | null }
-        Insert: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null }
-        Update: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null }
-        Relationships: []
+        Row: { id: string; created_at: string; created_by: string | null; notes: string | null; status: string; merged_into_identity_id: string | null; verified_at: string | null; verified_by: string | null; merged_at: string | null; merged_by: string | null; merge_reason: string | null }
+        Insert: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null; status?: string; merged_into_identity_id?: string | null; verified_at?: string | null; verified_by?: string | null; merged_at?: string | null; merged_by?: string | null; merge_reason?: string | null }
+        Update: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null; status?: string; merged_into_identity_id?: string | null; verified_at?: string | null; verified_by?: string | null; merged_at?: string | null; merged_by?: string | null; merge_reason?: string | null }
+        Relationships: [{ foreignKeyName: "candidate_mac_identities_merged_into_identity_id_fkey"; columns: ["merged_into_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }]
+      }
+      candidate_mac_identity_operations: {
+        Row: { id: string; operation_type: string; candidate_id: string | null; source_identity_id: string | null; target_identity_id: string | null; reason: string | null; performed_by: string | null; created_at: string }
+        Insert: { id?: string; operation_type: string; candidate_id?: string | null; source_identity_id?: string | null; target_identity_id?: string | null; reason?: string | null; performed_by?: string | null; created_at?: string }
+        Update: { id?: string; operation_type?: string; candidate_id?: string | null; source_identity_id?: string | null; target_identity_id?: string | null; reason?: string | null; performed_by?: string | null; created_at?: string }
+        Relationships: [{ foreignKeyName: "candidate_mac_identity_operations_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "candidate_mac_identity_operations_source_identity_id_fkey"; columns: ["source_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }, { foreignKeyName: "candidate_mac_identity_operations_target_identity_id_fkey"; columns: ["target_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }]
       }
       session_archives: {
         Row: { id: string; session_id: string; version: number; previous_archive_id: string | null; status: string; manifest_version: string; manifest: Json; manifest_hash: string | null; storage_bucket: string; manifest_storage_path: string | null; missing_items: Json; error_summary: string | null; archived_at: string | null; archived_by: string | null; created_at: string; updated_at: string }
@@ -1680,6 +1686,14 @@ export type Database = {
         }[]
       }
       is_operational_manager: { Args: never; Returns: boolean }
+      link_candidate_mac_identity: {
+        Args: { p_candidate_id: string; p_identity_id: string; p_reason: string }
+        Returns: string
+      }
+      merge_candidate_mac_identities: {
+        Args: { p_canonical_identity_id: string; p_secondary_identity_id: string; p_reason: string }
+        Returns: string
+      }
       mark_company_satisfaction_delivery: {
         Args: { p_success: boolean; p_survey_id: string }
         Returns: boolean
