@@ -81,16 +81,32 @@ create policy shared_resources_manager_insert on public.shared_training_resource
 create policy shared_resources_admin_update on public.shared_training_resources for update to authenticated using (public.current_app_role()::text = 'admin') with check (public.current_app_role()::text = 'admin');
 create policy shared_resources_lead_own_draft_update on public.shared_training_resources for update to authenticated using (created_by = auth.uid() and status = 'to_review' and public.current_app_role()::text = 'lead_trainer') with check (created_by = auth.uid() and status = 'to_review');
 create policy shared_resource_versions_read on public.shared_training_resource_versions for select to authenticated using (public.is_operational_manager());
-create policy shared_resource_versions_write on public.shared_training_resource_versions for insert to authenticated with check (public.is_operational_manager() and created_by = auth.uid());
+create policy shared_resource_versions_write on public.shared_training_resource_versions for insert to authenticated with check (
+  public.is_operational_manager() and created_by = auth.uid() and (
+    public.current_app_role()::text = 'admin'
+    or exists (select 1 from public.shared_training_resources resource where resource.id = resource_id and resource.created_by = auth.uid())
+  )
+);
 create policy shared_resource_comments_read on public.shared_training_resource_comments for select to authenticated using (public.is_operational_manager());
 create policy shared_resource_comments_write on public.shared_training_resource_comments for insert to authenticated with check (public.is_operational_manager() and created_by = auth.uid());
 create policy shared_resource_audit_read on public.shared_training_resource_audit for select to authenticated using (public.is_operational_manager());
 create policy shared_resource_audit_write on public.shared_training_resource_audit for insert to authenticated with check (public.is_operational_manager() and performed_by = auth.uid());
 create policy shared_resource_notifications_read on public.shared_training_resource_notifications for select to authenticated using (recipient_id = auth.uid());
+create policy shared_resource_notifications_manager_insert on public.shared_training_resource_notifications for insert to authenticated with check (public.is_operational_manager());
 create policy shared_resource_notifications_update on public.shared_training_resource_notifications for update to authenticated using (recipient_id = auth.uid()) with check (recipient_id = auth.uid());
 
 create policy shared_resource_storage_read on storage.objects for select to authenticated using (bucket_id = 'shared-training-resources' and public.is_operational_manager());
-create policy shared_resource_storage_insert on storage.objects for insert to authenticated with check (bucket_id = 'shared-training-resources' and public.is_operational_manager());
-create policy shared_resource_storage_delete on storage.objects for delete to authenticated using (bucket_id = 'shared-training-resources' and public.is_operational_manager());
+create policy shared_resource_storage_insert on storage.objects for insert to authenticated with check (
+  bucket_id = 'shared-training-resources' and public.is_operational_manager() and (
+    public.current_app_role()::text = 'admin'
+    or exists (select 1 from public.shared_training_resources resource where resource.id = public.uuid_or_null(split_part(name, '/', 2)) and resource.created_by = auth.uid())
+  )
+);
+create policy shared_resource_storage_delete on storage.objects for delete to authenticated using (
+  bucket_id = 'shared-training-resources' and public.is_operational_manager() and (
+    public.current_app_role()::text = 'admin'
+    or exists (select 1 from public.shared_training_resources resource where resource.id = public.uuid_or_null(split_part(name, '/', 2)) and resource.created_by = auth.uid())
+  )
+);
 
 revoke all on table public.shared_training_resources, public.shared_training_resource_versions, public.shared_training_resource_comments, public.shared_training_resource_audit, public.shared_training_resource_notifications from anon;
