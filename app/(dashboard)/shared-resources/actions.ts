@@ -1,0 +1,22 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { addSharedTrainingResourceComment, addSharedTrainingResourceVersion, changeSharedTrainingResourceStatus, createSharedTrainingResource, createSharedTrainingResourceSignedUrl, SharedTrainingResourceError, updateSharedTrainingResourceMetadata } from "@/lib/shared-training-resources";
+
+export type SharedResourceActionState = { success?: string; error?: string; url?: string };
+const categories = new Set(["support", "video", "regulation", "exercise", "quiz", "administrative", "other"]);
+const priorities = new Set(["normal", "important", "urgent"]);
+const statuses = new Set(["to_review", "approved", "integrated", "rejected", "obsolete"]);
+const text = (data: FormData, name: string) => typeof data.get(name) === "string" ? String(data.get(name)).trim() : "";
+function message(error: unknown) { return error instanceof SharedTrainingResourceError ? error.message : "Cette action n’a pas pu être enregistrée."; }
+
+export async function createSharedTrainingResourceAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> {
+  const file = data.get("file"); const category = text(data, "category"); const priority = text(data, "priority");
+  if (!categories.has(category) || !priorities.has(priority)) return { error: "Catégorie ou priorité invalide." };
+  try { await createSharedTrainingResource({ title: text(data, "title"), description: text(data, "description"), category: category as never, priority: priority as never, requestedChange: text(data, "requestedChange"), trainingModuleId: text(data, "trainingModuleId") || null, file: file instanceof File && file.size ? file : null, externalUrl: text(data, "externalUrl") || null }); revalidatePath("/shared-resources"); return { success: "Ressource déposée pour examen." }; } catch (error) { return { error: message(error) }; }
+}
+export async function addSharedTrainingResourceCommentAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> { try { await addSharedTrainingResourceComment(text(data, "resourceId"), text(data, "body")); revalidatePath("/shared-resources"); return { success: "Commentaire ajouté." }; } catch (error) { return { error: message(error) }; } }
+export async function updateSharedTrainingResourceMetadataAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> { const category = text(data, "category"); const priority = text(data, "priority"); if (!categories.has(category) || !priorities.has(priority)) return { error: "Catégorie ou priorité invalide." }; try { await updateSharedTrainingResourceMetadata(text(data, "resourceId"), { title: text(data, "title"), description: text(data, "description"), category: category as never, priority: priority as never, requestedChange: text(data, "requestedChange"), trainingModuleId: text(data, "trainingModuleId") || null }); revalidatePath("/shared-resources"); return { success: "Informations mises à jour." }; } catch (error) { return { error: message(error) }; } }
+export async function addSharedTrainingResourceVersionAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> { const file = data.get("file"); try { await addSharedTrainingResourceVersion(text(data, "resourceId"), { file: file instanceof File && file.size ? file : null, externalUrl: text(data, "externalUrl") || null }); revalidatePath("/shared-resources"); return { success: "Nouvelle version ajoutée." }; } catch (error) { return { error: message(error) }; } }
+export async function changeSharedTrainingResourceStatusAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> { const status = text(data, "status"); if (!statuses.has(status)) return { error: "Statut invalide." }; try { await changeSharedTrainingResourceStatus(text(data, "resourceId"), status as never, text(data, "integratedNote") || undefined); revalidatePath("/shared-resources"); return { success: "Statut mis à jour." }; } catch (error) { return { error: message(error) }; } }
+export async function openSharedTrainingResourceVersionAction(_: SharedResourceActionState, data: FormData): Promise<SharedResourceActionState> { try { const signed = await createSharedTrainingResourceSignedUrl(text(data, "versionId")); return { success: "Lien sécurisé créé.", url: signed.url }; } catch (error) { return { error: message(error) }; } }

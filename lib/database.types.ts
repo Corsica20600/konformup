@@ -1480,6 +1480,36 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_training_resources: {
+        Row: { id: string; resource_type: string; title: string; description: string | null; category: string; priority: string; requested_change: string | null; status: string; training_module_id: string | null; integrated_note: string | null; integrated_at: string | null; integrated_by: string | null; created_by: string; created_at: string; updated_at: string; last_activity_at: string }
+        Insert: { id?: string; resource_type: string; title: string; description?: string | null; category?: string; priority?: string; requested_change?: string | null; status?: string; training_module_id?: string | null; integrated_note?: string | null; integrated_at?: string | null; integrated_by?: string | null; created_by: string; created_at?: string; updated_at?: string; last_activity_at?: string }
+        Update: { id?: string; resource_type?: string; title?: string; description?: string | null; category?: string; priority?: string; requested_change?: string | null; status?: string; training_module_id?: string | null; integrated_note?: string | null; integrated_at?: string | null; integrated_by?: string | null; created_by?: string; created_at?: string; updated_at?: string; last_activity_at?: string }
+        Relationships: []
+      }
+      shared_training_resource_versions: {
+        Row: { id: string; resource_id: string; version_number: number; resource_type: string; storage_bucket: string | null; storage_path: string | null; external_url: string | null; original_filename: string | null; mime_type: string | null; size_bytes: number | null; sha256: string | null; created_by: string; created_at: string }
+        Insert: { id?: string; resource_id: string; version_number: number; resource_type: string; storage_bucket?: string | null; storage_path?: string | null; external_url?: string | null; original_filename?: string | null; mime_type?: string | null; size_bytes?: number | null; sha256?: string | null; created_by: string; created_at?: string }
+        Update: { id?: string; resource_id?: string; version_number?: number; resource_type?: string; storage_bucket?: string | null; storage_path?: string | null; external_url?: string | null; original_filename?: string | null; mime_type?: string | null; size_bytes?: number | null; sha256?: string | null; created_by?: string; created_at?: string }
+        Relationships: []
+      }
+      shared_training_resource_comments: {
+        Row: { id: string; resource_id: string; body: string; created_by: string; created_at: string }
+        Insert: { id?: string; resource_id: string; body: string; created_by: string; created_at?: string }
+        Update: { id?: string; resource_id?: string; body?: string; created_by?: string; created_at?: string }
+        Relationships: []
+      }
+      shared_training_resource_audit: {
+        Row: { id: string; resource_id: string; event_type: string; details: Json; performed_by: string; created_at: string }
+        Insert: { id?: string; resource_id: string; event_type: string; details?: Json; performed_by: string; created_at?: string }
+        Update: { id?: string; resource_id?: string; event_type?: string; details?: Json; performed_by?: string; created_at?: string }
+        Relationships: []
+      }
+      shared_training_resource_notifications: {
+        Row: { id: string; resource_id: string; recipient_id: string; event_type: string; dedupe_key: string; read_at: string | null; created_at: string }
+        Insert: { id?: string; resource_id: string; recipient_id: string; event_type: string; dedupe_key: string; read_at?: string | null; created_at?: string }
+        Update: { id?: string; resource_id?: string; recipient_id?: string; event_type?: string; dedupe_key?: string; read_at?: string | null; created_at?: string }
+        Relationships: []
+      }
       training_modules: {
         Row: {
           content_text: string | null

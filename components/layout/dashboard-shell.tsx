@@ -8,9 +8,11 @@ import type { Profile } from "@/lib/types";
 
 export function DashboardShell({
   profile,
+  sharedResourceUnreadCount = 0,
   children
 }: {
   profile: Profile;
+  sharedResourceUnreadCount?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -45,6 +47,9 @@ export function DashboardShell({
                 <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/companies">
                   Sociétés
                 </Link>
+                {(profile.role === "admin" || profile.role === "lead_trainer") ? <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/shared-resources">
+                  Ressources partagées{sharedResourceUnreadCount ? ` (${sharedResourceUnreadCount})` : ""}
+                </Link> : null}
               </nav>
               <span className="text-sm text-ink/60">{profile.full_name}</span>
               <Badge tone="success">Connecté</Badge>
