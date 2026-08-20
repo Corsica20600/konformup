@@ -2,11 +2,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { PDFDocument } from "pdf-lib";
 import QRCode from "qrcode";
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveKarineTrainerSignature } from "@/lib/document-signatures";
-import { CertificateDocument, ConvocationDocument, TrainingAgreementDocument } from "@/lib/pdf/documents";
+import { CertificateDocument, ConvocationDocument, InvoiceDocument, ProgrammeDocument, TrainingAgreementDocument } from "@/lib/pdf/documents";
+import { WelcomePackDocument } from "@/lib/pdf/welcome-pack";
 import type { TrainingAgreementPdfData } from "@/lib/training-agreements";
+import type { InvoiceDetail } from "@/lib/invoices";
+import type { QuotePdfData } from "@/lib/quotes";
 import type { OrganizationBranding, SessionCandidate, SessionItem } from "@/lib/types";
 
 const profileId = "00000000-0000-4000-8000-000000000042";
@@ -34,6 +38,95 @@ const agreement = {
   clauses: { purpose: "Objet", organization: "Organisation", pedagogicalMeans: "Moyens", followUp: "Suivi", financialTerms: "Financier", cancellation: "Annulation", obligations: "Obligations" }, missingFields: []
 } as unknown as TrainingAgreementPdfData;
 
+const quote = {
+  id: "55555555-5555-4555-8555-555555555555",
+  quote_number: "DEV-TEST-001",
+  title: session.title,
+  training_type: "sst_initial",
+  status: "accepted",
+  company_id: candidateSession.candidate.company_id,
+  price_ht: 1000,
+  vat_rate: 20,
+  total_ttc: 1200,
+  duration_hours: 14,
+  candidate_count: 8,
+  location: session.location,
+  session_start_date: session.start_date,
+  session_end_date: session.end_date,
+  prerequisites: "Aucun prerequis",
+  objectives: "Prevenir les risques\nProteger et secourir",
+  programme_outline: "Accueil et cadre\nPrevenir les risques\nProteger\nExaminer\nAlerter\nSecourir",
+  accessibility_details: null,
+  session: {
+    id: session.id,
+    title: session.title,
+    start_date: session.start_date,
+    end_date: session.end_date,
+    location: session.location,
+    trainer_id: session.trainer_id,
+    trainer_name: session.trainer_name,
+    duration_hours: session.duration_hours,
+    training_type: session.training_type,
+    training_family: session.training_family,
+    prerequisites: session.prerequisites,
+    objectives: session.objectives,
+    programme_outline: session.programme_outline,
+    accessibility_details: session.accessibility_details,
+    mac_previous_certificate_date: null,
+    mac_previous_certificate_ref: null
+  },
+  company: {
+    id: candidateSession.candidate.company_id,
+    company_name: "Entreprise test",
+    legal_name: null,
+    contact_first_name: "Alice",
+    contact_last_name: "Martin",
+    contact_email: "alice@example.test",
+    contact_phone: null,
+    address: "1 rue de test",
+    postal_code: "20200",
+    city: "Bastia",
+    country: "France",
+    siret: null
+  }
+} as unknown as QuotePdfData;
+
+const invoice = {
+  id: "66666666-6666-4666-8666-666666666666",
+  invoice_number: "FAC-TEST-001",
+  company_id: candidateSession.candidate.company_id,
+  quote_id: quote.id,
+  status: "sent",
+  issue_date: "2026-08-25",
+  due_date: "2026-09-25",
+  notes: null,
+  subtotal: 1000,
+  tax_rate: 20,
+  tax_amount: 200,
+  total_ttc: 1200,
+  created_at: "2026-08-25T00:00:00.000Z",
+  company: {
+    id: candidateSession.candidate.company_id,
+    company_name: "Entreprise test",
+    legal_name: null,
+    contact_name: "Alice Martin",
+    contact_email: "alice@example.test",
+    contact_phone: null,
+    billing_address: "1 rue de test",
+    postal_code: "20200",
+    city: "Bastia",
+    siret: null
+  },
+  quote: {
+    id: quote.id,
+    quote_number: quote.quote_number,
+    title: quote.title,
+    training_type: quote.training_type,
+    status: quote.status,
+    session_id: session.id
+  }
+} as unknown as InvoiceDetail;
+
 afterEach(() => {
   if (originalProfileId === undefined) delete process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID;
   else process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID = originalProfileId;
@@ -55,6 +148,35 @@ describe("signed PDF documents", () => {
 
     const buffers = await Promise.all(files.map(([, document]) => renderToBuffer(document as never)));
     expect(buffers.every((buffer) => buffer.byteLength > 1000)).toBe(true);
+
+    if (process.env.GENERATE_PDF_SIGNATURE_FIXTURES === "1") {
+      const outputDirectory = path.join(process.cwd(), "tmp", "pdfs");
+      await mkdir(outputDirectory, { recursive: true });
+      await Promise.all(files.map(([filename], index) => writeFile(path.join(outputDirectory, filename), buffers[index])));
+    }
+  }, 15_000);
+
+  it("keeps the compact document layouts on their intended pages", async () => {
+    const files = [
+      ["invoice-pagination.pdf", createElement(InvoiceDocument, { invoice, organizationSettings: organization }), 1],
+      ["programme-pagination.pdf", createElement(ProgrammeDocument, { quote, organizationSettings: organization }), 2],
+      [
+        "welcome-pack-pagination.pdf",
+        createElement(WelcomePackDocument, {
+          session,
+          candidateSession,
+          organizationSettings: organization,
+          programmeLines: ["Accueil", "Prevention", "Mises en situation"]
+        }),
+        3
+      ]
+    ] as const;
+
+    const buffers = await Promise.all(files.map(([, document]) => renderToBuffer(document as never)));
+    for (const [index, buffer] of buffers.entries()) {
+      const pdf = await PDFDocument.load(buffer);
+      expect(pdf.getPageCount(), files[index][0]).toBe(files[index][2]);
+    }
 
     if (process.env.GENERATE_PDF_SIGNATURE_FIXTURES === "1") {
       const outputDirectory = path.join(process.cwd(), "tmp", "pdfs");

@@ -322,12 +322,12 @@ export function WelcomePackDocument({
           <BulletList items={programmeLines} />
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Moyens pedagogiques</Text>
           <BulletList items={pedagogicalMeans} />
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Evaluation</Text>
           <BulletList items={evaluationMethods} />
         </View>

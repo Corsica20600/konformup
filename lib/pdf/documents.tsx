@@ -320,20 +320,20 @@ const attendanceStyles = StyleSheet.create({
 const certificateStyles = StyleSheet.create({
   page: {
     backgroundColor: "#fffdf8",
-    paddingTop: 16,
+    paddingTop: 14,
     paddingRight: 24,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingLeft: 24
   },
   frame: {
     borderWidth: 1,
     borderColor: "#d7d0c2",
-    padding: 16
+    padding: 14
   },
   topBand: {
     height: 8,
     backgroundColor: "#285943",
-    marginBottom: 10
+    marginBottom: 8
   },
   header: {
     flexDirection: "row",
@@ -520,7 +520,7 @@ const certificateStyles = StyleSheet.create({
     paddingBottom: 7,
     paddingLeft: 9,
     marginTop: 4,
-    marginBottom: 10,
+    marginBottom: 6,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -619,9 +619,9 @@ const certificateStyles = StyleSheet.create({
   },
   signatureImageSlim: {
     width: 96,
-    height: 40,
+    height: 34,
     objectFit: "contain",
-    marginBottom: 4
+    marginBottom: 2
   },
   signatureSection: {
     marginBottom: 8
@@ -630,7 +630,7 @@ const certificateStyles = StyleSheet.create({
     marginBottom: 0
   },
   signatureLabel: {
-    fontSize: 8.5,
+    fontSize: 8,
     textTransform: "uppercase",
     color: "#5b655f",
     marginBottom: 3
@@ -659,18 +659,18 @@ const certificateStyles = StyleSheet.create({
     marginTop: 1
   },
   signatureName: {
-    fontSize: 9,
+    fontSize: 8.6,
     fontWeight: 700,
     textAlign: "left"
   },
   signatureTitle: {
-    fontSize: 8,
+    fontSize: 7.8,
     color: "#5b655f",
     textAlign: "left",
     marginTop: 2
   },
   qualiopi: {
-    marginTop: 14,
+    marginTop: 8,
     fontSize: 9,
     color: "#5b655f",
     textAlign: "center"
@@ -864,16 +864,16 @@ const invoiceStyles = StyleSheet.create({
   sectionRow: {
     flexDirection: "row",
     gap: 14,
-    marginTop: 16,
-    marginBottom: 16
+    marginTop: 12,
+    marginBottom: 12
   },
   card: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 14,
-    minHeight: 146
+    padding: 12,
+    minHeight: 132
   },
   cardTitle: {
     fontSize: 9.5,
@@ -898,7 +898,7 @@ const invoiceStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d8d0c2",
     backgroundColor: "#ffffff",
-    marginBottom: 16
+    marginBottom: 12
   },
   itemsHeader: {
     flexDirection: "row",
@@ -970,7 +970,7 @@ const invoiceStyles = StyleSheet.create({
   totalsWrap: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginBottom: 16
+    marginBottom: 10
   },
   totalsCard: {
     width: 250,
@@ -1010,8 +1010,8 @@ const invoiceStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 14,
-    marginBottom: 14
+    padding: 12,
+    marginBottom: 10
   },
   notesText: {
     fontSize: 10,
@@ -1022,20 +1022,20 @@ const invoiceStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 14
+    padding: 10
   },
   footerTitle: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     textTransform: "uppercase",
     letterSpacing: 1,
     color: "#5b655f",
-    marginBottom: 8
+    marginBottom: 5
   },
   footerLine: {
-    fontSize: 9.3,
+    fontSize: 8.3,
     color: "#4e5f57",
-    lineHeight: 1.4,
-    marginBottom: 4
+    lineHeight: 1.25,
+    marginBottom: 2
   }
 });
 
@@ -2338,16 +2338,16 @@ const programmeStyles = StyleSheet.create({
     backgroundColor: "#fcfaf5"
   },
   heroShell: {
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: "#d6d0c3",
     backgroundColor: "#ffffff"
   },
   heroBand: {
     backgroundColor: "#1f3028",
-    paddingTop: 14,
+    paddingTop: 10,
     paddingRight: 16,
-    paddingBottom: 14,
+    paddingBottom: 10,
     paddingLeft: 16
   },
   heroHeader: {
@@ -2361,7 +2361,7 @@ const programmeStyles = StyleSheet.create({
   heroBrand: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16
+    marginBottom: 8
   },
   heroSquare: {
     width: 12,
@@ -2397,7 +2397,7 @@ const programmeStyles = StyleSheet.create({
     width: 82,
     height: 48,
     objectFit: "contain",
-    marginBottom: 14
+    marginBottom: 8
   },
   orgBlock: {
     width: "100%"
@@ -2407,8 +2407,8 @@ const programmeStyles = StyleSheet.create({
     justifyContent: "space-between"
   },
   metaChip: {
-    width: "31.5%",
-    minHeight: 64,
+    width: "48%",
+    minHeight: 54,
     paddingTop: 8,
     paddingRight: 8,
     paddingBottom: 8,
@@ -2431,7 +2431,7 @@ const programmeStyles = StyleSheet.create({
     color: "#ffffff"
   },
   heroMetaValue: {
-    fontSize: 17
+    fontSize: 15
   },
   heroMetaLabel: {
     fontSize: 9.5
@@ -2481,8 +2481,8 @@ const programmeStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    padding: 8,
-    marginBottom: 6
+    padding: 7,
+    marginBottom: 4
   },
   cardEmphasis: {
     backgroundColor: "#f2f6f3",
@@ -2525,17 +2525,17 @@ const programmeStyles = StyleSheet.create({
   factsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 12
+    marginBottom: 6
   },
   factTile: {
     width: "48%",
     marginRight: "4%",
-    marginBottom: 8,
-    padding: 6,
+    marginBottom: 4,
+    padding: 5,
     borderWidth: 1,
     borderColor: "#ddd6c8",
     backgroundColor: "#ffffff",
-    minHeight: 46
+    minHeight: 42
   },
   factTileEven: {
     marginRight: 0
@@ -2781,12 +2781,6 @@ return (
                   <View style={programmeStyles.metaChip}>
                     <Text style={programmeStyles.metaChipLabel}>Modalite</Text>
                     <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>Presentiel</Text>
-                  </View>
-                  <View style={programmeStyles.metaChip}>
-                    <Text style={programmeStyles.metaChipLabel}>Certificat</Text>
-                    <Text style={[programmeStyles.metaChipValue, programmeStyles.heroMetaLabel]}>
-                      {trainingDefaults.certificateNote}
-                    </Text>
                   </View>
                 </View>
               </View>
