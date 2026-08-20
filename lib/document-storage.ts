@@ -108,6 +108,8 @@ export async function persistGeneratedDocumentPdfToStorage(params: {
   sourcePath: string;
   storageBucket?: string;
   storageObjectPath?: string;
+  /** The just-rendered bytes, supplied by an explicit regeneration to avoid a second route fetch. */
+  pdfBuffer?: ArrayBuffer;
 }) {
   const supabase = await createClient();
   const { data: document, error } = await supabase
@@ -120,13 +122,13 @@ export async function persistGeneratedDocumentPdfToStorage(params: {
     throw new Error("Document genere introuvable pour la persistance Storage.");
   }
 
-  const pdf = await fetchExistingPdf(params.sourcePath);
+  const pdfBuffer = params.pdfBuffer ?? (await fetchExistingPdf(params.sourcePath)).buffer;
   const existingStorageTarget = resolveExistingStorageTarget(document.metadata);
   const storageBucket = params.storageBucket || existingStorageTarget?.bucket || GENERATED_DOCUMENTS_BUCKET;
   const objectPath = params.storageObjectPath || existingStorageTarget?.path || buildStorageObjectPath(document);
   const upload = await supabase.storage
     .from(storageBucket)
-    .upload(objectPath, pdf.buffer, {
+    .upload(objectPath, pdfBuffer, {
       contentType: "application/pdf",
       upsert: true
     });

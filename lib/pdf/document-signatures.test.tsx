@@ -148,6 +148,19 @@ describe("signed PDF documents", () => {
 
     const buffers = await Promise.all(files.map(([, document]) => renderToBuffer(document as never)));
     expect(buffers.every((buffer) => buffer.byteLength > 1000)).toBe(true);
+    expect((await PDFDocument.load(buffers[0])).getPageCount()).toBe(1);
+
+    const unsignedBuffers = await Promise.all(
+      [
+        createElement(CertificateDocument, { session, candidateSession, organizationSettings: organization, documentRef: "ATT-TEST", verificationQrCodeDataUrl }),
+        createElement(ConvocationDocument, { session, candidateSession, organizationSettings: organization }),
+        createElement(TrainingAgreementDocument, { agreement, organizationSettings: organization })
+      ].map((document) => renderToBuffer(document as never))
+    );
+
+    for (const [index, buffer] of buffers.entries()) {
+      expect(buffer.byteLength).toBeGreaterThan(unsignedBuffers[index].byteLength);
+    }
 
     if (process.env.GENERATE_PDF_SIGNATURE_FIXTURES === "1") {
       const outputDirectory = path.join(process.cwd(), "tmp", "pdfs");
@@ -155,6 +168,19 @@ describe("signed PDF documents", () => {
       await Promise.all(files.map(([filename], index) => writeFile(path.join(outputDirectory, filename), buffers[index])));
     }
   }, 15_000);
+
+  it("does not inject Karine's signature when the assigned trainer is absent or different", async () => {
+    process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID = profileId;
+
+    await expect(resolveKarineTrainerSignature(null)).resolves.toEqual({
+      signature: null,
+      reason: "no_assigned_profile"
+    });
+    await expect(resolveKarineTrainerSignature("00000000-0000-4000-8000-000000000043")).resolves.toEqual({
+      signature: null,
+      reason: "different_trainer"
+    });
+  });
 
   it("keeps the compact document layouts on their intended pages", async () => {
     const files = [

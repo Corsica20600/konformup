@@ -5,6 +5,7 @@ import path from "node:path";
 
 const KARINE_SIGNATURE_RELATIVE_PATH = ["documents", "Signature", "Signature_Karine.jpg"] as const;
 const JPEG_PREFIX = [0xff, 0xd8, 0xff] as const;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type TrainerDocumentSignature = Readonly<{
   src: string;
@@ -16,7 +17,7 @@ export type TrainerSignatureResolution =
   | Readonly<{ signature: TrainerDocumentSignature; reason: "matched" }>
   | Readonly<{
       signature: null;
-      reason: "not_configured" | "no_assigned_profile" | "different_trainer" | "asset_unavailable";
+      reason: "not_configured" | "invalid_configuration" | "no_assigned_profile" | "different_trainer" | "asset_unavailable";
     }>;
 
 function getSignaturePath() {
@@ -24,6 +25,20 @@ function getSignaturePath() {
 }
 
 type SignatureFileReader = () => Promise<Buffer>;
+
+function getConfiguredKarineProfileId() {
+  const configuredProfileId = process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID?.trim();
+
+  if (!configuredProfileId) {
+    return { value: null, reason: "not_configured" as const };
+  }
+
+  if (!UUID_PATTERN.test(configuredProfileId)) {
+    return { value: null, reason: "invalid_configuration" as const };
+  }
+
+  return { value: configuredProfileId, reason: null };
+}
 
 function readJpegDimensions(bytes: Uint8Array) {
   if (bytes.length < 4 || !JPEG_PREFIX.every((value, index) => bytes[index] === value)) {
@@ -74,16 +89,16 @@ async function resolveKarineTrainerSignatureWithReader(
   trainerProfileId: string | null | undefined,
   readSignatureFile: SignatureFileReader
 ): Promise<TrainerSignatureResolution> {
-  const configuredProfileId = process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID?.trim();
-  if (!configuredProfileId) {
-    return { signature: null, reason: "not_configured" };
+  const configured = getConfiguredKarineProfileId();
+  if (!configured.value) {
+    return { signature: null, reason: configured.reason! };
   }
 
   if (!trainerProfileId) {
     return { signature: null, reason: "no_assigned_profile" };
   }
 
-  if (trainerProfileId !== configuredProfileId) {
+  if (trainerProfileId !== configured.value) {
     return { signature: null, reason: "different_trainer" };
   }
 
@@ -115,6 +130,7 @@ export async function resolveKarineTrainerSignature(
 
 export const documentSignatureTesting = {
   getSignaturePath,
+  getConfiguredKarineProfileId,
   readJpegDimensions,
   resolveKarineTrainerSignatureWithReader
 };

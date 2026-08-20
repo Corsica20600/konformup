@@ -54,6 +54,34 @@ describe("trainer document signatures", () => {
     expect(result.signature?.src).not.toContain("documents/Signature");
   });
 
+  it("normalizes a configured profile ID with trailing whitespace", async () => {
+    process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID = `${KARINE_PROFILE_ID}  `;
+
+    const result = await documentSignatureTesting.resolveKarineTrainerSignatureWithReader(
+      KARINE_PROFILE_ID,
+      async () => validJpeg()
+    );
+
+    expect(result.reason).toBe("matched");
+    expect(result.signature).not.toBeNull();
+  });
+
+  it("handles an invalid configured profile ID without attempting a profile lookup or file read", async () => {
+    process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID = "not-a-uuid";
+    let fileRead = false;
+
+    const result = await documentSignatureTesting.resolveKarineTrainerSignatureWithReader(
+      KARINE_PROFILE_ID,
+      async () => {
+        fileRead = true;
+        return validJpeg();
+      }
+    );
+
+    expect(result).toEqual({ signature: null, reason: "invalid_configuration" });
+    expect(fileRead).toBe(false);
+  });
+
   it("never loads Karine's signature for another trainer", async () => {
     process.env.KONFORMUP_KARINE_TRAINER_PROFILE_ID = KARINE_PROFILE_ID;
     let fileRead = false;

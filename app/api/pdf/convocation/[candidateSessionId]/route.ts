@@ -11,6 +11,8 @@ import type { SessionCandidate, SessionItem } from "@/lib/types";
 import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: Request, context: { params: Promise<{ candidateSessionId: string }> }) {
   const { candidateSessionId } = await context.params;
@@ -152,7 +154,9 @@ export async function GET(request: Request, context: { params: Promise<{ candida
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="convocation-${candidateSessionId}.pdf"`
+      "Content-Disposition": `inline; filename="convocation-${candidateSessionId}.pdf"`,
+      "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+      Pragma: "no-cache"
     }
   });
 }

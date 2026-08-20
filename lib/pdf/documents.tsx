@@ -1833,8 +1833,8 @@ export function CertificateDocument({
 
               <View style={certificateStyles.signatureCompactColumn}>
                 <Text style={certificateStyles.signatureLabel}>Attestation etablie par</Text>
-                {trainerSignatureUrl || organizationSettings.resolved_signature_url ? (
-                  <Image src={trainerSignatureUrl || organizationSettings.resolved_signature_url!} style={certificateStyles.signatureImageSlim} />
+                {trainerSignatureUrl ? (
+                  <Image src={trainerSignatureUrl} style={certificateStyles.signatureImageSlim} />
                 ) : (
                   <View style={certificateStyles.signatureLineSlim} />
                 )}
@@ -1942,8 +1942,8 @@ export function ConvocationDocument({
               <Text style={[certificateStyles.signatureLabel, certificateStyles.signatureLabelSlim, { marginTop: 8 }]}>
                 Convocation etablie par
               </Text>
-              {trainerSignatureUrl || organizationSettings.resolved_signature_url ? (
-                <Image src={trainerSignatureUrl || organizationSettings.resolved_signature_url!} style={certificateStyles.signatureImageSlim} />
+              {trainerSignatureUrl ? (
+                <Image src={trainerSignatureUrl} style={certificateStyles.signatureImageSlim} />
               ) : (
                 <View style={[certificateStyles.signatureLine, certificateStyles.signatureLineSlim]} />
               )}

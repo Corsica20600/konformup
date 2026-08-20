@@ -364,6 +364,8 @@ export async function callExistingPdfGeneration(pathname: string) {
     });
     throw new DocumentGenerationError("La route PDF n'a pas retourné un document PDF valide.");
   }
+
+  return pdf;
 }
 
 export async function fetchExistingPdf(pathname: string) {
@@ -374,14 +376,7 @@ export async function fetchExistingPdf(pathname: string) {
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join("; ");
 
-  const response = await fetch(new URL(pathname, origin), {
-    method: "GET",
-    headers: {
-      Accept: "application/pdf",
-      ...(cookieHeader ? { Cookie: cookieHeader } : {})
-    },
-    cache: "no-store"
-  });
+  const response = await fetch(new URL(pathname, origin), buildFreshPdfRequestInit(cookieHeader));
 
   if (!response.ok) {
     const responseText = await response.text().catch(() => "");
@@ -403,6 +398,20 @@ export async function fetchExistingPdf(pathname: string) {
   };
 }
 
+/** A regeneration always fetches the source route afresh before replacing its exact Storage object. */
+export function buildFreshPdfRequestInit(cookieHeader: string): RequestInit {
+  return {
+    method: "GET",
+    headers: {
+      Accept: "application/pdf",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+      ...(cookieHeader ? { Cookie: cookieHeader } : {})
+    },
+    cache: "no-store"
+  };
+}
+
 export async function regenerateGeneratedDocument(documentId: string): Promise<GeneratedDocumentRow> {
   const supabase = await createClient();
   const { data: document, error } = await supabase
@@ -421,7 +430,7 @@ export async function regenerateGeneratedDocument(documentId: string): Promise<G
     throw new DocumentGenerationError("Aucune route PDF n'est enregistrée pour ce document.");
   }
 
-  await callExistingPdfGeneration(sourcePath);
+  const renderedPdf = await callExistingPdfGeneration(sourcePath);
 
   const { error: updateError } = await supabase
     .from("generated_documents")
@@ -439,7 +448,8 @@ export async function regenerateGeneratedDocument(documentId: string): Promise<G
 
   await persistGeneratedDocumentPdfToStorage({
     documentId,
-    sourcePath
+    sourcePath,
+    pdfBuffer: renderedPdf.buffer
   });
 
   const { data: refreshedDocument, error: refreshedError } = await supabase
@@ -531,7 +541,7 @@ export async function createDocument({
       );
     }
 
-    await callExistingPdfGeneration(filePath);
+    const renderedPdf = await callExistingPdfGeneration(filePath);
 
     const generatedDocument = await insertGeneratedDocumentRecord({
       sessionId,
@@ -574,7 +584,8 @@ export async function createDocument({
       documentId: generatedDocument.id,
       sourcePath: filePath,
       storageBucket: storageTarget.bucket,
-      storageObjectPath: storageTarget.objectPath ?? undefined
+      storageObjectPath: storageTarget.objectPath ?? undefined,
+      pdfBuffer: renderedPdf.buffer
     });
 
     const supabase = await createClient();

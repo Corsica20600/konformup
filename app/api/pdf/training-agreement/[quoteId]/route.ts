@@ -10,6 +10,8 @@ import { QuoteError } from "@/lib/quotes";
 import { buildTrainingAgreementPdfData, getTrainingAgreementDocumentByQuoteId } from "@/lib/training-agreements";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: Request, context: { params: Promise<{ quoteId: string }> }) {
   const { quoteId } = await context.params;
@@ -33,7 +35,9 @@ export async function GET(request: Request, context: { params: Promise<{ quoteId
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `${disposition}; filename="convention-${agreement.quote.quote_number}.pdf"`
+        "Content-Disposition": `${disposition}; filename="convention-${agreement.quote.quote_number}.pdf"`,
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache"
       }
     });
   } catch (error) {

@@ -16,7 +16,9 @@ export async function GET(request: Request, context: { params: Promise<{ documen
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `${disposition}; filename="${fileName}"`
+        "Content-Disposition": `${disposition}; filename="${fileName}"`,
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache"
       }
     });
   } catch (error) {

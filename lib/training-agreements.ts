@@ -510,7 +510,7 @@ export async function createTrainingAgreementDocumentForQuote(
   const agreementRef = existingDocument?.document_ref ?? (await generateUniqueDocumentRef("training_agreement"));
   const agreementData = await buildTrainingAgreementPdfData(quoteId, agreementRef);
   const fileUrl = `/api/pdf/training-agreement/${quoteId}`;
-  await callExistingPdfGeneration(fileUrl);
+  const renderedPdf = await callExistingPdfGeneration(fileUrl);
 
   const metadata = {
     quote_id: agreementData.quote.id,
@@ -555,7 +555,8 @@ export async function createTrainingAgreementDocumentForQuote(
 
     const persistedDocument = await persistGeneratedDocumentPdfToStorage({
       documentId: existingDocument.id,
-      sourcePath: fileUrl
+      sourcePath: fileUrl,
+      pdfBuffer: renderedPdf.buffer
     });
 
     return {
@@ -579,7 +580,8 @@ export async function createTrainingAgreementDocumentForQuote(
 
   const persistedDocument = await persistGeneratedDocumentPdfToStorage({
     documentId: document.id,
-    sourcePath: fileUrl
+    sourcePath: fileUrl,
+    pdfBuffer: renderedPdf.buffer
   });
 
   return {
