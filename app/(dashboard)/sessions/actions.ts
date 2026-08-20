@@ -31,6 +31,7 @@ import {
 } from "@/lib/session-closure";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
 import { getSessionById } from "@/lib/queries";
+import { createOrGetSessionArchive } from "@/lib/session-archives";
 import { getTrainingDocumentTitle } from "@/lib/training-programs";
 import {
   createCandidateSchema,
@@ -553,6 +554,7 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
   }
 
   const supabase = await createClient();
+  let archiveId: string | null = null;
   if (closureStatus === "closed") {
     // Attendance is a separate, optional migration in older environments. When
     // it is available, all its slots and responses must be settled before the
@@ -581,12 +583,24 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
         }
       }
     }
+    const archive = await createOrGetSessionArchive({ sessionId: parsed.data.sessionId, archivedBy: profile.id, trainerReport: parsed.data.trainerReport.trim() || null, administrativeObservations: parsed.data.administrativeObservations.trim() || null });
+    if (!archive.ok) {
+      const blockers = archive.blockers;
+      const details = [
+        blockers.openSlots ? `${blockers.openSlots} créneau(x) ouvert(s)` : null,
+        blockers.pendingAttendance ? `${blockers.pendingAttendance} émargement(s) en attente` : null,
+        blockers.incompleteEvaluations ? `${blockers.incompleteEvaluations} évaluation(s) obligatoire(s) incomplète(s)` : null,
+        ...blockers.missingDocuments
+      ].filter(Boolean);
+      return { error: `Clôture impossible : ${details.join(" ; ") || "archive indisponible"}.` };
+    }
+    archiveId = archive.archiveId;
   }
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("training_sessions")
     .update({
-      closure_status: closureStatus,
+      closure_status: closureStatus === "closed" ? "archived" : closureStatus,
       status: closureStatus === "closed" ? "completed" : sessionData.session.status,
       closed_at: closureStatus === "closed" ? now : sessionData.session.closed_at,
       closed_by: closureStatus === "closed" ? profile.id : sessionData.session.closed_by,
@@ -596,7 +610,11 @@ export async function updateSessionClosureAction(_: ActionState, formData: FormD
       final_present_count: summary.presentCount,
       final_admitted_count: summary.admittedCount,
       final_not_admitted_count: summary.notAdmittedCount,
-      final_absent_count: summary.absentCount
+      final_absent_count: summary.absentCount,
+      archive_status: closureStatus === "closed" ? "complete" : sessionData.session.archive_status ?? "none",
+      archived_at: closureStatus === "closed" ? now : sessionData.session.archived_at ?? null,
+      archived_by: closureStatus === "closed" ? profile.id : sessionData.session.archived_by ?? null,
+      current_archive_id: closureStatus === "closed" ? archiveId : sessionData.session.current_archive_id ?? null
     })
     .eq("id", parsed.data.sessionId)
     .select("id")

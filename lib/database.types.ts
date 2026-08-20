@@ -1348,6 +1348,24 @@ export type Database = {
           },
         ]
       }
+      mac_sst_reminder_attempts: {
+        Row: { id: string; reminder_id: string; status: string; attempted_at: string; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null }
+        Insert: { id?: string; reminder_id: string; status: string; attempted_at?: string; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null }
+        Update: { id?: string; reminder_id?: string; status?: string; attempted_at?: string; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null }
+        Relationships: [{ foreignKeyName: "mac_sst_reminder_attempts_reminder_id_fkey"; columns: ["reminder_id"]; isOneToOne: false; referencedRelation: "mac_sst_reminders"; referencedColumns: ["id"] }]
+      }
+      mac_sst_reminders: {
+        Row: { id: string; candidate_id: string; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string; status: string; idempotency_key: string; attempt_count: number; last_attempt_at: string | null; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; candidate_id: string; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string; status?: string; idempotency_key: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; candidate_id?: string; reference_session_id?: string; certificate_end_date?: string; mac_due_date?: string; reminder_kind?: string; recipient_email?: string; status?: string; idempotency_key?: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
+        Relationships: [{ foreignKeyName: "mac_sst_reminders_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "mac_sst_reminders_reference_session_id_fkey"; columns: ["reference_session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }]
+      }
+      session_archives: {
+        Row: { id: string; session_id: string; version: number; previous_archive_id: string | null; status: string; manifest_version: string; manifest: Json; manifest_hash: string | null; storage_bucket: string; manifest_storage_path: string | null; missing_items: Json; error_summary: string | null; archived_at: string | null; archived_by: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; session_id: string; version: number; previous_archive_id?: string | null; status?: string; manifest_version?: string; manifest?: Json; manifest_hash?: string | null; storage_bucket?: string; manifest_storage_path?: string | null; missing_items?: Json; error_summary?: string | null; archived_at?: string | null; archived_by?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; session_id?: string; version?: number; previous_archive_id?: string | null; status?: string; manifest_version?: string; manifest?: Json; manifest_hash?: string | null; storage_bucket?: string; manifest_storage_path?: string | null; missing_items?: Json; error_summary?: string | null; archived_at?: string | null; archived_by?: string | null; created_at?: string; updated_at?: string }
+        Relationships: [{ foreignKeyName: "session_archives_session_id_fkey"; columns: ["session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }, { foreignKeyName: "session_archives_previous_archive_id_fkey"; columns: ["previous_archive_id"]; isOneToOne: false; referencedRelation: "session_archives"; referencedColumns: ["id"] }]
+      }
       training_quizzes: {
         Row: {
           correct_answer: string
@@ -1399,10 +1417,14 @@ export type Database = {
         Row: {
           accessibility_details: string | null
           administrative_observations: string | null
+          archive_status: string
+          archived_at: string | null
+          archived_by: string | null
           closed_at: string | null
           closed_by: string | null
           closure_status: string
           company_name: string | null
+          current_archive_id: string | null
           created_at: string
           duration_hours: number | null
           end_date: string
@@ -1432,10 +1454,14 @@ export type Database = {
         Insert: {
           accessibility_details?: string | null
           administrative_observations?: string | null
+          archive_status?: string
+          archived_at?: string | null
+          archived_by?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closure_status?: string
           company_name?: string | null
+          current_archive_id?: string | null
           created_at?: string
           duration_hours?: number | null
           end_date: string
@@ -1465,10 +1491,14 @@ export type Database = {
         Update: {
           accessibility_details?: string | null
           administrative_observations?: string | null
+          archive_status?: string
+          archived_at?: string | null
+          archived_by?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closure_status?: string
           company_name?: string | null
+          current_archive_id?: string | null
           created_at?: string
           duration_hours?: number | null
           end_date?: string
@@ -1510,6 +1540,13 @@ export type Database = {
             referencedRelation: "trainers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "training_sessions_current_archive_id_fkey"
+            columns: ["current_archive_id"]
+            isOneToOne: false
+            referencedRelation: "session_archives"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1543,6 +1580,7 @@ export type Database = {
         Args: { p_complaint_id: string }
         Returns: boolean
       }
+      claim_mac_sst_reminder: { Args: { p_id: string }; Returns: boolean }
       can_access_quote: { Args: { p_quote_id: string }; Returns: boolean }
       can_access_session: { Args: { p_session_id: string }; Returns: boolean }
       can_access_storage_path: { Args: { p_path: string }; Returns: boolean }
@@ -1816,7 +1854,7 @@ export type CandidateValidationStatus = "pending" | "validated" | "not_validated
 export type CandidateEvaluationType = "theorique" | "pratique" | "globale"
 export type CandidateEvaluationStatus = "non_evalue" | "en_cours" | "acquis" | "non_acquis" | "absent"
 export type CandidateEvaluationResult = "admis" | "non_admis" | "absent" | "partiel" | "non_renseigne"
-export type SessionClosureStatus = "open" | "ready" | "closed"
+export type SessionClosureStatus = "open" | "ready" | "closed" | "archived"
 export type ForprevRegistrationStatus = "non_applicable" | "a_saisir" | "saisi" | "transmis" | "erreur"
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived"
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived"

@@ -1,0 +1,147 @@
+import "server-only";
+
+import { createHash } from "node:crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { getTransactionalEmailContext, sendBrevoTransactionalEmail } from "@/lib/email-config";
+
+export type MacReminderKind = "month_22" | "month_23";
+
+export type MacReminderCandidate = {
+  candidateId: string;
+  email: string | null;
+  validationStatus: string | null;
+  sessionId: string;
+  trainingType: string;
+  sessionStatus: string;
+  closureStatus: string;
+  endDate: string;
+  globalResult: string | null;
+};
+
+export type MacReminderEligibility = {
+  eligible: boolean;
+  reason?: "no_email" | "not_admitted" | "session_incomplete" | "not_sst" | "not_due";
+  dueDate?: string;
+  kinds: MacReminderKind[];
+};
+
+const monthDate = (isoDate: string, months: number) => {
+  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const targetMonth = month - 1 + months;
+  const targetYear = year + Math.floor(targetMonth / 12);
+  const targetMonthIndex = ((targetMonth % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
+  return `${targetYear.toString().padStart(4, "0")}-${String(targetMonthIndex + 1).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+};
+
+export function calculateMacDates(certificateEndDate: string) {
+  return {
+    firstReminderDate: monthDate(certificateEndDate, 22),
+    secondReminderDate: monthDate(certificateEndDate, 23),
+    expiryDate: monthDate(certificateEndDate, 24)
+  };
+}
+
+export function getMacReminderEligibility(candidate: MacReminderCandidate, today = new Date().toISOString().slice(0, 10)): MacReminderEligibility {
+  if (candidate.trainingType !== "sst_initial" && candidate.trainingType !== "mac_sst") return { eligible: false, reason: "not_sst", kinds: [] };
+  if (candidate.sessionStatus === "cancelled" || !["closed", "archived"].includes(candidate.closureStatus) || !candidate.endDate) return { eligible: false, reason: "session_incomplete", kinds: [] };
+  if (candidate.validationStatus !== "validated" || candidate.globalResult !== "admis") return { eligible: false, reason: "not_admitted", kinds: [] };
+  if (!candidate.email?.trim()) return { eligible: false, reason: "no_email", kinds: [] };
+  const dates = calculateMacDates(candidate.endDate);
+  if (!dates.firstReminderDate || !dates.secondReminderDate || !dates.expiryDate) return { eligible: false, reason: "session_incomplete", kinds: [] };
+  const kinds: MacReminderKind[] = [];
+  if (today >= dates.firstReminderDate && today < dates.secondReminderDate) kinds.push("month_22");
+  if (today >= dates.secondReminderDate && today < dates.expiryDate) kinds.push("month_23");
+  return kinds.length ? { eligible: true, dueDate: dates.expiryDate, kinds } : { eligible: false, reason: "not_due", dueDate: dates.expiryDate, kinds: [] };
+}
+
+function reminderKey(candidateId: string, sessionId: string, kind: MacReminderKind, recipient: string) {
+  return createHash("sha256").update(`${candidateId}:${sessionId}:${kind}:${recipient.toLowerCase().trim()}`).digest("hex");
+}
+
+function cleanTechnicalError(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 240) : "Échec de livraison";
+}
+
+export async function runMacSstReminderCron(today = new Date().toISOString().slice(0, 10)) {
+  const supabase = createAdminClient();
+  const { data: sessions, error } = await supabase
+    .from("training_sessions")
+    .select("id, training_type, status, closure_status, end_date")
+    .in("training_type", ["sst_initial", "mac_sst"])
+    .in("closure_status", ["closed", "archived"])
+    .neq("status", "cancelled");
+  if (error) throw new Error("Impossible de préparer les rappels MAC.");
+
+  const sessionIds = (sessions ?? []).map((session) => session.id);
+  const { data: candidates } = sessionIds.length
+    ? await supabase.from("candidates").select("id, session_id, email, validation_status").in("session_id", sessionIds)
+    : { data: [] as Array<{ id: string; session_id: string | null; email: string | null; validation_status: string | null }> };
+  const candidateIds = (candidates ?? []).map((candidate) => candidate.id);
+  const { data: evaluations } = candidateIds.length
+    ? await supabase.from("candidate_evaluations").select("candidate_id, result, evaluated_at, session_id").eq("evaluation_type", "globale").in("candidate_id", candidateIds)
+    : { data: [] as Array<{ candidate_id: string; result: string; evaluated_at: string | null; session_id: string }> };
+  const sessionById = new Map((sessions ?? []).map((session) => [session.id, session]));
+  const latestByEmail = new Map<string, string>();
+  for (const candidate of candidates ?? []) {
+    const email = candidate.email?.trim().toLowerCase();
+    const session = candidate.session_id ? sessionById.get(candidate.session_id) : null;
+    if (!email || !session) continue;
+    const result = [...(evaluations ?? [])]
+      .filter((evaluation) => evaluation.candidate_id === candidate.id && evaluation.session_id === session.id)
+      .sort((a, b) => (b.evaluated_at ?? "").localeCompare(a.evaluated_at ?? ""))[0]?.result;
+    // Only a completed and admitted SST session renews the legal reference date.
+    if (candidate.validation_status !== "validated" || result !== "admis" || session.status === "cancelled" || !["closed", "archived"].includes(session.closure_status)) continue;
+    const current = latestByEmail.get(email);
+    if (!current || (sessionById.get(current)?.end_date ?? "") < session.end_date) latestByEmail.set(email, session.id);
+  }
+
+  let sent = 0;
+  let skipped = 0;
+  let errors = 0;
+  for (const candidate of candidates ?? []) {
+      const session = candidate.session_id ? sessionById.get(candidate.session_id) : null;
+      if (!session) { skipped += 1; continue; }
+      const normalizedEmail = candidate.email?.trim().toLowerCase();
+      // A later validated initial/MAC SST for the same known recipient supersedes the prior certificate.
+      if (normalizedEmail && latestByEmail.get(normalizedEmail) !== session.id) { skipped += 1; continue; }
+      const globalResult = [...(evaluations ?? [])].filter((evaluation) => evaluation.candidate_id === candidate.id && evaluation.session_id === session.id).sort((a, b) => (b.evaluated_at ?? "").localeCompare(a.evaluated_at ?? ""))[0]?.result ?? null;
+      const eligibility = getMacReminderEligibility({ candidateId: candidate.id, email: candidate.email, validationStatus: candidate.validation_status, sessionId: session.id, trainingType: session.training_type, sessionStatus: session.status, closureStatus: session.closure_status, endDate: session.end_date, globalResult }, today);
+      if (!eligibility.eligible || !eligibility.dueDate) { skipped += 1; continue; }
+      for (const kind of eligibility.kinds) {
+        const recipient = candidate.email!.trim().toLowerCase();
+        const key = reminderKey(candidate.id, session.id, kind, recipient);
+        const { data: reminder } = await supabase.from("mac_sst_reminders").upsert({ candidate_id: candidate.id, reference_session_id: session.id, certificate_end_date: session.end_date, mac_due_date: eligibility.dueDate, reminder_kind: kind, recipient_email: recipient, idempotency_key: key }, { onConflict: "idempotency_key", ignoreDuplicates: true }).select("id, status").maybeSingle();
+        const { data: existing } = reminder?.id ? { data: reminder } : await supabase.from("mac_sst_reminders").select("id, status").eq("idempotency_key", key).maybeSingle();
+        if (!existing || existing.status === "sent") { skipped += 1; continue; }
+        const { data: claimed } = await supabase.rpc("claim_mac_sst_reminder", { p_id: existing.id });
+        if (!claimed) { skipped += 1; continue; }
+        try {
+          const context = await getTransactionalEmailContext();
+          await sendBrevoTransactionalEmail({ context, to: [{ email: recipient }], subject: "Rappel : renouvellement de votre certificat SST", textContent: `Votre certificat SST arrive à échéance le ${eligibility.dueDate}. Contactez Konform’up pour organiser votre MAC SST.`, errorLabel: "le rappel MAC SST" });
+          await supabase.from("mac_sst_reminders").update({ status: "sent", sent_at: new Date().toISOString(), technical_error: null }).eq("id", existing.id);
+          await supabase.from("mac_sst_reminder_attempts").insert({ reminder_id: existing.id, status: "sent", sent_at: new Date().toISOString() });
+          sent += 1;
+        } catch (sendError) {
+          const technicalError = cleanTechnicalError(sendError);
+          await supabase.from("mac_sst_reminders").update({ status: "error", technical_error: technicalError }).eq("id", existing.id);
+          await supabase.from("mac_sst_reminder_attempts").insert({ reminder_id: existing.id, status: "error", technical_error: technicalError });
+          errors += 1;
+        }
+      }
+  }
+  return { sent, skipped, errors };
+}
+
+export async function getMacSstReminderStatusForCandidate(candidateId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mac_sst_reminders")
+    .select("id, reference_session_id, mac_due_date, reminder_kind, status, last_attempt_at, sent_at, technical_error")
+    .eq("candidate_id", candidateId)
+    .order("created_at", { ascending: false });
+  if (error) return { reminders: [], error: "Les rappels MAC sont temporairement indisponibles." };
+  return { reminders: data ?? [], error: null };
+}

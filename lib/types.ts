@@ -50,6 +50,10 @@ export type SessionItem = {
   final_admitted_count: number;
   final_not_admitted_count: number;
   final_absent_count: number;
+  archive_status?: "none" | "building" | "complete" | "partial" | "error";
+  archived_at?: string | null;
+  archived_by?: string | null;
+  current_archive_id?: string | null;
   created_at: string;
 };
 

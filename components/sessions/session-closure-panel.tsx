@@ -36,8 +36,8 @@ export function SessionClosurePanel({
           <h3 className="mt-2 text-2xl font-bold">Fin de formation</h3>
           <p className="mt-2 text-sm text-ink/65">{getSstCertificateNotice(session.training_type)}</p>
         </div>
-        <Badge tone={session.closure_status === "closed" ? "success" : session.closure_status === "ready" ? "warning" : "neutral"}>
-          {session.closure_status === "closed" ? "Clôturée" : session.closure_status === "ready" ? "Prête" : "Ouverte"}
+        <Badge tone={session.closure_status === "closed" || session.closure_status === "archived" ? "success" : session.closure_status === "ready" ? "warning" : "neutral"}>
+          {session.closure_status === "archived" ? "Archivée" : session.closure_status === "closed" ? "Clôturée" : session.closure_status === "ready" ? "Prête" : "Ouverte"}
         </Badge>
       </div>
 
@@ -65,6 +65,7 @@ export function SessionClosurePanel({
             defaultValue={session.trainer_report ?? ""}
             rows={3}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+            disabled={session.closure_status === "archived"}
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
@@ -74,6 +75,7 @@ export function SessionClosurePanel({
             defaultValue={session.administrative_observations ?? ""}
             rows={2}
             className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+            disabled={session.closure_status === "archived"}
           />
         </label>
         {!readiness.canClose ? (
@@ -83,14 +85,14 @@ export function SessionClosurePanel({
           </div>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" name="closureStatus" value="ready" variant="secondary" disabled={closurePending}>
+          <Button type="submit" name="closureStatus" value="ready" variant="secondary" disabled={closurePending || session.closure_status === "archived"}>
             Marquer prête
           </Button>
           <Button
             type="submit"
             name="closureStatus"
             value="closed"
-            disabled={closurePending || !readiness.canClose}
+            disabled={closurePending || !readiness.canClose || session.closure_status === "archived"}
             title={!readiness.canClose ? "Renseignez les évaluations globales manquantes avant de clôturer." : undefined}
           >
             Clôturer

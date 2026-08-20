@@ -10,6 +10,7 @@ import { getCandidateById, getCandidateSatisfactionSurveys, getCompanyOptions } 
 import type { SessionCandidate } from "@/lib/types";
 import { formatDate, initials } from "@/lib/utils";
 import { deduplicateCandidateDocuments } from "@/lib/pre-training-documents";
+import { getMacSstReminderStatusForCandidate } from "@/lib/mac-sst-reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function CandidateDetailPage({
   params: Promise<{ candidateId: string }>;
 }) {
   const { candidateId } = await params;
-  const [candidateDashboard, companies, surveys] = await Promise.all([getCandidateById(candidateId), getCompanyOptions(), getCandidateSatisfactionSurveys(candidateId)]);
+  const [candidateDashboard, companies, surveys, macStatus] = await Promise.all([getCandidateById(candidateId), getCompanyOptions(), getCandidateSatisfactionSurveys(candidateId), getMacSstReminderStatusForCandidate(candidateId)]);
 
   if (!candidateDashboard) {
     notFound();
@@ -154,6 +155,13 @@ export default async function CandidateDetailPage({
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Satisfaction</p>
           <h3 className="mt-2 text-2xl font-bold">Questionnaire candidat</h3>
           {surveys.length ? surveys.map((survey) => <div key={survey.id} className="mt-4 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold text-pine">Répondu le {formatDate(survey.submitted_at)}</p><p className="mt-2">Satisfaction : {survey.answers.satisfaction_globale || "Non renseignée"} · Recommandation : {survey.answers.recommandation || "—"}/10</p>{survey.answers.remarques ? <p className="mt-2 text-ink/65">{survey.answers.remarques}</p> : null}</div>) : <p className="mt-4 text-sm text-ink/65">Aucun questionnaire retourné.</p>}
+        </Card>
+        <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">MAC SST</p>
+          <h3 className="mt-2 text-2xl font-bold">Rappels de renouvellement</h3>
+          {macStatus.error ? <p className="mt-4 text-sm text-accent">{macStatus.error}</p> : null}
+          {!macStatus.error && !macStatus.reminders.length ? <p className="mt-4 text-sm text-ink/65">Aucun rappel MAC SST programmé pour ce candidat.</p> : null}
+          {macStatus.reminders.map((reminder) => <div key={reminder.id} className="mt-3 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold">Échéance : {formatDate(reminder.mac_due_date)}</p><p className="mt-1 text-ink/65">Rappel {reminder.reminder_kind === "month_22" ? "22 mois" : "23 mois"} · {reminder.status === "sent" ? "Envoyé" : reminder.status === "error" ? "Erreur" : reminder.status === "pending" ? "À envoyer" : "Ignoré"}</p>{reminder.sent_at ? <p className="mt-1 text-ink/55">Envoyé le {formatDate(reminder.sent_at)}</p> : null}{reminder.technical_error ? <p className="mt-1 text-accent">Envoi à vérifier.</p> : null}</div>)}
         </Card>
       </section>
     </main>

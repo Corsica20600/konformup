@@ -62,7 +62,7 @@ type SessionModuleRow = {
 };
 
 const SESSION_CLOSURE_SELECT =
-  "closure_status, closed_at, closed_by, trainer_report, administrative_observations, final_registered_count, final_present_count, final_admitted_count, final_not_admitted_count, final_absent_count";
+  "closure_status, closed_at, closed_by, trainer_report, administrative_observations, final_registered_count, final_present_count, final_admitted_count, final_not_admitted_count, final_absent_count, archive_status, archived_at, archived_by, current_archive_id";
 
 function getDefaultSessionClosureFields() {
   return {
@@ -75,7 +75,11 @@ function getDefaultSessionClosureFields() {
     final_present_count: 0,
     final_admitted_count: 0,
     final_not_admitted_count: 0,
-    final_absent_count: 0
+    final_absent_count: 0,
+    archive_status: "none" as const,
+    archived_at: null,
+    archived_by: null,
+    current_archive_id: null
   };
 }
 
