@@ -1406,6 +1406,274 @@ export type Database = {
           },
         ]
       }
+      shared_training_resource_audit: {
+        Row: {
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          performed_by: string
+          resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          performed_by: string
+          resource_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          performed_by?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_training_resource_audit_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resource_audit_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "shared_training_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_training_resource_comments: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+          resource_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          id?: string
+          resource_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_training_resource_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resource_comments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "shared_training_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_training_resource_notifications: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+          event_type: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          resource_id: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+          event_type: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          resource_id: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+          event_type?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_training_resource_notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resource_notifications_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "shared_training_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_training_resource_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          external_url: string | null
+          id: string
+          mime_type: string | null
+          original_filename: string | null
+          resource_id: string
+          resource_type: string
+          sha256: string | null
+          size_bytes: number | null
+          storage_bucket: string | null
+          storage_path: string | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          external_url?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename?: string | null
+          resource_id: string
+          resource_type: string
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          external_url?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename?: string | null
+          resource_id?: string
+          resource_type?: string
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_training_resource_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resource_versions_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "shared_training_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_training_resources: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          integrated_at: string | null
+          integrated_by: string | null
+          integrated_note: string | null
+          last_activity_at: string
+          priority: string
+          requested_change: string | null
+          resource_type: string
+          status: string
+          title: string
+          training_module_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          integrated_at?: string | null
+          integrated_by?: string | null
+          integrated_note?: string | null
+          last_activity_at?: string
+          priority?: string
+          requested_change?: string | null
+          resource_type: string
+          status?: string
+          title: string
+          training_module_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          integrated_at?: string | null
+          integrated_by?: string | null
+          integrated_note?: string | null
+          last_activity_at?: string
+          priority?: string
+          requested_change?: string | null
+          resource_type?: string
+          status?: string
+          title?: string
+          training_module_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_training_resources_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resources_integrated_by_fkey"
+            columns: ["integrated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_training_resources_training_module_id_fkey"
+            columns: ["training_module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_documents: {
         Row: {
           created_at: string
@@ -1478,36 +1746,6 @@ export type Database = {
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
-      }
-      shared_training_resources: {
-        Row: { id: string; resource_type: string; title: string; description: string | null; category: string; priority: string; requested_change: string | null; status: string; training_module_id: string | null; integrated_note: string | null; integrated_at: string | null; integrated_by: string | null; created_by: string; created_at: string; updated_at: string; last_activity_at: string }
-        Insert: { id?: string; resource_type: string; title: string; description?: string | null; category?: string; priority?: string; requested_change?: string | null; status?: string; training_module_id?: string | null; integrated_note?: string | null; integrated_at?: string | null; integrated_by?: string | null; created_by: string; created_at?: string; updated_at?: string; last_activity_at?: string }
-        Update: { id?: string; resource_type?: string; title?: string; description?: string | null; category?: string; priority?: string; requested_change?: string | null; status?: string; training_module_id?: string | null; integrated_note?: string | null; integrated_at?: string | null; integrated_by?: string | null; created_by?: string; created_at?: string; updated_at?: string; last_activity_at?: string }
-        Relationships: []
-      }
-      shared_training_resource_versions: {
-        Row: { id: string; resource_id: string; version_number: number; resource_type: string; storage_bucket: string | null; storage_path: string | null; external_url: string | null; original_filename: string | null; mime_type: string | null; size_bytes: number | null; sha256: string | null; created_by: string; created_at: string }
-        Insert: { id?: string; resource_id: string; version_number: number; resource_type: string; storage_bucket?: string | null; storage_path?: string | null; external_url?: string | null; original_filename?: string | null; mime_type?: string | null; size_bytes?: number | null; sha256?: string | null; created_by: string; created_at?: string }
-        Update: { id?: string; resource_id?: string; version_number?: number; resource_type?: string; storage_bucket?: string | null; storage_path?: string | null; external_url?: string | null; original_filename?: string | null; mime_type?: string | null; size_bytes?: number | null; sha256?: string | null; created_by?: string; created_at?: string }
-        Relationships: []
-      }
-      shared_training_resource_comments: {
-        Row: { id: string; resource_id: string; body: string; created_by: string; created_at: string }
-        Insert: { id?: string; resource_id: string; body: string; created_by: string; created_at?: string }
-        Update: { id?: string; resource_id?: string; body?: string; created_by?: string; created_at?: string }
-        Relationships: []
-      }
-      shared_training_resource_audit: {
-        Row: { id: string; resource_id: string; event_type: string; details: Json; performed_by: string; created_at: string }
-        Insert: { id?: string; resource_id: string; event_type: string; details?: Json; performed_by: string; created_at?: string }
-        Update: { id?: string; resource_id?: string; event_type?: string; details?: Json; performed_by?: string; created_at?: string }
-        Relationships: []
-      }
-      shared_training_resource_notifications: {
-        Row: { id: string; resource_id: string; recipient_id: string; event_type: string; dedupe_key: string; read_at: string | null; created_at: string }
-        Insert: { id?: string; resource_id: string; recipient_id: string; event_type: string; dedupe_key: string; read_at?: string | null; created_at?: string }
-        Update: { id?: string; resource_id?: string; recipient_id?: string; event_type?: string; dedupe_key?: string; read_at?: string | null; created_at?: string }
         Relationships: []
       }
       training_modules: {
