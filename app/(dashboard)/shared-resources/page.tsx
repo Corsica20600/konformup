@@ -1,9 +1,14 @@
 import { SharedResourcesWorkspace } from "@/components/shared-resources/shared-resources-workspace";
+import { requireUser } from "@/lib/auth";
 import { getSharedTrainingResourceModules, getSharedTrainingResources, markSharedTrainingResourceNotificationsRead } from "@/lib/shared-training-resources";
 
 export const dynamic = "force-dynamic";
 
 export default async function SharedResourcesPage() {
+  // Layouts and pages may render concurrently. Authenticate before invoking the
+  // resource service so an anonymous request follows the normal login redirect
+  // instead of logging an expected authorization error.
+  await requireUser();
   const [workspace, modules] = await Promise.all([getSharedTrainingResources(), getSharedTrainingResourceModules()]);
   await markSharedTrainingResourceNotificationsRead();
   const resources = workspace.resources.map((resource) => {
