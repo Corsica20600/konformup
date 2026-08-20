@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
 import {
   createInvoiceFromQuoteAction,
   createSessionFromQuoteAction,
@@ -30,6 +30,79 @@ import {
 const initialState: QuoteEditorActionState = {};
 
 type InvoiceSummary = Pick<Database["public"]["Tables"]["invoices"]["Row"], "id" | "invoice_number"> | null;
+
+export function getLinkedQuoteDocuments(params: {
+  invoiceId: string | null;
+  programmeFileUrl: string | null;
+  trainingAgreementFileUrl: string | null;
+}) {
+  return [
+    params.invoiceId ? { key: "invoice", label: "Ouvrir la facture", href: `/invoices/${params.invoiceId}`, external: false } : null,
+    params.programmeFileUrl ? { key: "programme", label: "Ouvrir le programme", href: params.programmeFileUrl, external: true } : null,
+    params.trainingAgreementFileUrl
+      ? { key: "training-agreement", label: "Ouvrir la convention", href: params.trainingAgreementFileUrl, external: true }
+      : null
+  ].filter((document): document is { key: string; label: string; href: string; external: boolean } => Boolean(document));
+}
+
+function QuoteActionMenu({
+  label,
+  children,
+  emptyMessage
+}: {
+  label: string;
+  children: ReactNode;
+  emptyMessage?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <Button
+        type="button"
+        variant="secondary"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        {label}
+      </Button>
+      {isOpen ? (
+        <div
+          role="menu"
+          aria-label={label}
+          className="absolute right-0 z-10 mt-2 min-w-52 rounded-2xl border border-ink/10 bg-white p-2 shadow-panel"
+          onClick={() => setIsOpen(false)}
+        >
+          {emptyMessage ? <p className="px-3 py-2 text-sm text-ink/60">{emptyMessage}</p> : children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function EditQuoteForm({
   quote,
@@ -79,6 +152,11 @@ export function EditQuoteForm({
   const canCreateInvoice = quote.status === "accepted" && !invoice;
   const canGenerateTrainingAgreement = quote.status === "accepted";
   const trainingAgreementFileUrl = trainingAgreement?.fileUrl ?? `/api/pdf/training-agreement/${quote.id}`;
+  const linkedDocuments = getLinkedQuoteDocuments({
+    invoiceId: invoice?.id ?? null,
+    programmeFileUrl,
+    trainingAgreementFileUrl: trainingAgreement ? trainingAgreementFileUrl : null
+  });
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
   const assignedTrainerId =
     trainers.find(
@@ -97,139 +175,78 @@ export function EditQuoteForm({
             Reference : {quote.quote_number} • Societe : {quote.company.company_name}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canCreateSession ? (
-            <form action={createSessionAction}>
-              <input type="hidden" name="quoteId" value={quote.id} />
-              <Button type="submit" variant="secondary" disabled={createSessionPending}>
-                {createSessionPending ? "Creation..." : "Creer la session"}
-              </Button>
-            </form>
-          ) : null}
-          {invoice ? (
-            <>
-              <Link
-                href={`/invoices/${invoice.id}`}
-                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-              >
-                Voir la facture
-              </Link>
-              <Link
-                href={`/api/pdf/invoice/${invoice.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-              >
-                PDF facture
-              </Link>
-            </>
-          ) : null}
-          {canCreateInvoice ? (
-            <form action={createInvoiceAction}>
-              <input type="hidden" name="quoteId" value={quote.id} />
-              <Button type="submit" variant="secondary" disabled={createInvoicePending}>
-                {createInvoicePending ? "Creation..." : "Creer la facture"}
-              </Button>
-            </form>
-          ) : null}
-          <form action={sendAction}>
-            <input type="hidden" name="quoteId" value={quote.id} />
-            <Button type="submit" variant="secondary" disabled={sendPending}>
-              {sendPending ? "Envoi..." : "Envoyer"}
-            </Button>
-          </form>
-          <form action={programmeAction}>
-            <input type="hidden" name="quoteId" value={quote.id} />
-            <Button type="submit" variant="secondary" disabled={programmePending}>
-              {programmePending ? "Generation..." : "Programme"}
-            </Button>
-          </form>
-          {programmeFileUrl ? (
-            <Link
-              href={programmeFileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-            >
-              Ouvrir programme
-            </Link>
-          ) : null}
-          {canGenerateTrainingAgreement ? (
-            <>
-              {!trainingAgreement ? (
-                <form action={trainingAgreementAction}>
-                  <input type="hidden" name="quoteId" value={quote.id} />
-                  <Button type="submit" variant="secondary" disabled={trainingAgreementPending}>
-                    {trainingAgreementPending ? "Generation..." : "Generer convention"}
-                  </Button>
-                </form>
-              ) : (
-                <>
-                  <Link
-                    href={trainingAgreementFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-                  >
-                    Voir convention
-                  </Link>
-                  <Link
-                    href={`${trainingAgreementFileUrl}?download=1`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
-                  >
-                    Telecharger convention
-                  </Link>
-                </>
-              )}
-            </>
-          ) : null}
+        <div className="flex max-w-full flex-wrap justify-end gap-2">
           <Link
             href={`/api/pdf/quote/${quote.id}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            className="inline-flex items-center justify-center rounded-full bg-pine px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink"
           >
-            Ouvrir le PDF
+            Voir le devis
           </Link>
-          <details className="relative">
-            <summary className="list-none rounded-full bg-transparent px-4 py-2 text-sm font-semibold text-ink hover:bg-white/60 cursor-pointer">
-              Plus
-            </summary>
-            <div className="absolute right-0 z-10 mt-2 min-w-44 rounded-2xl border border-ink/10 bg-white p-2 shadow-panel">
-              {quote.session_id ? (
-                <Link
-                  href={`/sessions/${quote.session_id}`}
-                  className="block rounded-xl px-3 py-2 text-sm font-medium text-ink transition hover:bg-sand"
-                >
-                  Ouvrir la session
-                </Link>
-              ) : null}
-              <form action={pdfAction}>
+          <form action={sendAction}>
+            <input type="hidden" name="quoteId" value={quote.id} />
+            <Button type="submit" variant="secondary" disabled={sendPending}>
+              {sendPending ? "Envoi..." : "Envoyer le devis"}
+            </Button>
+          </form>
+          {quote.session_id ? (
+            <Link
+              href={`/sessions/${quote.session_id}`}
+              className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
+            >
+              Ouvrir la session
+            </Link>
+          ) : null}
+          <QuoteActionMenu
+            label="Documents liés"
+            emptyMessage={linkedDocuments.length === 0 ? "Aucun document lié n’est disponible." : undefined}
+          >
+            {linkedDocuments.map((document) => (
+              <Link
+                key={document.key}
+                href={document.href}
+                target={document.external ? "_blank" : undefined}
+                rel={document.external ? "noreferrer" : undefined}
+                role="menuitem"
+                className="block rounded-xl px-3 py-2 text-sm font-medium text-ink transition hover:bg-sand"
+              >
+                {document.label}
+              </Link>
+            ))}
+          </QuoteActionMenu>
+          <QuoteActionMenu label="Plus">
+            <form action={pdfAction}>
+              <input type="hidden" name="quoteId" value={quote.id} />
+              <button type="submit" disabled={pdfPending} role="menuitem" className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60">
+                {pdfPending ? "Régénération..." : "Régénérer le PDF du devis"}
+              </button>
+            </form>
+            {canCreateSession ? (
+              <form action={createSessionAction}>
                 <input type="hidden" name="quoteId" value={quote.id} />
-                <button
-                  type="submit"
-                  disabled={pdfPending}
-                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
-                >
-                  {pdfPending ? "Regeneration..." : "Regenerer PDF"}
+                <button type="submit" disabled={createSessionPending} role="menuitem" className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60">
+                  {createSessionPending ? "Création..." : "Créer la session"}
                 </button>
               </form>
-              {canGenerateTrainingAgreement ? (
-                <form action={regenerateTrainingAgreementFormAction}>
-                  <input type="hidden" name="quoteId" value={quote.id} />
-                  <button
-                    type="submit"
-                    disabled={regenerateTrainingAgreementPending}
-                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60"
-                  >
-                    {regenerateTrainingAgreementPending ? "Regeneration..." : "Regenerer convention"}
-                  </button>
-                </form>
-              ) : null}
-            </div>
-          </details>
+            ) : null}
+            {canCreateInvoice ? (
+              <form action={createInvoiceAction}>
+                <input type="hidden" name="quoteId" value={quote.id} />
+                <button type="submit" disabled={createInvoicePending} role="menuitem" className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60">
+                  {createInvoicePending ? "Création..." : "Créer la facture"}
+                </button>
+              </form>
+            ) : null}
+            {!programmeFileUrl ? (
+              <form action={programmeAction}>
+                <input type="hidden" name="quoteId" value={quote.id} />
+                <button type="submit" disabled={programmePending} role="menuitem" className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-ink transition hover:bg-sand disabled:opacity-60">
+                  {programmePending ? "Génération..." : "Générer le programme"}
+                </button>
+              </form>
+            ) : null}
+          </QuoteActionMenu>
         </div>
       </div>
 
@@ -269,7 +286,7 @@ export function EditQuoteForm({
                 rel="noreferrer"
                 className="inline-flex items-center justify-center rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#d8ceb9]"
               >
-                Voir
+                Ouvrir
               </Link>
               <Link
                 href={`${trainingAgreementFileUrl}?download=1`}
