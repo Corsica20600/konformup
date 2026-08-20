@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMacDates, getMacReminderEligibility, hasAmbiguousMacReminderEmail, normalizeReminderEmail } from "@/lib/mac-sst-reminders";
+import { calculateMacDates, getMacReminderEligibility, hasAmbiguousMacReminderEmail, isMacSstRemindersEnabled, normalizeReminderEmail } from "@/lib/mac-sst-reminders";
 
 const base = { candidateId: "candidate", macIdentityId: "11111111-1111-4111-8111-111111111111", email: "candidate@example.test", validationStatus: "validated", sessionId: "session", trainingType: "sst_initial", sessionStatus: "completed", closureStatus: "closed", endDate: "2024-01-31", globalResult: "admis" };
 
@@ -33,5 +33,10 @@ describe("MAC SST reminders", () => {
   });
   it("does not infer a stable identity from names, companies or date-like values", () => {
     expect(getMacReminderEligibility({ ...base, macIdentityId: null, email: "same@example.test" }, "2025-11-30").reason).toBe("identity_unverified");
+  });
+  it("only enables the sender for the explicit true server flag", () => {
+    expect(isMacSstRemindersEnabled(undefined)).toBe(false);
+    expect(isMacSstRemindersEnabled("false")).toBe(false);
+    expect(isMacSstRemindersEnabled("TRUE ")).toBe(true);
   });
 });

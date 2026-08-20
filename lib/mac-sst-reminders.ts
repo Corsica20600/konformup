@@ -27,6 +27,16 @@ export type MacReminderEligibility = {
   kinds: MacReminderKind[];
 };
 
+export type MacReminderDiagnostic = {
+  eligibleMonth22: number;
+  eligibleMonth23: number;
+  identityMissing: number;
+  sharedEmailBlocked: number;
+  noEmail: number;
+  alreadySent: number;
+  renewedByNewerMac: number;
+};
+
 export function normalizeReminderEmail(email: string | null | undefined) {
   return email?.trim().toLocaleLowerCase("fr-FR") || null;
 }
@@ -36,6 +46,10 @@ export function hasAmbiguousMacReminderEmail(identityId: string, email: string |
   if (!normalized) return false;
   const identities = activeIdentityEmails.get(normalized);
   return Boolean(identities && identities.size > 1 && identities.has(identityId));
+}
+
+export function isMacSstRemindersEnabled(value = process.env.MAC_SST_REMINDERS_ENABLED) {
+  return value?.trim().toLowerCase() === "true";
 }
 
 const monthDate = (isoDate: string, months: number) => {
@@ -185,6 +199,64 @@ export async function runMacSstReminderCron(today = new Date().toISOString().sli
       }
   }
   return { sent, skipped, errors };
+}
+
+/** Read-only inventory used before activating the MAC cron. It intentionally has no writes or email calls. */
+export async function getMacSstReminderDiagnostic(today = new Date().toISOString().slice(0, 10)): Promise<MacReminderDiagnostic> {
+  const supabase = createAdminClient();
+  const empty: MacReminderDiagnostic = { eligibleMonth22: 0, eligibleMonth23: 0, identityMissing: 0, sharedEmailBlocked: 0, noEmail: 0, alreadySent: 0, renewedByNewerMac: 0 };
+  const { data: sessions, error } = await supabase.from("training_sessions").select("id, training_type, status, closure_status, end_date").in("training_type", ["sst_initial", "mac_sst"]).in("closure_status", ["closed", "archived"]).neq("status", "cancelled");
+  if (error) throw new Error("Impossible de préparer le diagnostic MAC.");
+  const sessionIds = (sessions ?? []).map((session) => session.id);
+  const { data: candidates } = sessionIds.length ? await supabase.from("candidates").select("id, session_id, email, validation_status, mac_identity_id").in("session_id", sessionIds) : { data: [] as Array<{ id: string; session_id: string | null; email: string | null; validation_status: string | null; mac_identity_id: string | null }> };
+  const candidateIds = (candidates ?? []).map((candidate) => candidate.id);
+  const [{ data: evaluations }, { data: identities }, { data: allCandidateEmails }, { data: reminders }] = await Promise.all([
+    candidateIds.length ? supabase.from("candidate_evaluations").select("candidate_id, result, evaluated_at, session_id").eq("evaluation_type", "globale").in("candidate_id", candidateIds) : Promise.resolve({ data: [] as Array<{ candidate_id: string; result: string; evaluated_at: string | null; session_id: string }> }),
+    supabase.from("candidate_mac_identities").select("id, status"),
+    supabase.from("candidates").select("email, mac_identity_id"),
+    supabase.from("mac_sst_reminders").select("mac_identity_id, reference_session_id, reminder_kind, status")
+  ]);
+  const sessionById = new Map((sessions ?? []).map((session) => [session.id, session]));
+  const activeIdentityIds = new Set((identities ?? []).filter((identity) => identity.status === "active").map((identity) => identity.id));
+  const emailIdentities = new Map<string, Set<string>>();
+  for (const item of allCandidateEmails ?? []) {
+    const email = normalizeReminderEmail(item.email);
+    if (!email || !item.mac_identity_id || !activeIdentityIds.has(item.mac_identity_id)) continue;
+    const identitySet = emailIdentities.get(email) ?? new Set<string>();
+    identitySet.add(item.mac_identity_id);
+    emailIdentities.set(email, identitySet);
+  }
+  const latestByIdentity = new Map<string, string>();
+  for (const candidate of candidates ?? []) {
+    const session = candidate.session_id ? sessionById.get(candidate.session_id) : null;
+    if (!candidate.mac_identity_id || !activeIdentityIds.has(candidate.mac_identity_id) || !session) continue;
+    const result = [...(evaluations ?? [])].filter((evaluation) => evaluation.candidate_id === candidate.id && evaluation.session_id === session.id).sort((left, right) => (right.evaluated_at ?? "").localeCompare(left.evaluated_at ?? ""))[0]?.result;
+    if (candidate.validation_status !== "validated" || result !== "admis") continue;
+    const current = latestByIdentity.get(candidate.mac_identity_id);
+    if (!current || (sessionById.get(current)?.end_date ?? "") < session.end_date) latestByIdentity.set(candidate.mac_identity_id, session.id);
+  }
+  for (const candidate of candidates ?? []) {
+    const session = candidate.session_id ? sessionById.get(candidate.session_id) : null;
+    if (!session) continue;
+    const rawDates = calculateMacDates(session.end_date);
+    const dueKinds: MacReminderKind[] = [];
+    if (rawDates.firstReminderDate && rawDates.secondReminderDate && today >= rawDates.firstReminderDate && today < rawDates.secondReminderDate) dueKinds.push("month_22");
+    if (rawDates.secondReminderDate && rawDates.expiryDate && today >= rawDates.secondReminderDate && today < rawDates.expiryDate) dueKinds.push("month_23");
+    if (!dueKinds.length || candidate.validation_status !== "validated") continue;
+    const result = [...(evaluations ?? [])].filter((evaluation) => evaluation.candidate_id === candidate.id && evaluation.session_id === session.id).sort((left, right) => (right.evaluated_at ?? "").localeCompare(left.evaluated_at ?? ""))[0]?.result;
+    if (result !== "admis") continue;
+    if (!candidate.mac_identity_id || !activeIdentityIds.has(candidate.mac_identity_id)) { empty.identityMissing += 1; continue; }
+    if (latestByIdentity.get(candidate.mac_identity_id) !== session.id) { empty.renewedByNewerMac += 1; continue; }
+    if (!normalizeReminderEmail(candidate.email)) { empty.noEmail += 1; continue; }
+    if (hasAmbiguousMacReminderEmail(candidate.mac_identity_id, candidate.email, emailIdentities)) { empty.sharedEmailBlocked += 1; continue; }
+    for (const kind of dueKinds) {
+      const sent = (reminders ?? []).some((reminder) => reminder.mac_identity_id === candidate.mac_identity_id && reminder.reference_session_id === session.id && reminder.reminder_kind === kind && reminder.status === "sent");
+      if (sent) empty.alreadySent += 1;
+      else if (kind === "month_22") empty.eligibleMonth22 += 1;
+      else empty.eligibleMonth23 += 1;
+    }
+  }
+  return empty;
 }
 
 export async function getMacSstReminderStatusForCandidate(candidateId: string) {
