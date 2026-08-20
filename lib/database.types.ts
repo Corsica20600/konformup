@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       attendance_responses: {
@@ -231,6 +206,111 @@ export type Database = {
           },
         ]
       }
+      candidate_mac_identities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          merge_reason: string | null
+          merged_at: string | null
+          merged_by: string | null
+          merged_into_identity_id: string | null
+          notes: string | null
+          status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          merge_reason?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_identity_id?: string | null
+          notes?: string | null
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          merge_reason?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_identity_id?: string | null
+          notes?: string | null
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_mac_identities_merged_into_identity_id_fkey"
+            columns: ["merged_into_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_mac_identity_operations: {
+        Row: {
+          candidate_id: string | null
+          created_at: string
+          id: string
+          operation_type: string
+          performed_by: string | null
+          reason: string | null
+          source_identity_id: string | null
+          target_identity_id: string | null
+        }
+        Insert: {
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          operation_type: string
+          performed_by?: string | null
+          reason?: string | null
+          source_identity_id?: string | null
+          target_identity_id?: string | null
+        }
+        Update: {
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          operation_type?: string
+          performed_by?: string | null
+          reason?: string | null
+          source_identity_id?: string | null
+          target_identity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_mac_identity_operations_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_mac_identity_operations_source_identity_id_fkey"
+            columns: ["source_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_mac_identity_operations_target_identity_id_fkey"
+            columns: ["target_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_satisfaction_surveys: {
         Row: {
           answers: Json
@@ -364,17 +444,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "candidates_mac_identity_id_fkey"
-            columns: ["mac_identity_id"]
-            isOneToOne: false
-            referencedRelation: "candidate_mac_identities"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "candidates_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "client_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_mac_identity_id_fkey"
+            columns: ["mac_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
             referencedColumns: ["id"]
           },
           {
@@ -867,6 +947,126 @@ export type Database = {
           },
         ]
       }
+      mac_sst_reminder_attempts: {
+        Row: {
+          attempted_at: string
+          brevo_message_id: string | null
+          id: string
+          reminder_id: string
+          sent_at: string | null
+          status: string
+          technical_error: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          brevo_message_id?: string | null
+          id?: string
+          reminder_id: string
+          sent_at?: string | null
+          status: string
+          technical_error?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          brevo_message_id?: string | null
+          id?: string
+          reminder_id?: string
+          sent_at?: string | null
+          status?: string
+          technical_error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mac_sst_reminder_attempts_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "mac_sst_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mac_sst_reminders: {
+        Row: {
+          attempt_count: number
+          brevo_message_id: string | null
+          candidate_id: string
+          certificate_end_date: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          last_attempt_at: string | null
+          mac_due_date: string
+          mac_identity_id: string | null
+          recipient_email: string | null
+          reference_session_id: string
+          reminder_kind: string
+          sent_at: string | null
+          status: string
+          technical_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          brevo_message_id?: string | null
+          candidate_id: string
+          certificate_end_date: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          last_attempt_at?: string | null
+          mac_due_date: string
+          mac_identity_id?: string | null
+          recipient_email?: string | null
+          reference_session_id: string
+          reminder_kind: string
+          sent_at?: string | null
+          status?: string
+          technical_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          brevo_message_id?: string | null
+          candidate_id?: string
+          certificate_end_date?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          last_attempt_at?: string | null
+          mac_due_date?: string
+          mac_identity_id?: string | null
+          recipient_email?: string | null
+          reference_session_id?: string
+          reminder_kind?: string
+          sent_at?: string | null
+          status?: string
+          technical_error?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mac_sst_reminders_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mac_sst_reminders_mac_identity_id_fkey"
+            columns: ["mac_identity_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_mac_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mac_sst_reminders_reference_session_id_fkey"
+            columns: ["reference_session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_settings: {
         Row: {
           address: string | null
@@ -1085,6 +1285,78 @@ export type Database = {
           },
           {
             foreignKeyName: "quotes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "training_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_archives: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          created_at: string
+          error_summary: string | null
+          id: string
+          manifest: Json
+          manifest_hash: string | null
+          manifest_storage_path: string | null
+          manifest_version: string
+          missing_items: Json
+          previous_archive_id: string | null
+          session_id: string
+          status: string
+          storage_bucket: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          error_summary?: string | null
+          id?: string
+          manifest?: Json
+          manifest_hash?: string | null
+          manifest_storage_path?: string | null
+          manifest_version?: string
+          missing_items?: Json
+          previous_archive_id?: string | null
+          session_id: string
+          status?: string
+          storage_bucket?: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          created_at?: string
+          error_summary?: string | null
+          id?: string
+          manifest?: Json
+          manifest_hash?: string | null
+          manifest_storage_path?: string | null
+          manifest_version?: string
+          missing_items?: Json
+          previous_archive_id?: string | null
+          session_id?: string
+          status?: string
+          storage_bucket?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_archives_previous_archive_id_fkey"
+            columns: ["previous_archive_id"]
+            isOneToOne: false
+            referencedRelation: "session_archives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_archives_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "training_sessions"
@@ -1358,36 +1630,6 @@ export type Database = {
           },
         ]
       }
-      mac_sst_reminder_attempts: {
-        Row: { id: string; reminder_id: string; status: string; attempted_at: string; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null }
-        Insert: { id?: string; reminder_id: string; status: string; attempted_at?: string; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null }
-        Update: { id?: string; reminder_id?: string; status?: string; attempted_at?: string; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null }
-        Relationships: [{ foreignKeyName: "mac_sst_reminder_attempts_reminder_id_fkey"; columns: ["reminder_id"]; isOneToOne: false; referencedRelation: "mac_sst_reminders"; referencedColumns: ["id"] }]
-      }
-      mac_sst_reminders: {
-        Row: { id: string; candidate_id: string; mac_identity_id: string | null; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email: string | null; status: string; idempotency_key: string; attempt_count: number; last_attempt_at: string | null; sent_at: string | null; brevo_message_id: string | null; technical_error: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; candidate_id: string; mac_identity_id?: string | null; reference_session_id: string; certificate_end_date: string; mac_due_date: string; reminder_kind: string; recipient_email?: string | null; status?: string; idempotency_key: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; candidate_id?: string; mac_identity_id?: string | null; reference_session_id?: string; certificate_end_date?: string; mac_due_date?: string; reminder_kind?: string; recipient_email?: string | null; status?: string; idempotency_key?: string; attempt_count?: number; last_attempt_at?: string | null; sent_at?: string | null; brevo_message_id?: string | null; technical_error?: string | null; created_at?: string; updated_at?: string }
-        Relationships: [{ foreignKeyName: "mac_sst_reminders_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "mac_sst_reminders_reference_session_id_fkey"; columns: ["reference_session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }]
-      }
-      candidate_mac_identities: {
-        Row: { id: string; created_at: string; created_by: string | null; notes: string | null; status: string; merged_into_identity_id: string | null; verified_at: string | null; verified_by: string | null; merged_at: string | null; merged_by: string | null; merge_reason: string | null }
-        Insert: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null; status?: string; merged_into_identity_id?: string | null; verified_at?: string | null; verified_by?: string | null; merged_at?: string | null; merged_by?: string | null; merge_reason?: string | null }
-        Update: { id?: string; created_at?: string; created_by?: string | null; notes?: string | null; status?: string; merged_into_identity_id?: string | null; verified_at?: string | null; verified_by?: string | null; merged_at?: string | null; merged_by?: string | null; merge_reason?: string | null }
-        Relationships: [{ foreignKeyName: "candidate_mac_identities_merged_into_identity_id_fkey"; columns: ["merged_into_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }]
-      }
-      candidate_mac_identity_operations: {
-        Row: { id: string; operation_type: string; candidate_id: string | null; source_identity_id: string | null; target_identity_id: string | null; reason: string | null; performed_by: string | null; created_at: string }
-        Insert: { id?: string; operation_type: string; candidate_id?: string | null; source_identity_id?: string | null; target_identity_id?: string | null; reason?: string | null; performed_by?: string | null; created_at?: string }
-        Update: { id?: string; operation_type?: string; candidate_id?: string | null; source_identity_id?: string | null; target_identity_id?: string | null; reason?: string | null; performed_by?: string | null; created_at?: string }
-        Relationships: [{ foreignKeyName: "candidate_mac_identity_operations_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] }, { foreignKeyName: "candidate_mac_identity_operations_source_identity_id_fkey"; columns: ["source_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }, { foreignKeyName: "candidate_mac_identity_operations_target_identity_id_fkey"; columns: ["target_identity_id"]; isOneToOne: false; referencedRelation: "candidate_mac_identities"; referencedColumns: ["id"] }]
-      }
-      session_archives: {
-        Row: { id: string; session_id: string; version: number; previous_archive_id: string | null; status: string; manifest_version: string; manifest: Json; manifest_hash: string | null; storage_bucket: string; manifest_storage_path: string | null; missing_items: Json; error_summary: string | null; archived_at: string | null; archived_by: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; session_id: string; version: number; previous_archive_id?: string | null; status?: string; manifest_version?: string; manifest?: Json; manifest_hash?: string | null; storage_bucket?: string; manifest_storage_path?: string | null; missing_items?: Json; error_summary?: string | null; archived_at?: string | null; archived_by?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; session_id?: string; version?: number; previous_archive_id?: string | null; status?: string; manifest_version?: string; manifest?: Json; manifest_hash?: string | null; storage_bucket?: string; manifest_storage_path?: string | null; missing_items?: Json; error_summary?: string | null; archived_at?: string | null; archived_by?: string | null; created_at?: string; updated_at?: string }
-        Relationships: [{ foreignKeyName: "session_archives_session_id_fkey"; columns: ["session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }, { foreignKeyName: "session_archives_previous_archive_id_fkey"; columns: ["previous_archive_id"]; isOneToOne: false; referencedRelation: "session_archives"; referencedColumns: ["id"] }]
-      }
       training_quizzes: {
         Row: {
           correct_answer: string
@@ -1446,8 +1688,8 @@ export type Database = {
           closed_by: string | null
           closure_status: string
           company_name: string | null
-          current_archive_id: string | null
           created_at: string
+          current_archive_id: string | null
           duration_hours: number | null
           end_date: string
           final_absent_count: number
@@ -1483,8 +1725,8 @@ export type Database = {
           closed_by?: string | null
           closure_status?: string
           company_name?: string | null
-          current_archive_id?: string | null
           created_at?: string
+          current_archive_id?: string | null
           duration_hours?: number | null
           end_date: string
           final_absent_count?: number
@@ -1520,8 +1762,8 @@ export type Database = {
           closed_by?: string | null
           closure_status?: string
           company_name?: string | null
-          current_archive_id?: string | null
           created_at?: string
+          current_archive_id?: string | null
           duration_hours?: number | null
           end_date?: string
           final_absent_count?: number
@@ -1549,6 +1791,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "training_sessions_current_archive_id_fkey"
+            columns: ["current_archive_id"]
+            isOneToOne: false
+            referencedRelation: "session_archives"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "training_sessions_source_quote_id_fkey"
             columns: ["source_quote_id"]
             isOneToOne: false
@@ -1562,13 +1811,6 @@ export type Database = {
             referencedRelation: "trainers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "training_sessions_current_archive_id_fkey"
-            columns: ["current_archive_id"]
-            isOneToOne: false
-            referencedRelation: "session_archives"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
@@ -1576,6 +1818,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      backfill_candidate_mac_identities: { Args: never; Returns: number }
       can_access_attendance_response: {
         Args: { p_response_id: string }
         Returns: boolean
@@ -1602,10 +1845,14 @@ export type Database = {
         Args: { p_complaint_id: string }
         Returns: boolean
       }
-      claim_mac_sst_reminder: { Args: { p_id: string }; Returns: boolean }
       can_access_quote: { Args: { p_quote_id: string }; Returns: boolean }
       can_access_session: { Args: { p_session_id: string }; Returns: boolean }
       can_access_storage_path: { Args: { p_path: string }; Returns: boolean }
+      can_delete_building_session_archive: {
+        Args: { p_path: string }
+        Returns: boolean
+      }
+      claim_mac_sst_reminder: { Args: { p_id: string }; Returns: boolean }
       confirm_attendance_response: {
         Args: {
           p_ip?: string
@@ -1687,16 +1934,24 @@ export type Database = {
       }
       is_operational_manager: { Args: never; Returns: boolean }
       link_candidate_mac_identity: {
-        Args: { p_candidate_id: string; p_identity_id: string; p_reason: string }
-        Returns: string
-      }
-      merge_candidate_mac_identities: {
-        Args: { p_canonical_identity_id: string; p_secondary_identity_id: string; p_reason: string }
+        Args: {
+          p_candidate_id: string
+          p_identity_id: string
+          p_reason: string
+        }
         Returns: string
       }
       mark_company_satisfaction_delivery: {
         Args: { p_success: boolean; p_survey_id: string }
         Returns: boolean
+      }
+      merge_candidate_mac_identities: {
+        Args: {
+          p_canonical_identity_id: string
+          p_reason: string
+          p_secondary_identity_id: string
+        }
+        Returns: string
       }
       submit_candidate_satisfaction_survey: {
         Args: { p_answers: Json; p_token: string }
@@ -1859,9 +2114,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "lead_trainer", "trainer"],
