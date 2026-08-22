@@ -13,7 +13,9 @@ function isRecord(value: unknown): value is AnswerRecord { return Boolean(value)
 function safeClone(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(safeClone);
   if (!isRecord(value)) return value;
-  const result: AnswerRecord = Object.create(null);
+  // A public analysis crosses a Server Component boundary. Next.js only
+  // serializes ordinary objects there; dangerous keys are still filtered.
+  const result: AnswerRecord = {};
   for (const [key, child] of Object.entries(value)) { if (key !== "__proto__" && key !== "prototype" && key !== "constructor") result[key] = safeClone(child); }
   return result;
 }

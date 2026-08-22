@@ -27,6 +27,13 @@ describe("training needs services", () => {
     expect(current.first_opened_at).not.toBeNull(); expect(view).not.toHaveProperty("tokenHash"); expect(view).not.toHaveProperty("companyId"); expect(view.isReadOnly).toBe(false);
     await loadPublicTrainingNeedsAnalysisWithRepository(publicRepo(current), "A".repeat(43)); expect(current.first_opened_at).toBe("2026-01-01T00:00:00.000Z");
   });
+  it("returns public answers as ordinary serializable objects", async () => {
+    const current = row({ answers: { respondent: { name: "Ada" } } });
+    const view = await loadPublicTrainingNeedsAnalysisWithRepository(publicRepo(current), "A".repeat(43));
+    expect(Object.getPrototypeOf(view.answers)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(view.answers.respondent)).toBe(Object.prototype);
+    expect(JSON.parse(JSON.stringify(view.answers))).toEqual({ respondent: { name: "Ada" } });
+  });
   it("rejects malformed, unknown, expired, and cancelled links", async () => {
     await expect(loadPublicTrainingNeedsAnalysisWithRepository(publicRepo(row()), "bad")).rejects.toThrow("Ce lien");
     await expect(loadPublicTrainingNeedsAnalysisWithRepository(publicRepo(row()), "B".repeat(43))).rejects.toThrow("Ce lien");
