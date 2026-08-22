@@ -64,6 +64,7 @@ export type Candidate = {
   company_id: string | null;
   first_name: string;
   last_name: string;
+  birth_date?: string | null;
   email: string | null;
   company: string | null;
   phone: string | null;

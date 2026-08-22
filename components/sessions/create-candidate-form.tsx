@@ -31,6 +31,7 @@ export function CreateCandidateForm({
       {existingCandidates.length ? <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2"><span>Réutiliser un dossier candidat existant (facultatif)</span><select name="existingCandidateId" value={existingCandidateId} onChange={(event) => setExistingCandidateId(event.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"><option value="">Créer une nouvelle personne et une nouvelle identité MAC</option>{existingCandidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.first_name} {candidate.last_name}{candidate.email ? ` — ${candidate.email}` : ""}{candidate.session ? ` (${candidate.session.title})` : ""}</option>)}</select><span className="font-normal text-ink/55">Le choix réutilise explicitement l’identité MAC existante ; aucun rapprochement par nom ou email n’est effectué.</span></label> : <input type="hidden" name="existingCandidateId" value="" />}
       <Input label="Prénom" name="firstName" required={!reusingExistingCandidate} />
       <Input label="Nom" name="lastName" required={!reusingExistingCandidate} />
+      <Input label="Date de naissance" name="birthDate" type="date" disabled={reusingExistingCandidate} />
       <Input label="Email" name="email" type="email" />
       <Input label="Téléphone" name="phone" />
       <Input label="Fonction" name="jobTitle" />

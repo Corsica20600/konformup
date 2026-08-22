@@ -318,6 +318,7 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
     existingCandidateId: selectedExistingCandidateId,
     firstName: formData.get("firstName") || (reusingExistingCandidate ? "Dossier existant" : ""),
     lastName: formData.get("lastName") || (reusingExistingCandidate ? "Sélectionné" : ""),
+    birthDate: formData.get("birthDate"),
     email: formData.get("email"),
     company: formData.get("company"),
     companyId: formData.get("companyId"),
@@ -338,7 +339,7 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
   const { data: existingCandidate } = existingCandidateId
     ? await supabase
         .from("candidates")
-        .select("first_name, last_name, email, company, company_id, phone, job_title, address, postal_code, city, validation_status, mac_identity_id")
+        .select("first_name, last_name, birth_date, email, company, company_id, phone, job_title, address, postal_code, city, validation_status, mac_identity_id")
         .eq("id", existingCandidateId)
         .maybeSingle()
     : { data: null };
@@ -365,6 +366,7 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
       company_id: existingCandidate?.company_id ?? (parsed.data.companyId || null),
       first_name: existingCandidate?.first_name ?? parsed.data.firstName,
       last_name: existingCandidate?.last_name ?? parsed.data.lastName,
+      birth_date: existingCandidate?.birth_date ?? (parsed.data.birthDate || null),
       email: existingCandidate?.email ?? (parsed.data.email || null),
       company: existingCandidate?.company ?? companyLabel,
       phone: existingCandidate?.phone ?? (parsed.data.phone || null),
@@ -422,6 +424,7 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
     sessionId: formData.get("sessionId"),
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
+    birthDate: formData.get("birthDate"),
     email: formData.get("email"),
     company: formData.get("company"),
     companyId: formData.get("companyId"),
@@ -445,6 +448,7 @@ export async function updateCandidateAction(_: ActionState, formData: FormData):
       company_id: parsed.data.companyId || null,
       first_name: parsed.data.firstName,
       last_name: parsed.data.lastName,
+      birth_date: parsed.data.birthDate || null,
       email: parsed.data.email || null,
       company: companyLabel,
       phone: parsed.data.phone || null,

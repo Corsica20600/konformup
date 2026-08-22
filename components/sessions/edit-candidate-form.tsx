@@ -31,6 +31,7 @@ export function EditCandidateForm({
           <input type="hidden" name="sessionId" value={candidateSession.session_id} />
           <Input label="Prénom" name="firstName" defaultValue={candidate.first_name} required />
           <Input label="Nom" name="lastName" defaultValue={candidate.last_name} required />
+          <Input label="Date de naissance" name="birthDate" type="date" defaultValue={candidate.birth_date ?? ""} />
           <Input label="Email" name="email" type="email" defaultValue={candidate.email ?? ""} />
           <Input label="Téléphone" name="phone" defaultValue={candidate.phone ?? ""} />
           <Input label="Fonction" name="jobTitle" defaultValue={candidate.job_title ?? ""} />

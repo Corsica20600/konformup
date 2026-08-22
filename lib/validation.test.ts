@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCandidateSchema, createQuoteSchema, createSessionSchema } from "@/lib/validation";
+import { createCandidateSchema, createQuoteSchema, createSessionSchema, updateCandidateSchema } from "@/lib/validation";
 
 const baseQuote = {
   sessionId: "",
@@ -108,6 +108,7 @@ describe("training form validation", () => {
       companyId: "00000000-0000-4000-8000-000000000001",
       firstName: "Jean",
       lastName: "Dupont",
+      birthDate: "1990-05-12",
       email: "",
       phone: "",
       jobTitle: "",
@@ -122,5 +123,27 @@ describe("training form validation", () => {
     expect(result.address).toBe("");
     expect(result.postalCode).toBe("");
     expect(result.city).toBe("");
+    expect(result.birthDate).toBe("1990-05-12");
+  });
+
+  it("accepts an optional valid birth date and rejects an impossible one", () => {
+    const baseCandidate = {
+      candidateId: "00000000-0000-4000-8000-000000000010",
+      sessionId: "",
+      firstName: "Jean",
+      lastName: "Dupont",
+      email: "",
+      company: "",
+      companyId: "",
+      phone: "",
+      jobTitle: "",
+      address: "",
+      postalCode: "",
+      city: "",
+      validationStatus: "pending"
+    };
+    expect(updateCandidateSchema.parse({ ...baseCandidate, birthDate: "" }).birthDate).toBe("");
+    expect(updateCandidateSchema.parse({ ...baseCandidate, birthDate: "1987-12-03" }).birthDate).toBe("1987-12-03");
+    expect(updateCandidateSchema.safeParse({ ...baseCandidate, birthDate: "1987-02-30" }).success).toBe(false);
   });
 });

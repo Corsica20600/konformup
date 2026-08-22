@@ -6,6 +6,20 @@ const candidateEvaluationStatusSchema = z.enum(["non_evalue", "en_cours", "acqui
 const candidateEvaluationResultSchema = z.enum(["admis", "non_admis", "absent", "partiel", "non_renseigne"]);
 const sessionClosureStatusSchema = z.enum(["ready", "closed"]);
 const optionalFormStringSchema = z.preprocess((value) => value ?? "", z.string());
+const optionalBirthDateSchema = z.preprocess(
+  (value) => value ?? "",
+  z
+    .union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La date de naissance est invalide.")])
+    .refine(
+      (value) =>
+        value === "" ||
+        (() => {
+          const date = new Date(`${value}T00:00:00.000Z`);
+          return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+        })(),
+      "La date de naissance est invalide."
+    )
+);
 
 export const loginSchema = z.object({
   email: z.string().email("Email invalide."),
@@ -57,6 +71,7 @@ export const createCandidateSchema = z.object({
   existingCandidateId: z.string().uuid().optional().or(z.literal("")),
   firstName: z.string().min(2, "Le prénom est requis."),
   lastName: z.string().min(2, "Le nom est requis."),
+  birthDate: optionalBirthDateSchema,
   email: z.string().email("Email invalide.").or(z.literal("")),
   company: optionalFormStringSchema,
   companyId: z.string().uuid().or(z.literal("")),
@@ -73,6 +88,7 @@ export const createCompanyCandidateSchema = z.object({
   sessionId: z.string().uuid().optional().or(z.literal("")),
   firstName: z.string().min(2, "Le prénom est requis."),
   lastName: z.string().min(2, "Le nom est requis."),
+  birthDate: optionalBirthDateSchema,
   email: z.string().email("Email invalide.").or(z.literal("")),
   phone: z.string().optional().default(""),
   jobTitle: z.string().optional().default(""),
@@ -87,6 +103,7 @@ export const updateCandidateSchema = z.object({
   sessionId: z.string().uuid().optional().or(z.literal("")),
   firstName: z.string().min(2, "Le prénom est requis."),
   lastName: z.string().min(2, "Le nom est requis."),
+  birthDate: optionalBirthDateSchema,
   email: z.string().email("Email invalide.").or(z.literal("")),
   company: z.string().optional().default(""),
   companyId: z.string().uuid().or(z.literal("")),

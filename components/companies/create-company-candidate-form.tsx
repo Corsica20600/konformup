@@ -31,6 +31,7 @@ export function CreateCompanyCandidateForm({
 
       <Input label="Prénom" name="firstName" required />
       <Input label="Nom" name="lastName" required />
+      <Input label="Date de naissance" name="birthDate" type="date" />
       <Input label="Email" name="email" type="email" />
       <Input label="Téléphone" name="phone" />
       <Input label="Fonction" name="jobTitle" />
