@@ -22,14 +22,12 @@ function ModulePreview({ module }: { module: SstModule }) {
           <p className="mt-4 text-sm leading-6 text-ink/80">{module.textContent}</p>
         </div>
       </div>
-      <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-pine">
-        <a href={module.videoUrl} target="_blank" rel="noreferrer">
-          Voir la vidéo
-        </a>
-        <a href={module.pdfUrl} target="_blank" rel="noreferrer">
-          Ouvrir le PDF
-        </a>
-      </div>
+      {module.videoUrl || module.pdfUrl ? (
+        <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-pine">
+          {module.videoUrl ? <a href={module.videoUrl} target="_blank" rel="noreferrer">Voir la vidéo</a> : null}
+          {module.pdfUrl ? <a href={module.pdfUrl} target="_blank" rel="noreferrer">Ouvrir le PDF</a> : null}
+        </div>
+      ) : null}
     </Card>
   );
 }

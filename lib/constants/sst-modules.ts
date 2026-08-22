@@ -1,11 +1,13 @@
+import { DUERP_KONFORMUP_SUPPORT_SLUG, getPedagogicalSupportUrl } from "@/lib/pedagogical-supports";
+
 export type SstModule = {
   key: string;
   order: number;
   title: string;
   description: string;
   textContent: string;
-  videoUrl: string;
-  pdfUrl: string;
+  videoUrl: string | null;
+  pdfUrl: string | null;
 };
 
 export const SST_MODULES: SstModule[] = [
@@ -16,8 +18,8 @@ export const SST_MODULES: SstModule[] = [
     description: "Positionner le sauveteur secouriste au travail dans l'organisation des secours.",
     textContent:
       "Le SST agit rapidement, protège son environnement immédiat et participe à la prévention des risques professionnels dans l'entreprise.",
-    videoUrl: "https://www.youtube.com/watch?v=ysz5S6PUM-U",
-    pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+    videoUrl: null,
+    pdfUrl: getPedagogicalSupportUrl(DUERP_KONFORMUP_SUPPORT_SLUG)
   },
   {
     key: "sst-02",
