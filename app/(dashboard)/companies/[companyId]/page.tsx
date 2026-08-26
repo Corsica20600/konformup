@@ -13,6 +13,8 @@ import { listTrainingNeedsAnalysesForCompany } from "@/lib/training-needs/intern
 import { TrainingNeedsSummaryCard } from "@/components/training-needs/internal-summary";
 import { getCompanyQuality } from "@/lib/company-quality";
 import { ComplaintAttachmentOpenButton } from "@/components/invoices/complaint-attachment-open-button";
+import { moderateCompanySatisfaction } from "./satisfaction-actions";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function CompanyDetailPage({
   params: Promise<{ companyId: string }>;
 }) {
   const { companyId } = await params;
+  const viewer = await requireUser();
   const complaintStatusTone = {
     open: "warning",
     in_progress: "warning",
@@ -259,6 +262,15 @@ export default async function CompanyDetailPage({
           </div>
           <div className="mt-6 border-t border-ink/10 pt-5"><h4 className="font-semibold">Satisfaction entreprise</h4>{quality.satisfactionError ? <p className="mt-2 text-sm text-accent">{quality.satisfactionError}</p> : quality.satisfaction?.length ? <div className="mt-3 grid gap-3">{quality.satisfaction.map((survey) => <div key={survey.id} className="rounded-2xl border border-ink/10 bg-canvas/60 p-4"><p className="font-medium">{survey.status} · {survey.submitted_at ? `Répondu le ${formatDate(survey.submitted_at)}` : "En attente"}</p><p className="mt-1 text-sm text-ink/65">Global {survey.overall_rating ?? "—"} · Organisation {survey.organization_rating ?? "—"} · Besoins {survey.needs_rating ?? "—"}</p>{survey.comment ? <p className="mt-2 whitespace-pre-wrap text-sm">{survey.comment}</p> : null}<p className="mt-2 text-xs text-ink/55">Consentement : {survey.publication_consent ? "Oui" : "Non"} · Modération : {survey.moderation_status}</p></div>)}</div> : <p className="mt-2 text-sm text-ink/65">Aucune satisfaction entreprise.</p>}</div>
         </Card>
+
+        {viewer.profile.role === "admin" && quality.satisfaction?.some((survey) => survey.status === "completed" && survey.publication_consent && survey.moderation_status === "pending") ? <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Publication des avis</p>
+          <h3 className="mt-2 text-2xl font-bold">Avis en attente de modération</h3>
+          <p className="mt-2 text-sm text-ink/65">L’approbation publie l’avis sur le site Konform’up ; le rejet le maintient privé.</p>
+          <div className="mt-5 grid gap-3">
+            {quality.satisfaction.filter((survey) => survey.status === "completed" && survey.publication_consent && survey.moderation_status === "pending").map((survey) => <div key={survey.id} className="rounded-2xl border border-ink/10 bg-canvas/60 p-4"><p className="font-medium">Note globale : {survey.overall_rating ?? "—"}/5</p>{survey.comment ? <p className="mt-2 whitespace-pre-wrap text-sm">{survey.comment}</p> : null}<form action={moderateCompanySatisfaction} className="mt-4 flex flex-wrap gap-2"><input type="hidden" name="surveyId" value={survey.id}/><input type="hidden" name="companyId" value={companyId}/><button className="rounded-xl bg-pine px-4 py-2 text-sm font-semibold text-white" type="submit" name="decision" value="approved">Approuver et publier</button><button className="rounded-xl border border-ink/20 px-4 py-2 text-sm font-semibold" type="submit" name="decision" value="rejected">Rejeter</button></form></div>)}
+          </div>
+        </Card> : null}
 
         <Card>
           <DocumentList
