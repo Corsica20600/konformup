@@ -32,7 +32,11 @@ function filled(value: unknown) { return Array.isArray(value) ? value.length > 0
 export function calculateTrainingNeedsProgress(trainingType: TrainingNeedsTrainingType, answers: unknown) {
   const data = isRecord(answers) ? answers : {}; const respondent = isRecord(data.respondent) ? data.respondent : {}; const specific = isRecord(data.specific) ? data.specific : {};
   const specificKeys = trainingType === "sst_initial" ? ["firstAidExperience", "workplaceRisks", "emergencyEquipment"] : trainingType === "mac_sst" ? ["certificateStatus", "lastTrainingDate", "certificateReference", "practiceNeeds"] : ["sector", "establishmentType", "hygieneRisks"];
-  const groups = [Object.values(respondent).length === 3 && Object.values(respondent).every(filled), ["objectives", "participantCount", "participantProfiles"].every((key) => filled(data[key])), specificKeys.every((key) => filled(specific[key])), ["accessibilityNeeds", "constraints", "preferredDates"].every((key) => filled(data[key])), filled(data.notes)];
+  // Progress only needs the three core contact fields.  Unlike the previous
+  // exact-object-size check, extra form fields (first name and phone) no
+  // longer prevent a fully completed questionnaire from reaching 100%.
+  const respondentKeys = ["name", "role", "email"];
+  const groups = [respondentKeys.every((key) => filled(respondent[key])), ["objectives", "participantCount", "participantProfiles"].every((key) => filled(data[key])), specificKeys.every((key) => filled(specific[key])), ["accessibilityNeeds", "constraints", "preferredDates"].every((key) => filled(data[key])), filled(data.notes)];
   const completed = groups.filter(Boolean).length;
   return { currentStep: Math.min(MAX_STEP, completed + 1), progressPercent: Math.round((completed / MAX_STEP) * 100) };
 }

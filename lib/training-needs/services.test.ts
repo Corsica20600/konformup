@@ -54,8 +54,8 @@ describe("training needs services", () => {
     expect(current.answers.specific).toEqual(data.specific);
   });
   it("calculates type-specific progress and finalizes idempotently", async () => {
-    const answers = { respondent: { name: "Ada", role: "RH", email: "ada@example.test" }, objectives: "Objectif", participantCount: 3, participantProfiles: ["Employé"], accessibilityNeeds: "Aucune", constraints: "Aucune", preferredDates: "Septembre", notes: "RAS", specific: { firstAidExperience: "none", workplaceRisks: ["falls"], emergencyEquipment: ["first_aid_kit"] } };
-    expect(calculateTrainingNeedsProgress("sst_initial", answers).progressPercent).toBeGreaterThan(0);
+    const answers = { respondent: { name: "Ada", firstName: "Lovelace", role: "RH", email: "ada@example.test", phone: "0612345678" }, objectives: "Objectif", participantCount: 3, participantProfiles: ["Employé"], accessibilityNeeds: "Aucune", constraints: "Aucune", preferredDates: "Septembre", notes: "RAS", specific: { firstAidExperience: "none", workplaceRisks: ["falls"], emergencyEquipment: ["first_aid_kit"] } };
+    expect(calculateTrainingNeedsProgress("sst_initial", answers).progressPercent).toBe(100);
     const current = row({ answers }); const repo = publicRepo(current);
     await expect(finalizePublicTrainingNeedsAnalysisWithRepository(repo, { token: "A".repeat(43), data: {} })).rejects.toThrow("incomplet");
   });

@@ -6,6 +6,11 @@ const specifics = { sst_initial: { firstAidExperience: "none", currentSstEmploye
 describe("questionnaire v1 complet", () => {
   it("normalizes phone, respondent and a partial save", () => { const result = getTrainingNeedsPartialSaveSchemaV1("sst_initial").parse({ answers: { respondent: common.respondent, requestOrigins: ["audit"] } }); expect(result.answers.respondent?.firstName).toBe("Jeanne"); expect(result.answers.respondent?.phone).toBe("0612345678"); });
   it.each(["sst_initial", "mac_sst", "hygiene"] as const)("validates complete %s answers", (type) => expect(validateTrainingNeedsFinalV1(type, { ...common, specific: specifics[type] }).success).toBe(true));
+  it("does not require a hidden conditional field when its option is not selected", () => {
+    const visibleCommon: Record<string, unknown> = { ...common }; delete visibleCommon.requestOriginOther; delete visibleCommon.accessibilityAdaptations; delete visibleCommon.internalDocumentsOther;
+    const visibleSpecific: Record<string, unknown> = { ...specifics.sst_initial }; delete visibleSpecific.workplaceRisksOther;
+    expect(validateTrainingNeedsFinalV1("sst_initial", { ...visibleCommon, specific: visibleSpecific }).success).toBe(true);
+  });
   it("requires precision for other choices and rejects unknown properties", () => { expect(validateTrainingNeedsFinalV1("sst_initial", { ...common, requestOrigins: ["other"], requestOriginOther: "", specific: specifics.sst_initial }).success).toBe(false); expect(getTrainingNeedsPartialSaveSchemaV1("hygiene").safeParse({ answers: { token: "secret" } }).success).toBe(false); });
   it("rejects duplicate choices and invalid phone", () => { expect(getTrainingNeedsPartialSaveSchemaV1("sst_initial").safeParse({ answers: { requestOrigins: ["audit", "audit"] } }).success).toBe(false); expect(getTrainingNeedsPartialSaveSchemaV1("sst_initial").safeParse({ answers: { respondent: { ...common.respondent, phone: "bad" } } }).success).toBe(false); });
 });
