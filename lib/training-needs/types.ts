@@ -40,6 +40,7 @@ export type TrainingNeedsCommonAnswers = {
   previousSimilarTraining: "yes" | "no" | "unknown";
   previousTrainingTitle: string;
   previousTrainingDate: string;
+  contractSummary: string;
 };
 
 export type TrainingNeedsSstInitialAnswers = { firstAidExperience: "none" | "occasional" | "regular"; currentSstEmployees: "yes" | "no" | "unknown"; currentSstCount: number; coverageAreas: string; workplaceRisks: Array<"falls" | "manual_handling" | "machines" | "electricity" | "chemical" | "burns" | "cuts" | "choking" | "malaise" | "traffic" | "isolated_work" | "public" | "other">; workplaceRisksOther: string; exerciseSituations: string; preventionAndFirstAidExpectations: string; emergencyEquipment: Array<"first_aid_kit" | "defibrillator" | "eyewash" | "none" | "other">; };

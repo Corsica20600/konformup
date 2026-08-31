@@ -6,6 +6,7 @@ import { getSessionById, SessionNotFoundError } from "@/lib/queries";
 import type { QuotePdfData } from "@/lib/quotes";
 import { QuoteError, getQuoteById } from "@/lib/quotes";
 import { createClient } from "@/lib/supabase/server";
+import { getLatestTrainingNeedsAnalysisForQuote } from "@/lib/training-needs/internal";
 import {
   getTrainingDocumentTitle,
   getTrainingProgramDefaults,
@@ -73,6 +74,7 @@ export type TrainingAgreementPdfData = {
     modality: string;
     prerequisites: string;
     accessibilityDetails: string;
+    needsSummary?: string | null;
     pedagogicalMeans: string[];
     evaluationMethods: string[];
     trainerName: string;
@@ -331,6 +333,7 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
       modality: data.training.modality,
       prerequisites: data.training.prerequisites,
       accessibility_details: data.training.accessibilityDetails,
+      needs_summary: data.training.needsSummary,
       pedagogical_means: data.training.pedagogicalMeans,
       evaluation_methods: data.training.evaluationMethods,
       trainer_name: data.training.trainerName,
@@ -357,7 +360,7 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
 }
 
 export async function buildTrainingAgreementPdfData(quoteId: string, agreementRef?: string): Promise<TrainingAgreementPdfData> {
-  const [quote, organizationSettings] = await Promise.all([getQuoteById(quoteId), getOrganizationSettings()]);
+  const [quote, organizationSettings, needsAnalysis] = await Promise.all([getQuoteById(quoteId), getOrganizationSettings(), getLatestTrainingNeedsAnalysisForQuote(quoteId)]);
   const sessionContext = await getSessionAgreementContext(quote);
   const organizationEmail =
     safeTrim(organizationSettings.contact_email) ||
@@ -385,6 +388,9 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
   const prerequisites = safeTrim(sessionContext.prerequisites) || trainingDefaults.prerequisites;
   const accessibilityDetails = safeTrim(sessionContext.accessibilityDetails) || trainingDefaults.accessibility;
   const durationHours = sessionContext.durationHours ?? quote.duration_hours ?? trainingDefaults.durationHours;
+  const needsSummary = needsAnalysis?.status === "completed" && typeof needsAnalysis.answers.contractSummary === "string" && needsAnalysis.answers.contractSummary.trim()
+    ? needsAnalysis.answers.contractSummary.trim()
+    : null;
   const missingFields = buildMissingFields({
     organizationEmail,
     organizationPhone,
@@ -433,6 +439,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
       modality: deriveModality(quote),
       prerequisites,
       accessibilityDetails,
+      needsSummary,
       pedagogicalMeans: [
         "Apports theoriques et methodologiques animes par un formateur qualifie.",
         "Supports pedagogiques, demonstrations, echanges et etudes de cas.",

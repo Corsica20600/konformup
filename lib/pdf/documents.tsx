@@ -3248,6 +3248,7 @@ export function TrainingAgreementDocument({
         <View style={trainingAgreementStyles.header}>
           <View style={trainingAgreementStyles.headerLeft}>
             <Text style={trainingAgreementStyles.title}>Convention de formation professionnelle</Text>
+            <Text style={trainingAgreementStyles.subtitle}>Article L.6353-1 du Code du travail - article D.6353-1 - décret n° 2018-1341 du 28 décembre 2018</Text>
             <Text style={trainingAgreementStyles.subtitle}>Reference : {agreement.agreementRef}</Text>
             <Text style={trainingAgreementStyles.subtitle}>Date d'edition : {generatedDate}</Text>
           </View>
@@ -3351,26 +3352,31 @@ export function TrainingAgreementDocument({
         />
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>2. Objectifs de la formation</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>2. Synthèse de l'analyse des besoins et adaptations retenues</Text>
+          <Text style={trainingAgreementStyles.clauseText}>{agreement.training.needsSummary || "La synthèse pédagogique issue de l'analyse des besoins est à compléter avant contractualisation."}</Text>
+        </View>
+
+        <View style={trainingAgreementStyles.block}>
+          <Text style={trainingAgreementStyles.clauseTitle}>3. Objectifs de la formation</Text>
           {agreement.training.objectives.map((objective) => (
             <AgreementBullet key={objective}>{objective}</AgreementBullet>
           ))}
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>3. Programme / contenu</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>4. Programme / contenu</Text>
           {agreement.training.programmeLines.map((line) => (
             <AgreementBullet key={line}>{line}</AgreementBullet>
           ))}
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>4. Organisation de l'action de formation</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>5. Organisation de l'action de formation</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.organization}</Text>
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>5. Moyens pedagogiques et techniques</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>6. Moyens pedagogiques et techniques</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.pedagogicalMeans}</Text>
           <View style={{ marginTop: 8 }}>
             {agreement.training.pedagogicalMeans.map((line) => (
@@ -3380,7 +3386,7 @@ export function TrainingAgreementDocument({
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>6. Suivi et evaluation</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>7. Suivi et evaluation</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.followUp}</Text>
           <View style={{ marginTop: 8 }}>
             {agreement.training.evaluationMethods.map((line) => (
@@ -3427,7 +3433,7 @@ export function TrainingAgreementDocument({
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>7. Modalites financieres</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>8. Modalites financieres</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.financialTerms}</Text>
           <Text style={[trainingAgreementStyles.clauseText, { marginTop: 8 }]}>
             Modalites de reglement : {agreement.financial.paymentTerms}
@@ -3440,7 +3446,7 @@ export function TrainingAgreementDocument({
         </View>
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>8. Conditions d'annulation / report</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>9. Conditions d'annulation / report</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.cancellation}</Text>
         </View>
       </Page>
@@ -3452,7 +3458,7 @@ export function TrainingAgreementDocument({
         />
 
         <View style={trainingAgreementStyles.block}>
-          <Text style={trainingAgreementStyles.clauseTitle}>9. Obligations respectives</Text>
+          <Text style={trainingAgreementStyles.clauseTitle}>10. Obligations respectives</Text>
           <Text style={trainingAgreementStyles.clauseText}>{agreement.clauses.obligations}</Text>
         </View>
 
