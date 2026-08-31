@@ -11,6 +11,14 @@ export default async function TrainersPage() {
 
   return (
     <main className="grid gap-4">
+      <section className="grid gap-4">
+        <div className="px-1">
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Formateurs</p>
+          <h2 className="mt-2 text-2xl font-bold">Liste des formateurs</h2>
+        </div>
+        <TrainerList trainers={trainers} documents={documents} />
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Nouveau formateur</p>
@@ -40,14 +48,6 @@ export default async function TrainersPage() {
             </a>
           </div>
         </Card>
-      </section>
-
-      <section className="grid gap-4">
-        <div className="px-1">
-          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Formateurs</p>
-          <h2 className="mt-2 text-2xl font-bold">Liste des formateurs</h2>
-        </div>
-        <TrainerList trainers={trainers} documents={documents} />
       </section>
     </main>
   );
