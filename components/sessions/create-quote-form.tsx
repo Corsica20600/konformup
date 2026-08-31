@@ -33,6 +33,8 @@ export function CreateQuoteForm({
   startDate,
   endDate,
   location,
+  trainingNeedsAnalysisId,
+  initialTrainingType,
   companies,
   trainers
 }: {
@@ -41,15 +43,17 @@ export function CreateQuoteForm({
   startDate?: string | null;
   endDate?: string | null;
   location?: string | null;
+  trainingNeedsAnalysisId?: string | null;
+  initialTrainingType?: TrainingType;
   companies: QuoteCompanyOption[];
   trainers: TrainerOption[];
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(Boolean(trainingNeedsAnalysisId));
   const [state, formAction, pending] = useActionState(createQuoteAction, initialState);
   const defaultCompanyId = companies.find((company) => company.candidateCount > 0)?.id ?? companies[0]?.id ?? "";
   const initialCandidateCount = companies.find((company) => company.id === defaultCompanyId)?.candidateCount ?? 0;
   const [selectedCompanyId, setSelectedCompanyId] = useState(defaultCompanyId);
-  const [title, setTitle] = useState(buildDefaultQuoteTitle(sessionTitle || "Nouvelle prestation", "sst_initial"));
+  const [title, setTitle] = useState(buildDefaultQuoteTitle(sessionTitle || "Nouvelle prestation", initialTrainingType ?? "sst_initial"));
   const [description, setDescription] = useState(
     buildDefaultQuoteDescription({
       sessionTitle: sessionTitle || "Prestation de formation",
@@ -59,7 +63,7 @@ export function CreateQuoteForm({
       candidateCount: initialCandidateCount
     })
   );
-  const [trainingType, setTrainingType] = useState<TrainingType>("sst_initial");
+  const [trainingType, setTrainingType] = useState<TrainingType>(initialTrainingType ?? "sst_initial");
   const trainingDefaults = getTrainingProgramDefaults(trainingType);
   const [durationHours, setDurationHours] = useState(String(trainingDefaults.durationHours));
   const [prerequisites, setPrerequisites] = useState(trainingDefaults.prerequisites);
@@ -103,7 +107,7 @@ export function CreateQuoteForm({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Devis</p>
-          <p className="mt-1 text-sm text-ink/65">Créer un devis PDF lié à une société, avec ou sans session.</p>
+          <p className="mt-1 text-sm text-ink/65">{trainingNeedsAnalysisId ? "Devis préparé à partir de l’analyse des besoins finalisée." : "Créer un devis PDF lié à une société, avec ou sans session."}</p>
         </div>
         <Button type="button" variant="secondary" onClick={() => setIsOpen((open) => !open)}>
           {isOpen ? "Masquer le formulaire" : "Créer un devis"}
@@ -114,6 +118,7 @@ export function CreateQuoteForm({
         companies.length ? (
           <form action={formAction} className="grid gap-4 rounded-[24px] border border-ink/10 bg-canvas/60 p-4 md:grid-cols-2">
             <input type="hidden" name="sessionId" value={sessionId ?? ""} />
+            <input type="hidden" name="trainingNeedsAnalysisId" value={trainingNeedsAnalysisId ?? ""} />
 
             <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
               <span>Société</span>

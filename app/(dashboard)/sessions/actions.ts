@@ -46,6 +46,7 @@ import {
   ensureCandidateAideMemoireDocument,
   ensureCandidatePreTrainingDocuments
 } from "@/lib/candidate-pre-training-documents";
+import { linkTrainingNeedsAnalysisToQuote } from "@/lib/training-needs/internal";
 
 export type ActionState = {
   error?: string;
@@ -1079,6 +1080,7 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
 
   const parsed = createQuoteSchema.safeParse({
     sessionId: formData.get("sessionId"),
+    trainingNeedsAnalysisId: formData.get("trainingNeedsAnalysisId"),
     companyId: formData.get("companyId"),
     title: formData.get("title"),
     description: formData.get("description"),
@@ -1105,7 +1107,7 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
   }
 
   try {
-    const { fileUrl } = await createQuote({
+    const { fileUrl, quote } = await createQuote({
       sessionId: parsed.data.sessionId,
       companyId: parsed.data.companyId,
       title: getTrainingDocumentTitle(parsed.data.trainingType, parsed.data.title),
@@ -1127,6 +1129,10 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
       vatRate: parsed.data.vatRate,
       notes: parsed.data.notes
     });
+
+    if (parsed.data.trainingNeedsAnalysisId) {
+      await linkTrainingNeedsAnalysisToQuote(parsed.data.trainingNeedsAnalysisId, quote.id);
+    }
 
     if (parsed.data.sessionId) {
       revalidatePath(`/sessions/${parsed.data.sessionId}`);

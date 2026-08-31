@@ -11,6 +11,7 @@ function isTrainingType(value: string): value is TrainingNeedsTrainingType { ret
 function snapshot(quote: AccessibleQuote): TrainingNeedsQuoteSnapshot {
   return { quoteNumber: quote.quote_number, title: quote.title, companyName: quote.company_name, candidateCount: quote.candidate_count, sessionStartDate: quote.session_start_date, sessionEndDate: quote.session_end_date, location: quote.location };
 }
+const trainingTypeLabels: Record<TrainingNeedsTrainingType, string> = { sst_initial: "SST initial", mac_sst: "MAC SST", hygiene: "Hygiène" };
 
 export async function createSupabaseInternalTrainingNeedsRepository(): Promise<TrainingNeedsRepository> {
   const supabase = await createClient();
@@ -42,6 +43,26 @@ export async function getOrCreateActiveTrainingNeedsAnalysisForQuoteWithReposito
 export async function getOrCreateActiveTrainingNeedsAnalysisForQuote(quoteId: string) {
   const { user } = await requireAuthenticatedUser();
   return getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository(await createSupabaseInternalTrainingNeedsRepository(), quoteId, user.id);
+}
+export async function createPreQuoteTrainingNeedsAnalysis(companyId: string, trainingType: TrainingNeedsTrainingType) {
+  const { user } = await requireAuthenticatedUser();
+  if (!isTrainingType(trainingType)) throw new Error("Type de formation non pris en charge.");
+  const supabase = await createClient();
+  const { data: company } = await supabase.from("client_companies").select("company_name").eq("id", companyId).maybeSingle();
+  if (!company) throw new ResourceNotFoundError("Société introuvable.");
+  const repository = await createSupabaseInternalTrainingNeedsRepository();
+  return repository.createAnalysis({ company_id: companyId, quote_id: null, training_type: trainingType, quote_snapshot: { quoteNumber: "Devis à établir", title: `Analyse préalable — ${trainingTypeLabels[trainingType]}`, companyName: company.company_name, candidateCount: 0, sessionStartDate: null, sessionEndDate: null, location: null }, created_by: user.id });
+}
+export async function linkTrainingNeedsAnalysisToQuote(analysisId: string, quoteId: string) {
+  await requireAuthenticatedUser();
+  const repository = await createSupabaseInternalTrainingNeedsRepository();
+  const [analysis, quote] = await Promise.all([repository.getInternalAnalysis(analysisId), repository.getAccessibleQuote(quoteId)]);
+  if (!analysis || !quote || analysis.company_id !== quote.company_id || analysis.training_type !== quote.training_type) throw new Error("L’analyse ne correspond pas au devis.");
+  if (analysis.status !== "completed") throw new Error("Finalisez l’analyse des besoins avant de créer le devis.");
+  if (analysis.quote_id && analysis.quote_id !== quoteId) throw new Error("Cette analyse est déjà liée à un autre devis.");
+  const updated = await repository.updateInternal(analysisId, { quote_id: quote.id, quote_snapshot: snapshot(quote) });
+  if (!updated) throw new Error("Impossible de relier l’analyse au devis.");
+  return updated;
 }
 export async function getInternalTrainingNeedsAnalysis(analysisId: string) { await requireAuthenticatedUser(); const row = await (await createSupabaseInternalTrainingNeedsRepository()).getInternalAnalysis(analysisId); if (!row) throw new ResourceNotFoundError("Analyse introuvable."); return row; }
 export async function listTrainingNeedsAnalysesForCompany(companyId: string) { await requireAuthenticatedUser(); return (await createSupabaseInternalTrainingNeedsRepository()).listCompanyAnalyses(companyId); }

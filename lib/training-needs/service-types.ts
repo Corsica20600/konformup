@@ -1,7 +1,7 @@
 import type { TrainingNeedsAnalysisStatus, TrainingNeedsQuoteSnapshot, TrainingNeedsTrainingType } from "./types";
 
 export type TrainingNeedsRow = {
-  id: string; company_id: string; quote_id: string; training_type: TrainingNeedsTrainingType;
+  id: string; company_id: string; quote_id: string | null; training_type: TrainingNeedsTrainingType;
   status: TrainingNeedsAnalysisStatus; answers: Record<string, unknown>; current_step: number; progress_percent: number;
   respondent_name: string | null; respondent_role: string | null; respondent_email: string | null;
   first_opened_at: string | null; last_saved_at: string | null; completed_at: string | null;

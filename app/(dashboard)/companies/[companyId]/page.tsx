@@ -11,6 +11,7 @@ import { CompanyNotFoundError, getClientCompanyById, getSessions, getTrainerOpti
 import { formatDate } from "@/lib/utils";
 import { listTrainingNeedsAnalysesForCompany } from "@/lib/training-needs/internal";
 import { TrainingNeedsSummaryCard } from "@/components/training-needs/internal-summary";
+import { createPreQuoteTrainingNeedsAction } from "@/app/(dashboard)/training-needs/actions";
 import { getCompanyQuality } from "@/lib/company-quality";
 import { ComplaintAttachmentOpenButton } from "@/components/invoices/complaint-attachment-open-button";
 import { moderateCompanySatisfaction } from "./satisfaction-actions";
@@ -20,11 +21,14 @@ import { requireUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function CompanyDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ companyId: string }>;
+  searchParams: Promise<{ analysisId?: string }>;
 }) {
   const { companyId } = await params;
+  const { analysisId } = await searchParams;
   const viewer = await requireUser();
   const complaintStatusTone = {
     open: "warning",
@@ -130,8 +134,22 @@ export default async function CompanyDetailPage({
           </div>
         </Card>
 
+        <Card>
+          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Analyses des besoins</p>
+          <h3 className="mt-2 text-2xl font-bold">Analyse à réaliser avant le devis</h3>
+          <p className="mt-2 text-sm text-ink/65">Créez l’analyse, renseignez ou corrigez les réponses, puis finalisez-la avant d’établir le devis.</p>
+          <form action={createPreQuoteTrainingNeedsAction} className="mt-5 flex flex-wrap items-end gap-3 rounded-2xl border border-ink/10 bg-canvas/60 p-4">
+            <input type="hidden" name="companyId" value={normalizedCompany.id} />
+            <label className="grid gap-2 text-sm font-medium text-ink/80"><span>Formation concernée</span><select name="trainingType" defaultValue="sst_initial" className="min-h-10 rounded-xl border border-ink/10 bg-white px-3"><option value="sst_initial">SST initial</option><option value="mac_sst">MAC SST</option><option value="hygiene">Hygiène</option></select></label>
+            <button type="submit" className="min-h-10 rounded-full bg-pine px-4 text-sm font-semibold text-white">Commencer l’analyse</button>
+          </form>
+          <div className="mt-5 grid gap-3">{analyses.length ? analyses.map((analysis) => <TrainingNeedsSummaryCard key={analysis.id} analysis={analysis} />) : <p className="text-sm text-ink/65">Aucune analyse n’est encore créée pour cette société.</p>}</div>
+        </Card>
+
         <Card id="devis">
           <CreateQuoteForm
+            trainingNeedsAnalysisId={analysisId ?? null}
+            initialTrainingType={analyses.find((analysis) => analysis.id === analysisId && analysis.status === "completed" && !analysis.quote_id)?.training_type}
             companies={[
               {
                 id: normalizedCompany.id,
@@ -141,12 +159,6 @@ export default async function CompanyDetailPage({
             ]}
             trainers={trainers}
           />
-        </Card>
-
-        <Card>
-          <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Analyses des besoins</p>
-          <h3 className="mt-2 text-2xl font-bold">Analyses des besoins</h3>
-          <div className="mt-5 grid gap-3">{analyses.length ? analyses.map((analysis) => <TrainingNeedsSummaryCard key={analysis.id} analysis={analysis} />) : <p className="text-sm text-ink/65">Aucune analyse des besoins n’est encore associée à cette société. Elle sera créée automatiquement lors de l’envoi d’un devis.</p>}</div>
         </Card>
 
         <Card id="sessions">

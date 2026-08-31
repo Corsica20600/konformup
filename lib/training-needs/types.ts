@@ -56,7 +56,7 @@ export type TrainingNeedsQuoteSnapshot = {
 };
 export type TrainingNeedsProgress = { currentStep: number; progressPercent: number };
 export type TrainingNeedsAnalysis = {
-  id: string; companyId: string; quoteId: string; trainingType: TrainingNeedsTrainingType; status: TrainingNeedsAnalysisStatus;
+  id: string; companyId: string; quoteId: string | null; trainingType: TrainingNeedsTrainingType; status: TrainingNeedsAnalysisStatus;
   answers: TrainingNeedsAnswers | Record<string, never>; respondent: TrainingNeedsRespondent | null; questionnaireVersion: "1";
   quoteSnapshot: TrainingNeedsQuoteSnapshot; progress: TrainingNeedsProgress; firstOpenedAt: string | null;
   lastSavedAt: string | null; completedAt: string | null; tokenExpiresAt: string | null; createdAt: string; updatedAt: string;

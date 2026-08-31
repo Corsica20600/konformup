@@ -164,6 +164,7 @@ export const updateTrainerSchema = createTrainerSchema.extend({
 export const createQuoteSchema = z
   .object({
     sessionId: z.string().uuid().optional().or(z.literal("")),
+    trainingNeedsAnalysisId: z.string().uuid().optional().or(z.literal("")),
     companyId: z.string().uuid("La société est requise."),
     title: z.string().trim().min(2, "L'intitulé est requis."),
     description: z.string().optional().default(""),

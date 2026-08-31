@@ -762,7 +762,7 @@ export type Database = {
           internal_notes: string
           invoice_id: string
           preventive_actions: string
-          quote_id: string
+          quote_id: string | null
           resolved_at: string | null
           root_cause: string
           send_with_invoice: boolean
@@ -783,7 +783,7 @@ export type Database = {
           internal_notes?: string
           invoice_id: string
           preventive_actions?: string
-          quote_id: string
+          quote_id?: string | null
           resolved_at?: string | null
           root_cause?: string
           send_with_invoice?: boolean
@@ -804,7 +804,7 @@ export type Database = {
           internal_notes?: string
           invoice_id?: string
           preventive_actions?: string
-          quote_id?: string
+          quote_id?: string | null
           resolved_at?: string | null
           root_cause?: string
           send_with_invoice?: boolean
@@ -1943,13 +1943,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "client_companies"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "training_needs_analyses_quote_company_fkey"
-            columns: ["quote_id", "company_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id", "company_id"]
           },
           {
             foreignKeyName: "training_needs_analyses_quote_id_fkey"
