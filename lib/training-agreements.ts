@@ -107,6 +107,36 @@ function safeTrim(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function buildNeedsSummaryFromAnswers(answers: Record<string, unknown>, trainingType: string) {
+  const specific = answers.specific && typeof answers.specific === "object" && !Array.isArray(answers.specific)
+    ? answers.specific as Record<string, unknown>
+    : {};
+  const participantCount = typeof answers.participantCount === "number" && answers.participantCount > 0
+    ? `${answers.participantCount} participant${answers.participantCount > 1 ? "s" : ""}`
+    : null;
+  const objectives = textValue(answers.requestReasons) || textValue(answers.objectives) || "Objectifs à préciser avec le client.";
+  const organization = [participantCount, textValue(answers.preferredDates), textValue(answers.desiredLocation)].filter(Boolean).join(" ; ");
+  const context = [textValue(answers.activityDescription), textValue(answers.concernedWorkstations), textValue(answers.identifiedRisks)].filter(Boolean).join(" ; ");
+  const adaptations = [textValue(answers.learningAdaptations), textValue(answers.accessibilityAdaptations), textValue(answers.scheduleConstraints)].filter(Boolean).join(" ; ");
+  const specificNeed = trainingType === "sst_initial"
+    ? [textValue(specific.preventionAndFirstAidExpectations), textValue(specific.exerciseSituations), textValue(specific.workplaceRisksOther)].filter(Boolean).join(" ; ")
+    : trainingType === "mac_sst"
+      ? [textValue(specific.changesOther), textValue(specific.observations)].filter(Boolean).join(" ; ")
+      : [textValue(specific.priorityObjectives), textValue(specific.inspectionRequests), textValue(specific.hygieneProcedures)].filter(Boolean).join(" ; ");
+
+  return [
+    `Besoin et objectifs : ${objectives}`,
+    organization ? `Public et organisation : ${organization}.` : null,
+    context ? `Contexte professionnel et points de vigilance : ${context}.` : null,
+    specificNeed ? `Éléments pédagogiques à intégrer : ${specificNeed}.` : null,
+    adaptations ? `Adaptations et contraintes retenues : ${adaptations}.` : "Adaptations et contraintes : à confirmer avec le client avant la session."
+  ].filter(Boolean).join("\n\n");
+}
+
 function deriveModality(quote: QuotePdfData) {
   const haystack = `${quote.location ?? ""} ${quote.session?.location ?? ""}`.toLowerCase();
 
@@ -388,8 +418,8 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
   const prerequisites = safeTrim(sessionContext.prerequisites) || trainingDefaults.prerequisites;
   const accessibilityDetails = safeTrim(sessionContext.accessibilityDetails) || trainingDefaults.accessibility;
   const durationHours = sessionContext.durationHours ?? quote.duration_hours ?? trainingDefaults.durationHours;
-  const needsSummary = needsAnalysis?.status === "completed" && typeof needsAnalysis.answers.contractSummary === "string" && needsAnalysis.answers.contractSummary.trim()
-    ? needsAnalysis.answers.contractSummary.trim()
+  const needsSummary = needsAnalysis?.status === "completed"
+    ? textValue(needsAnalysis.answers.contractSummary) || buildNeedsSummaryFromAnswers(needsAnalysis.answers as unknown as Record<string, unknown>, needsAnalysis.training_type)
     : null;
   const missingFields = buildMissingFields({
     organizationEmail,

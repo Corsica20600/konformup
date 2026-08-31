@@ -53,6 +53,22 @@ function formatTrainingDeclarationNumber(value: string | null | undefined) {
   return trimmed.replace(/^NDA\s*:?\s*/i, "").trim();
 }
 
+function formatFrenchPhone(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) return digits.match(/.{1,2}/g)?.join(" ") ?? trimmed;
+  if (digits.length === 11 && digits.startsWith("33")) return `+33 ${digits.slice(2).match(/.{1,2}/g)?.join(" ") ?? ""}`;
+  return trimmed;
+}
+
+function formatSiret(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/\D/g, "");
+  return digits.length === 14 ? digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{5})$/, "$1 $2 $3 $4") : trimmed;
+}
+
 type SstProgrammeRow = {
   label: string;
   duration: string;
@@ -3248,7 +3264,7 @@ export function TrainingAgreementDocument({
         <View style={trainingAgreementStyles.header}>
           <View style={trainingAgreementStyles.headerLeft}>
             <Text style={trainingAgreementStyles.title}>Convention de formation professionnelle</Text>
-            <Text style={trainingAgreementStyles.subtitle}>Article L.6353-1 du Code du travail - article D.6353-1 - décret n° 2018-1341 du 28 décembre 2018</Text>
+            <Text style={trainingAgreementStyles.subtitle}>Conformément à l'article L.6353-1 du Code du travail et au décret n° 2018-1341 du 28 décembre 2018</Text>
             <Text style={trainingAgreementStyles.subtitle}>Reference : {agreement.agreementRef}</Text>
             <Text style={trainingAgreementStyles.subtitle}>Date d'edition : {generatedDate}</Text>
           </View>
@@ -3285,8 +3301,8 @@ export function TrainingAgreementDocument({
               </Text>
             ))}
             <Text style={trainingAgreementStyles.line}>Email : {agreement.organization.email || "A renseigner"}</Text>
-            <Text style={trainingAgreementStyles.line}>Telephone : {agreement.organization.phone || "A renseigner"}</Text>
-            <Text style={trainingAgreementStyles.line}>SIRET : {agreement.organization.siret || "Non renseigne"}</Text>
+            <Text style={trainingAgreementStyles.line}>Telephone : {formatFrenchPhone(agreement.organization.phone) || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>SIRET : {formatSiret(agreement.organization.siret) || "Non renseigne"}</Text>
             <Text style={trainingAgreementStyles.line}>
               NDA : {agreement.organization.declarationNumber || "Non renseigne"}
             </Text>
@@ -3320,8 +3336,8 @@ export function TrainingAgreementDocument({
             )}
             <Text style={trainingAgreementStyles.line}>Contact : {agreement.client.contactName || "A confirmer"}</Text>
             <Text style={trainingAgreementStyles.line}>Email : {agreement.client.contactEmail || "A renseigner"}</Text>
-            <Text style={trainingAgreementStyles.line}>Telephone : {agreement.client.contactPhone || "A renseigner"}</Text>
-            <Text style={trainingAgreementStyles.line}>SIRET : {agreement.client.siret || "Non renseigne"}</Text>
+            <Text style={trainingAgreementStyles.line}>Telephone : {formatFrenchPhone(agreement.client.contactPhone) || "A renseigner"}</Text>
+            <Text style={trainingAgreementStyles.line}>SIRET : {formatSiret(agreement.client.siret) || "Non renseigne"}</Text>
           </View>
         </View>
 
