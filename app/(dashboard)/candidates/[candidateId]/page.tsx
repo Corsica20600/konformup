@@ -14,6 +14,7 @@ import { getMacSstReminderStatusForCandidate } from "@/lib/mac-sst-reminders";
 import { getActiveMacIdentitiesForAdmin, getMacIdentityForCandidate } from "@/lib/mac-identities";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { MacIdentityPanel } from "@/components/candidates/mac-identity-panel";
+import { candidateSatisfactionQuestions } from "@/lib/candidate-satisfaction";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +162,7 @@ export default async function CandidateDetailPage({
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Satisfaction</p>
           <h3 className="mt-2 text-2xl font-bold">Questionnaire candidat</h3>
-          {surveys.length ? surveys.map((survey) => <div key={survey.id} className="mt-4 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold text-pine">Répondu le {formatDate(survey.submitted_at)}</p><p className="mt-2">Satisfaction : {survey.answers.satisfaction_globale || "Non renseignée"} · Recommandation : {survey.answers.recommandation || "—"}/10</p>{survey.answers.remarques ? <p className="mt-2 text-ink/65">{survey.answers.remarques}</p> : null}</div>) : <p className="mt-4 text-sm text-ink/65">Aucun questionnaire retourné.</p>}
+          {surveys.length ? surveys.map((survey) => <div key={survey.id} className="mt-4 rounded-2xl border border-ink/10 bg-canvas/60 p-4 text-sm"><p className="font-semibold text-pine">Répondu le {formatDate(survey.submitted_at)}</p><dl className="mt-4 grid gap-3">{candidateSatisfactionQuestions.map(({ key, label }) => <div key={key} className="grid gap-1 border-b border-ink/10 pb-3 last:border-0 last:pb-0"><dt className="font-medium text-ink/70">{label}</dt><dd className="whitespace-pre-wrap font-semibold text-ink">{survey.answers[key] || "Non renseignée"}</dd></div>)}</dl></div>) : <p className="mt-4 text-sm text-ink/65">Aucun questionnaire retourné.</p>}
         </Card>
         <Card>
           <p className="text-sm uppercase tracking-[0.25em] text-ink/45">Identité MAC SST</p>

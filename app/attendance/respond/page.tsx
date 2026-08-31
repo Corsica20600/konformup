@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCandidateSatisfactionContext, getPublicAttendanceResponse } from "@/lib/attendance";
+import { candidateSatisfactionQuestions } from "@/lib/candidate-satisfaction";
 import { formatDate } from "@/lib/utils";
 import { confirmAttendanceResponseFormAction, submitSatisfactionSurveyFormAction } from "@/app/attendance/respond/actions";
 
@@ -127,20 +128,20 @@ export default async function AttendanceRespondPage({
             ) : (
               <form action={submitSatisfactionSurveyFormAction} className="mt-5 grid gap-5">
                 <input type="hidden" name="token" value={trimmedToken} />
-                <SurveyRating name="organisation_information" label="Les informations reçues avant la formation étaient claires" />
-                <SurveyRating name="organisation_accueil" label="L’accueil et l’organisation étaient satisfaisants" />
-                <SurveyRating name="organisation_locaux" label="Les locaux et les conditions matérielles étaient adaptés" />
-                <SurveyRating name="contenu_objectifs" label="Les objectifs et le contenu de la formation étaient clairs" />
-                <SurveyRating name="contenu_pratique" label="Les exercices et mises en situation étaient utiles" />
-                <SurveyRating name="formateur_maitrise" label="Le formateur maîtrisait le sujet et ses explications étaient claires" />
-                <SurveyRating name="formateur_ecoute" label="Le formateur était disponible, à l’écoute et favorisait les échanges" />
-                <SurveyChoice name="competences" label="À l’issue de la formation, vous sentez-vous capable d’appliquer les gestes et compétences SST ?" options={["Non", "Partiellement", "Oui"]} />
-                <SurveyChoice name="satisfaction_globale" label="Votre niveau global de satisfaction" options={["Pas du tout satisfait", "Peu satisfait", "Satisfait", "Très satisfait"]} />
-                <SurveyChoice name="attentes" label="La formation a-t-elle répondu à vos attentes ?" options={["Non", "Partiellement", "Oui, totalement"]} />
-                <label className="grid gap-2 text-sm font-medium">Recommanderiez-vous cette formation à un collègue ? (0 à 10)<input name="recommandation" type="number" min="0" max="10" required className="rounded-2xl border border-ink/10 px-4 py-3" /></label>
-                <label className="grid gap-2 text-sm font-medium">Ce que vous avez le plus apprécié<textarea name="apprecie" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
-                <label className="grid gap-2 text-sm font-medium">Ce qui pourrait être amélioré<textarea name="ameliorations" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
-                <label className="grid gap-2 text-sm font-medium">Autres remarques ou suggestions<textarea name="remarques" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
+                <SurveyRating name="organisation_information" label={candidateSatisfactionQuestions[0].label} />
+                <SurveyRating name="organisation_accueil" label={candidateSatisfactionQuestions[1].label} />
+                <SurveyRating name="organisation_locaux" label={candidateSatisfactionQuestions[2].label} />
+                <SurveyRating name="contenu_objectifs" label={candidateSatisfactionQuestions[3].label} />
+                <SurveyRating name="contenu_pratique" label={candidateSatisfactionQuestions[4].label} />
+                <SurveyRating name="formateur_maitrise" label={candidateSatisfactionQuestions[5].label} />
+                <SurveyRating name="formateur_ecoute" label={candidateSatisfactionQuestions[6].label} />
+                <SurveyChoice name="competences" label={candidateSatisfactionQuestions[7].label} options={["Non", "Partiellement", "Oui"]} />
+                <SurveyChoice name="satisfaction_globale" label={candidateSatisfactionQuestions[8].label} options={["Pas du tout satisfait", "Peu satisfait", "Satisfait", "Très satisfait"]} />
+                <SurveyChoice name="attentes" label={candidateSatisfactionQuestions[9].label} options={["Non", "Partiellement", "Oui, totalement"]} />
+                <label className="grid gap-2 text-sm font-medium">{candidateSatisfactionQuestions[10].label}<input name="recommandation" type="number" min="0" max="10" required className="rounded-2xl border border-ink/10 px-4 py-3" /></label>
+                <label className="grid gap-2 text-sm font-medium">{candidateSatisfactionQuestions[11].label}<textarea name="apprecie" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
+                <label className="grid gap-2 text-sm font-medium">{candidateSatisfactionQuestions[12].label}<textarea name="ameliorations" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
+                <label className="grid gap-2 text-sm font-medium">{candidateSatisfactionQuestions[13].label}<textarea name="remarques" className="min-h-24 rounded-2xl border border-ink/10 px-4 py-3" /></label>
                 {surveyError === "1" ? <p className="text-sm text-accent">Le questionnaire n’a pas pu être enregistré. Réessayez.</p> : null}
                 <div><Button type="submit">Envoyer mon questionnaire</Button></div>
               </form>
