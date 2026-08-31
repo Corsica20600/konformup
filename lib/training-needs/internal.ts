@@ -22,6 +22,7 @@ export async function createSupabaseInternalTrainingNeedsRepository(): Promise<T
       return data && company ? { ...data, company_name: company.company_name } as AccessibleQuote : null;
     },
     async findActiveByQuote(quoteId) { const { data } = await supabase.from("training_needs_analyses").select("*").eq("quote_id", quoteId).in("status", [...ACTIVE_STATUSES]).maybeSingle(); return data as TrainingNeedsRow | null; },
+    async findActivePreQuote(companyId, trainingType) { const { data } = await supabase.from("training_needs_analyses").select("*").eq("company_id", companyId).eq("training_type", trainingType).is("quote_id", null).in("status", [...ACTIVE_STATUSES]).order("created_at", { ascending: true }).limit(1).maybeSingle(); return data as TrainingNeedsRow | null; },
     async getLatestByQuote(quoteId) { const { data } = await supabase.from("training_needs_analyses").select("*").eq("quote_id", quoteId).order("created_at", { ascending: false }).limit(1).maybeSingle(); return data as TrainingNeedsRow | null; },
     async createAnalysis(input) { const { data, error } = await supabase.from("training_needs_analyses").insert(input).select("*").single(); if (error) throw Object.assign(new Error("Création impossible."), { code: error.code }); return data as TrainingNeedsRow; },
     async getInternalAnalysis(id) { const { data } = await supabase.from("training_needs_analyses").select("*").eq("id", id).maybeSingle(); return data as TrainingNeedsRow | null; },
@@ -51,7 +52,10 @@ export async function createPreQuoteTrainingNeedsAnalysis(companyId: string, tra
   const { data: company } = await supabase.from("client_companies").select("company_name").eq("id", companyId).maybeSingle();
   if (!company) throw new ResourceNotFoundError("Société introuvable.");
   const repository = await createSupabaseInternalTrainingNeedsRepository();
-  return repository.createAnalysis({ company_id: companyId, quote_id: null, training_type: trainingType, quote_snapshot: { quoteNumber: "Devis à établir", title: `Analyse préalable — ${trainingTypeLabels[trainingType]}`, companyName: company.company_name, candidateCount: 0, sessionStartDate: null, sessionEndDate: null, location: null }, created_by: user.id });
+  const active = await repository.findActivePreQuote(companyId, trainingType);
+  if (active) return active;
+  try { return await repository.createAnalysis({ company_id: companyId, quote_id: null, training_type: trainingType, quote_snapshot: { quoteNumber: "Devis à établir", title: `Analyse préalable — ${trainingTypeLabels[trainingType]}`, companyName: company.company_name, candidateCount: 0, sessionStartDate: null, sessionEndDate: null, location: null }, created_by: user.id }); }
+  catch (error) { if (error && typeof error === "object" && "code" in error && error.code === "23505") { const concurrent = await repository.findActivePreQuote(companyId, trainingType); if (concurrent) return concurrent; } throw error; }
 }
 export async function linkTrainingNeedsAnalysisToQuote(analysisId: string, quoteId: string) {
   await requireAuthenticatedUser();
@@ -65,7 +69,7 @@ export async function linkTrainingNeedsAnalysisToQuote(analysisId: string, quote
   return updated;
 }
 export async function getInternalTrainingNeedsAnalysis(analysisId: string) { await requireAuthenticatedUser(); const row = await (await createSupabaseInternalTrainingNeedsRepository()).getInternalAnalysis(analysisId); if (!row) throw new ResourceNotFoundError("Analyse introuvable."); return row; }
-export async function listTrainingNeedsAnalysesForCompany(companyId: string) { await requireAuthenticatedUser(); return (await createSupabaseInternalTrainingNeedsRepository()).listCompanyAnalyses(companyId); }
+export async function listTrainingNeedsAnalysesForCompany(companyId: string) { await requireAuthenticatedUser(); return (await createSupabaseInternalTrainingNeedsRepository()).listCompanyAnalyses(companyId).then((analyses) => analyses.filter((analysis) => analysis.status !== "cancelled")); }
 export async function getLatestTrainingNeedsAnalysisForQuote(quoteId: string) { await requireAuthenticatedUser(); return (await createSupabaseInternalTrainingNeedsRepository()).getLatestByQuote(quoteId); }
 export async function prepareTrainingNeedsPublicAccess(analysisId: string, expiresInDays = 30) {
   await requireAuthenticatedUser();

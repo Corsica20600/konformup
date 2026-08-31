@@ -15,6 +15,7 @@ export type AccessibleQuote = {
 export type TrainingNeedsRepository = {
   getAccessibleQuote(quoteId: string): Promise<AccessibleQuote | null>;
   findActiveByQuote(quoteId: string): Promise<TrainingNeedsRow | null>;
+  findActivePreQuote(companyId: string, trainingType: TrainingNeedsTrainingType): Promise<TrainingNeedsRow | null>;
   getLatestByQuote(quoteId: string): Promise<TrainingNeedsRow | null>;
   createAnalysis(input: Pick<TrainingNeedsRow, "company_id" | "quote_id" | "training_type" | "quote_snapshot" | "created_by">): Promise<TrainingNeedsRow>;
   getInternalAnalysis(id: string): Promise<TrainingNeedsRow | null>;

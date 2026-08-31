@@ -11,14 +11,14 @@ function publicRepo(current: TrainingNeedsRow): PublicTrainingNeedsRepository { 
 describe("training needs services", () => {
   it("creates an analysis from the quote, then reuses it and handles uniqueness conflicts", async () => {
     let current: TrainingNeedsRow | null = null; let conflict = false;
-    const repo: TrainingNeedsRepository = { getAccessibleQuote: async () => quote, findActiveByQuote: async () => current, getLatestByQuote: async () => current, createAnalysis: async (input) => { if (conflict) { current = row({ ...input }); const error = Object.assign(new Error("unique"), { code: "23505" }); throw error; } current = row({ ...input }); return current; }, getInternalAnalysis: async () => current, listCompanyAnalyses: async () => current ? [current] : [], updateInternal: async () => current, updateInternalIfTokenHash: async () => current };
+    const repo: TrainingNeedsRepository = { getAccessibleQuote: async () => quote, findActiveByQuote: async () => current, findActivePreQuote: async () => null, getLatestByQuote: async () => current, createAnalysis: async (input) => { if (conflict) { current = row({ ...input }); const error = Object.assign(new Error("unique"), { code: "23505" }); throw error; } current = row({ ...input }); return current; }, getInternalAnalysis: async () => current, listCompanyAnalyses: async () => current ? [current] : [], updateInternal: async () => current, updateInternalIfTokenHash: async () => current };
     const created = await getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository(repo, quote.id, "user-1");
     expect(created.company_id).toBe("company-1"); expect(created.training_type).toBe("sst_initial");
     expect(await getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository(repo, quote.id, "user-1")).toBe(created);
     current = null; conflict = true; expect((await getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository(repo, quote.id, "user-1")).id).toBe("analysis-1");
   });
   it("rejects inaccessible quotes and unknown types", async () => {
-    const base: TrainingNeedsRepository = { getAccessibleQuote: async () => null, findActiveByQuote: async () => null, getLatestByQuote: async () => null, createAnalysis: async () => row(), getInternalAnalysis: async () => null, listCompanyAnalyses: async () => [], updateInternal: async () => null, updateInternalIfTokenHash: async () => null };
+    const base: TrainingNeedsRepository = { getAccessibleQuote: async () => null, findActiveByQuote: async () => null, findActivePreQuote: async () => null, getLatestByQuote: async () => null, createAnalysis: async () => row(), getInternalAnalysis: async () => null, listCompanyAnalyses: async () => [], updateInternal: async () => null, updateInternalIfTokenHash: async () => null };
     await expect(getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository(base, "other-company", "user-1")).rejects.toThrow("Devis introuvable");
     await expect(getOrCreateActiveTrainingNeedsAnalysisForQuoteWithRepository({ ...base, getAccessibleQuote: async () => ({ ...quote, training_type: "other" }) }, quote.id, "user-1")).rejects.toThrow("Type");
   });
