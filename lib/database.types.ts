@@ -1674,6 +1674,68 @@ export type Database = {
           },
         ]
       }
+      qualiopi_watch_entries: {
+        Row: {
+          consulted_on: string
+          created_at: string
+          created_by: string
+          decision: string
+          evidence_url: string | null
+          id: string
+          impact: string
+          indicator: number
+          next_review_on: string | null
+          source_name: string
+          source_url: string
+          status: string
+          summary: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          consulted_on: string
+          created_at?: string
+          created_by: string
+          decision: string
+          evidence_url?: string | null
+          id?: string
+          impact: string
+          indicator: number
+          next_review_on?: string | null
+          source_name: string
+          source_url: string
+          status?: string
+          summary: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          consulted_on?: string
+          created_at?: string
+          created_by?: string
+          decision?: string
+          evidence_url?: string | null
+          id?: string
+          impact?: string
+          indicator?: number
+          next_review_on?: string | null
+          source_name?: string
+          source_url?: string
+          status?: string
+          summary?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualiopi_watch_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_documents: {
         Row: {
           created_at: string

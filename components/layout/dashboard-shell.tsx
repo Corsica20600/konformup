@@ -50,6 +50,9 @@ export function DashboardShell({
                 {(profile.role === "admin" || profile.role === "lead_trainer") ? <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/shared-resources">
                   Ressources partagées{sharedResourceUnreadCount ? ` (${sharedResourceUnreadCount})` : ""}
                 </Link> : null}
+                {(profile.role === "admin" || profile.role === "lead_trainer") ? <Link className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-sand" href="/quality-watch">
+                  Veille Qualiopi
+                </Link> : null}
               </nav>
               <span className="text-sm text-ink/60">{profile.full_name}</span>
               <Badge tone="success">Connecté</Badge>
