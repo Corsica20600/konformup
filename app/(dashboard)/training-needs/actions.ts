@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { createPreQuoteTrainingNeedsAnalysis, createSupabaseInternalTrainingNeedsRepository, getInternalTrainingNeedsAnalysis } from "@/lib/training-needs/internal";
 import { trainingNeedsTrainingTypes, type TrainingNeedsTrainingType } from "@/lib/training-needs/types";
 import { getTrainingNeedsPartialSaveSchemaV1, validateTrainingNeedsFinalV1 } from "@/lib/training-needs/validation";
+import { sendPreQuoteTrainingNeedsEmail } from "@/lib/training-needs/email";
 
-export type InternalTrainingNeedsActionState = { error?: string; data?: { answers: Record<string, unknown> } };
+export type InternalTrainingNeedsActionState = { error?: string; success?: string; data?: { answers: Record<string, unknown> } };
 
 export async function createPreQuoteTrainingNeedsAction(formData: FormData) {
   const companyId = formData.get("companyId")?.toString().trim();
@@ -15,6 +16,20 @@ export async function createPreQuoteTrainingNeedsAction(formData: FormData) {
   const analysis = await createPreQuoteTrainingNeedsAnalysis(companyId, trainingType as TrainingNeedsTrainingType);
   revalidatePath(`/companies/${companyId}`);
   redirect(`/training-needs/${analysis.id}`);
+}
+
+export async function sendPreQuoteTrainingNeedsEmailAction(_: InternalTrainingNeedsActionState, formData: FormData): Promise<InternalTrainingNeedsActionState> {
+  const analysisId = formData.get("analysisId")?.toString().trim();
+  if (!analysisId) return { error: "Analyse introuvable." };
+  try {
+    const { recipientEmail } = await sendPreQuoteTrainingNeedsEmail(analysisId);
+    const analysis = await getInternalTrainingNeedsAnalysis(analysisId);
+    revalidatePath(`/training-needs/${analysisId}`);
+    revalidatePath(`/companies/${analysis.company_id}`);
+    return { success: `Analyse envoyée à ${recipientEmail}.` };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Impossible d’envoyer l’analyse." };
+  }
 }
 
 export async function saveInternalTrainingNeedsAction(analysisId: string, answers: unknown, final = false): Promise<InternalTrainingNeedsActionState> {
