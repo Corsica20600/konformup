@@ -29,6 +29,7 @@ export type SessionItem = {
   status: "draft" | "scheduled" | "in_progress" | "completed" | "cancelled";
   training_type: TrainingType;
   training_family: string;
+  session_format: "intra" | "inter";
   source_quote_id: string | null;
   trainer_id: string | null;
   trainer_user_id: string | null;

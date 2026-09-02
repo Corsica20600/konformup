@@ -39,6 +39,7 @@ type CreateQuoteInput = {
   candidateCount: number;
   sessionStartDate?: string;
   sessionEndDate?: string;
+  sessionFormat?: "intra" | "inter";
   location?: string;
   trainerId?: string;
   priceHt: number;
@@ -76,6 +77,7 @@ type QuoteSessionRow = {
   accessibility_details: string | null;
   mac_previous_certificate_date: string | null;
   mac_previous_certificate_ref: string | null;
+  session_format: string;
 };
 
 type QuoteBaseRow = Omit<QuoteRow, "price_ht" | "vat_rate" | "total_ttc"> & {
@@ -157,7 +159,7 @@ async function selectSessionForQuote(sessionId: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("training_sessions")
-    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours, training_type, training_family, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref")
+    .select("id, title, start_date, end_date, location, trainer_id, trainer_name, duration_hours, training_type, training_family, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, session_format")
     .eq("id", sessionId)
     .maybeSingle<QuoteSessionRow>();
 
@@ -183,6 +185,7 @@ async function selectSessionForQuote(sessionId: string) {
           accessibility_details: null,
           mac_previous_certificate_date: null,
           mac_previous_certificate_ref: null
+          ,session_format: "intra"
         } as QuoteSessionRow)
       : null,
     error: fallback.error
@@ -442,6 +445,7 @@ async function insertQuote({
   candidateCount,
   sessionStartDate,
   sessionEndDate,
+  sessionFormat,
   location,
   trainerId,
   priceHt,
@@ -481,6 +485,7 @@ async function insertQuote({
       candidate_count: candidateCount,
       session_start_date: session?.start_date ?? (sessionStartDate?.trim() || null),
       session_end_date: session?.end_date ?? (sessionEndDate?.trim() || null),
+      session_format: session?.session_format ?? sessionFormat ?? "intra",
       location: session?.location ?? (location?.trim() || null),
       trainer_name: session?.trainer_name ?? selectedTrainer?.name ?? null,
       duration_hours: resolvedDurationHours,
@@ -510,7 +515,7 @@ async function selectQuoteById(quoteId: string): Promise<QuoteBaseRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("quotes")
-    .select("id, quote_number, quote_date, status, training_type, training_family, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, location, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
+    .select("id, quote_number, quote_date, status, training_type, training_family, session_id, company_id, title, description, candidate_count, session_start_date, session_end_date, session_format, location, trainer_name, duration_hours, prerequisites, objectives, programme_outline, accessibility_details, mac_previous_certificate_date, mac_previous_certificate_ref, price_ht, vat_rate, total_ttc, notes, created_at, updated_at")
     .eq("id", quoteId)
     .maybeSingle();
 
@@ -859,6 +864,7 @@ export async function updateQuote({
   candidateCount,
   sessionStartDate,
   sessionEndDate,
+  sessionFormat,
   location,
   trainerId,
   currentTrainerName,
@@ -880,6 +886,7 @@ export async function updateQuote({
   candidateCount: number;
   sessionStartDate: string;
   sessionEndDate: string;
+  sessionFormat: "intra" | "inter";
   location: string;
   trainerId: string;
   currentTrainerName: string;
@@ -901,6 +908,7 @@ export async function updateQuote({
       candidate_count: candidateCount,
       session_start_date: sessionStartDate || null,
       session_end_date: sessionEndDate || null,
+      session_format: sessionFormat,
       location: location.trim() || null,
       trainer_name: selectedTrainer?.name ?? (currentTrainerName.trim() || null),
       duration_hours: durationHours === "" || typeof durationHours === "undefined" ? null : durationHours,
@@ -1053,6 +1061,7 @@ export function buildSessionPayloadFromQuote(
     status: "draft",
     training_type: quote.training_type,
     training_family: quote.training_family,
+    session_format: quote.session_format,
     source_quote_id: quote.id,
     trainer_id: trainerId,
     trainer_user_id: trainerUserId,

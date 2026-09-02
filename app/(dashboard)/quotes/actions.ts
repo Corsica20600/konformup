@@ -49,6 +49,7 @@ export async function updateQuoteAction(
     candidateCount: formData.get("candidateCount"),
     sessionStartDate: formData.get("sessionStartDate"),
     sessionEndDate: formData.get("sessionEndDate"),
+    sessionFormat: formData.get("sessionFormat"),
     location: formData.get("location"),
     trainerId: formData.get("trainerId"),
     currentTrainerName: formData.get("currentTrainerName"),

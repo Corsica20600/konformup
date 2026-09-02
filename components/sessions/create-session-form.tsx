@@ -69,7 +69,10 @@ export function CreateSessionForm({ trainers }: { trainers: TrainerOption[] }) {
         <SelectField label="Type de formation" name="trainingType" value={trainingType} onChange={(event) => handleTrainingTypeChange(event.target.value as TrainingType)}>
           {TRAINING_TYPE_OPTIONS.map((option) => <option key={option} value={option}>{TRAINING_TYPE_LABELS[option]}</option>)}
         </SelectField>
-        <div />
+        <SelectField label="Format de la session" name="sessionFormat" defaultValue="intra" hint="Seules les sessions interentreprises sont publiées dans le planning.">
+          <option value="intra">Intra-entreprise — non publiée</option>
+          <option value="inter">Interentreprises — planning public</option>
+        </SelectField>
         <Input label="Date de début" name="startDate" type="date" required />
         <Input label="Date de fin" name="endDate" type="date" required />
         <div className="md:col-span-2">

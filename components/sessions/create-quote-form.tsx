@@ -79,6 +79,7 @@ export function CreateQuoteForm({
   const [sessionStartDate, setSessionStartDate] = useState(startDate ?? "");
   const [sessionEndDate, setSessionEndDate] = useState(endDate ?? "");
   const [trainingLocation, setTrainingLocation] = useState(location ?? "");
+  const [sessionFormat, setSessionFormat] = useState("intra");
 
   useEffect(() => {
     if (state.success) {
@@ -217,6 +218,17 @@ export function CreateQuoteForm({
               disabled={Boolean(sessionId)}
               placeholder="À confirmer"
             />
+            <SelectField
+              label="Format de la session"
+              name="sessionFormat"
+              value={sessionFormat}
+              onChange={(event) => setSessionFormat(event.target.value)}
+              disabled={Boolean(sessionId)}
+              hint="Seules les sessions interentreprises sont affichées dans le planning public."
+            >
+              <option value="intra">Intra-entreprise — non publiée</option>
+              <option value="inter">Interentreprises — planning public</option>
+            </SelectField>
             {trainers.length ? (
               <SelectField
                 label="Formateur"

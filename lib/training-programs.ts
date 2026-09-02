@@ -1,6 +1,6 @@
 import type { TrainingType } from "@/lib/database.types";
 
-export const TRAINING_TYPE_OPTIONS = ["sst_initial", "mac_sst", "hygiene"] as const;
+export const TRAINING_TYPE_OPTIONS = ["sst_initial", "mac_sst", "hygiene", "ai"] as const;
 
 export function isMacSstTraining(trainingType: TrainingType) {
   return trainingType === "mac_sst";
@@ -9,18 +9,21 @@ export function isMacSstTraining(trainingType: TrainingType) {
 export const TRAINING_TYPE_LABELS: Record<TrainingType, string> = {
   sst_initial: "SST initiale",
   mac_sst: "MAC SST",
-  hygiene: "Hygiène"
+  hygiene: "Hygiène",
+  ai: "Intelligence artificielle"
 };
 
 export const DEFAULT_TRAINING_TITLES: Record<TrainingType, string> = {
   sst_initial: "Formation SST initiale",
   mac_sst: "MAC SST",
-  hygiene: "Formation Hygiène"
+  hygiene: "Formation Hygiène",
+  ai: "Formation Intelligence artificielle"
 };
 
 export const TRAINING_FAMILY_LABELS: Record<string, string> = {
   sst: "Sauveteur Secouriste du Travail",
-  hygiene: "Hygiène"
+  hygiene: "Hygiène",
+  ai: "Intelligence artificielle"
 };
 
 type TrainingProgramDefaults = {
@@ -93,6 +96,26 @@ const DEFAULT_PROGRAMS: Record<TrainingType, TrainingProgramDefaults> = {
     accessibility:
       "Formation accessible sous réserve d'une analyse préalable des besoins d'adaptation du participant.",
     certificateNote: "Attestation de fin de formation délivrée selon les modalités prévues au devis."
+  },
+  ai: {
+    family: "ai",
+    durationHours: 7,
+    prerequisites: "Aucun prérequis particulier, sauf mention spécifique au devis.",
+    objectives: [
+      "Comprendre les usages utiles et responsables de l'intelligence artificielle.",
+      "Identifier des cas d'usage concrets adaptés à l'activité de l'entreprise.",
+      "Pratiquer avec des assistants IA et des méthodes d'automatisation simples."
+    ],
+    programmeLines: [
+      "Panorama des outils et des usages de l'intelligence artificielle.",
+      "Bonnes pratiques de confidentialité, de vérification et d'usage responsable.",
+      "Ateliers pratiques à partir de situations métiers.",
+      "Méthodes pour structurer des demandes efficaces aux assistants IA.",
+      "Plan d'action adapté aux besoins de l'entreprise."
+    ],
+    accessibility:
+      "Formation accessible sous réserve d'une analyse préalable des besoins d'adaptation du participant.",
+    certificateNote: "Attestation de fin de formation délivrée selon les modalités prévues au devis."
   }
 };
 
@@ -115,7 +138,7 @@ export function getTrainingTypeLabel(value: unknown) {
 export function getProgrammeParticipantLabel(value: unknown, candidateCount: number) {
   const trainingType = normalizeTrainingType(value);
 
-  if (trainingType === "hygiene") {
+  if (trainingType === "hygiene" || trainingType === "ai") {
     return candidateCount > 0 ? `${candidateCount} participant(s) prevu(s)` : "Effectif a confirmer au devis";
   }
 

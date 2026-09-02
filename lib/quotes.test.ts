@@ -18,6 +18,7 @@ describe("quote to session mapping", () => {
         candidate_count: 8,
         session_start_date: "2026-09-01",
         session_end_date: "2026-09-01",
+        session_format: "inter",
         location: "Lyon",
         trainer_name: "Camille Rousseau",
         duration_hours: 7,

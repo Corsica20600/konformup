@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const trainingTypeSchema = z.enum(["sst_initial", "mac_sst", "hygiene"]);
+const trainingTypeSchema = z.enum(["sst_initial", "mac_sst", "hygiene", "ai"]);
+const sessionFormatSchema = z.enum(["intra", "inter"]);
 const candidateEvaluationTypeSchema = z.enum(["theorique", "pratique", "globale"]);
 const candidateEvaluationStatusSchema = z.enum(["non_evalue", "en_cours", "acquis", "non_acquis", "absent"]);
 const candidateEvaluationResultSchema = z.enum(["admis", "non_admis", "absent", "partiel", "non_renseigne"]);
@@ -34,6 +35,7 @@ export const createSessionSchema = z.object({
   trainerId: z.preprocess((value) => value ?? "", z.string().uuid().or(z.literal(""))),
   durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
   trainingType: trainingTypeSchema.default("sst_initial"),
+  sessionFormat: sessionFormatSchema.default("intra"),
   prerequisites: z.string().optional().default(""),
   objectives: z.string().optional().default(""),
   programmeOutline: z.string().optional().default(""),
@@ -52,6 +54,7 @@ export const updateSessionSchema = z
     location: z.string().min(2, "Le lieu est requis."),
     durationHours: z.union([z.literal(""), z.coerce.number().positive("La durée doit être supérieure à 0.")]).optional(),
     trainingType: trainingTypeSchema.default("sst_initial"),
+    sessionFormat: sessionFormatSchema.default("intra"),
     prerequisites: z.string().optional().default(""),
     objectives: z.string().optional().default(""),
     programmeOutline: z.string().optional().default(""),
@@ -169,6 +172,7 @@ export const createQuoteSchema = z
     title: z.string().trim().min(2, "L'intitulé est requis."),
     description: z.string().optional().default(""),
     trainingType: trainingTypeSchema.default("sst_initial"),
+    sessionFormat: sessionFormatSchema.default("intra"),
     durationHours: z.coerce.number().positive("La durée doit être supérieure à 0.").optional(),
     prerequisites: z.string().optional().default(""),
     objectives: z.string().optional().default(""),
@@ -207,6 +211,7 @@ export const updateQuoteSchema = z
     title: z.string().trim().min(2, "L'intitulé est requis."),
     description: z.string().optional().default(""),
     trainingType: trainingTypeSchema.default("sst_initial"),
+    sessionFormat: sessionFormatSchema.default("intra"),
     durationHours: z.union([z.literal(""), z.coerce.number().positive("La durée doit être supérieure à 0.")]).optional(),
     prerequisites: z.string().optional().default(""),
     objectives: z.string().optional().default(""),

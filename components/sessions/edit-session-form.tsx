@@ -97,6 +97,13 @@ export function EditSessionForm({
           </select>
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
+          <span>Format de la session</span>
+          <select name="sessionFormat" defaultValue={session.session_format ?? "intra"} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm">
+            <option value="intra">Intra-entreprise — non publiée</option>
+            <option value="inter">Interentreprises — planning public</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-ink/80">
           <span>Formateur</span>
           <select
             name="trainerId"

@@ -14,7 +14,7 @@ import { buildParisDateTimeIso, isValidAttendanceTimeRange } from "@/lib/attenda
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
 import { sendTrainingAgreementEmail } from "@/lib/training-agreement-email";
 import { sendAttestationToSessionCompany } from "@/lib/company-attestation-email";
-import { createQuote, duplicateQuote, getQuoteForEdit, updateQuoteStatus } from "@/lib/quotes";
+import { createQuote, createSessionFromQuote, duplicateQuote, getQuoteForEdit, updateQuoteStatus } from "@/lib/quotes";
 import { isQuoteStatus, QUOTE_STATUS_LABELS } from "@/lib/quote-status";
 import { createTrainingAgreementDocumentForQuote } from "@/lib/training-agreements";
 import { createClient } from "@/lib/supabase/server";
@@ -165,6 +165,7 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
     trainerId: formData.get("trainerId"),
     durationHours: formData.get("durationHours") || undefined,
     trainingType: formData.get("trainingType"),
+    sessionFormat: formData.get("sessionFormat"),
     prerequisites: formData.get("prerequisites"),
     objectives: formData.get("objectives"),
     programmeOutline: formData.get("programmeOutline"),
@@ -198,7 +199,8 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
       location: parsed.data.location,
       status: parsed.data.status,
       training_type: parsed.data.trainingType,
-      training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : "sst",
+      training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : parsed.data.trainingType === "ai" ? "ai" : "sst",
+      session_format: parsed.data.sessionFormat,
       trainer_user_id: profile.id,
       trainer_id: trainerId,
       trainer_name: trainerName,
@@ -241,6 +243,7 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
     location: formData.get("location"),
     durationHours: formData.get("durationHours"),
     trainingType: formData.get("trainingType"),
+    sessionFormat: formData.get("sessionFormat"),
     prerequisites: formData.get("prerequisites"),
     objectives: formData.get("objectives"),
     programmeOutline: formData.get("programmeOutline"),
@@ -267,7 +270,8 @@ export async function updateSessionAction(_: ActionState, formData: FormData): P
         end_date: parsed.data.endDate,
         location: parsed.data.location,
         training_type: parsed.data.trainingType,
-        training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : "sst",
+        training_family: parsed.data.trainingType === "hygiene" ? "hygiene" : parsed.data.trainingType === "ai" ? "ai" : "sst",
+        session_format: parsed.data.sessionFormat,
         duration_hours:
           parsed.data.durationHours === "" || typeof parsed.data.durationHours === "undefined"
             ? null
@@ -1095,6 +1099,7 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
     candidateCount: formData.get("candidateCount"),
     sessionStartDate: formData.get("sessionStartDate"),
     sessionEndDate: formData.get("sessionEndDate"),
+    sessionFormat: formData.get("sessionFormat"),
     location: formData.get("location"),
     trainerId: formData.get("trainerId"),
     priceHt: formData.get("priceHt"),
@@ -1123,6 +1128,7 @@ export async function createQuoteAction(_: ActionState, formData: FormData): Pro
       candidateCount: parsed.data.candidateCount,
       sessionStartDate: parsed.data.sessionStartDate,
       sessionEndDate: parsed.data.sessionEndDate,
+      sessionFormat: parsed.data.sessionFormat,
       location: parsed.data.location,
       trainerId: parsed.data.trainerId,
       priceHt: parsed.data.priceHt,
@@ -1291,7 +1297,7 @@ export async function prepareCandidatePreTrainingDocumentsAction(
 }
 
 export async function updateQuoteStatusAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  await requireUser();
+  const { profile } = await requireUser();
 
   const quoteId = formData.get("quoteId")?.toString().trim();
   const statusValue = formData.get("status")?.toString().trim();
@@ -1302,10 +1308,25 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
 
   try {
     const currentQuote = await getQuoteForEdit(quoteId);
+    const becomingAccepted = statusValue === "accepted" && currentQuote.status !== "accepted";
+    if (becomingAccepted && !currentQuote.session_id && (!currentQuote.session_start_date || !currentQuote.session_end_date || !currentQuote.location)) {
+      return { error: "Renseignez les dates et le lieu du devis avant de l'accepter : la session est créée automatiquement à l'acceptation." };
+    }
+
     const quote = await updateQuoteStatus(quoteId, statusValue);
+    let createdSessionId: string | null = null;
+    if (becomingAccepted && !currentQuote.session_id) {
+      try {
+        const { session } = await createSessionFromQuote(quoteId, profile.id);
+        createdSessionId = session.id;
+      } catch (error) {
+        await updateQuoteStatus(quoteId, currentQuote.status);
+        throw error;
+      }
+    }
     let agreementWarning: string | null = null;
 
-    if (statusValue === "accepted" && currentQuote.status !== "accepted") {
+    if (becomingAccepted) {
       try {
         await createTrainingAgreementDocumentForQuote(quoteId);
         await sendTrainingAgreementEmail(currentQuote);
@@ -1317,8 +1338,8 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
       }
     }
 
-    if (quote.session_id) {
-      revalidatePath(`/sessions/${quote.session_id}`);
+    if (quote.session_id || createdSessionId) {
+      revalidatePath(`/sessions/${quote.session_id ?? createdSessionId}`);
     }
     revalidatePath(`/quotes/${quote.id}`);
     revalidatePath("/sessions");
@@ -1327,7 +1348,7 @@ export async function updateQuoteStatusAction(_: ActionState, formData: FormData
     revalidatePath(`/companies/${quote.company_id}`);
 
     return {
-      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status as keyof typeof QUOTE_STATUS_LABELS]}.${statusValue === "accepted" && currentQuote.status !== "accepted" && !agreementWarning ? " Convention envoyee par email." : ""}${agreementWarning ?? ""}`
+      success: `Statut mis a jour : ${QUOTE_STATUS_LABELS[quote.status as keyof typeof QUOTE_STATUS_LABELS]}.${createdSessionId ? " Session créée automatiquement." : ""}${becomingAccepted && !agreementWarning ? " Convention envoyee par email." : ""}${agreementWarning ?? ""}`
     };
   } catch (error) {
     if (error instanceof Error) {

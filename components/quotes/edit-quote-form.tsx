@@ -387,6 +387,10 @@ export function EditQuoteForm({
         </SelectField>
         <Input label="Date de debut" name="sessionStartDate" type="date" defaultValue={quote.session_start_date ?? ""} />
         <Input label="Date de fin" name="sessionEndDate" type="date" defaultValue={quote.session_end_date ?? ""} />
+        <SelectField label="Format de la session" name="sessionFormat" defaultValue={quote.session_format ?? "intra"}>
+          <option value="intra">Intra-entreprise — non publiée</option>
+          <option value="inter">Interentreprises — visible dans le planning public</option>
+        </SelectField>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-ink/80 md:col-span-2">
           <span>Prérequis</span>

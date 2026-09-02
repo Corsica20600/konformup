@@ -1204,6 +1204,7 @@ export type Database = {
           quote_date: string
           quote_number: string
           session_end_date: string | null
+          session_format: string
           session_id: string | null
           session_start_date: string | null
           status: string
@@ -1234,6 +1235,7 @@ export type Database = {
           quote_date?: string
           quote_number: string
           session_end_date?: string | null
+          session_format?: string
           session_id?: string | null
           session_start_date?: string | null
           status?: string
@@ -1264,6 +1266,7 @@ export type Database = {
           quote_date?: string
           quote_number?: string
           session_end_date?: string | null
+          session_format?: string
           session_id?: string | null
           session_start_date?: string | null
           status?: string
@@ -2030,6 +2033,7 @@ export type Database = {
           source_quote_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["training_session_status"]
+          session_format: string
           title: string
           trainer_id: string | null
           trainer_name: string | null
@@ -2067,6 +2071,7 @@ export type Database = {
           source_quote_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["training_session_status"]
+          session_format?: string
           title: string
           trainer_id?: string | null
           trainer_name?: string | null
@@ -2104,6 +2109,7 @@ export type Database = {
           source_quote_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["training_session_status"]
+          session_format?: string
           title?: string
           trainer_id?: string | null
           trainer_name?: string | null
@@ -2463,7 +2469,7 @@ export type SessionClosureStatus = "open" | "ready" | "closed" | "archived"
 export type ForprevRegistrationStatus = "non_applicable" | "a_saisir" | "saisi" | "transmis" | "erreur"
 export type GeneratedDocumentStatus = "draft" | "generated" | "sent" | "signed" | "archived"
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "archived"
-export type TrainingType = "sst_initial" | "mac_sst" | "hygiene"
+export type TrainingType = "sst_initial" | "mac_sst" | "hygiene" | "ai"
 export type AttendanceSlotStatus = "draft" | "sent" | "open" | "closed"
 export type AttendanceDeliveryChannel = "email" | "sms"
 export type AttendanceDeliveryStatus = "pending" | "sent" | "failed"
