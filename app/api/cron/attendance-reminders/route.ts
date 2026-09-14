@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendAutomaticAttendanceReminders } from "@/lib/attendance";
+import { runPreTrainingDocumentDeliveryCron } from "@/lib/pre-training-document-deliveries";
 
 export const runtime = "nodejs";
 
@@ -20,13 +21,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await sendAutomaticAttendanceReminders({
-      minimumHoursSinceLastSend: 4
-    });
+    const [attendance, preTrainingDocuments] = await Promise.all([
+      sendAutomaticAttendanceReminders({ minimumHoursSinceLastSend: 4 }),
+      runPreTrainingDocumentDeliveryCron()
+    ]);
 
     return NextResponse.json({
       ok: true,
-      ...result
+      attendance,
+      preTrainingDocuments
     });
   } catch (error) {
     console.error("[attendance cron] reminder failed", {

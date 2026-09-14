@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 import { sendAutomaticAttendanceReminders } from "@/lib/attendance";
+import { runPreTrainingDocumentDeliveryCron } from "@/lib/pre-training-document-deliveries";
 
 vi.mock("@/lib/attendance", () => ({
   sendAutomaticAttendanceReminders: vi.fn()
+}));
+
+vi.mock("@/lib/pre-training-document-deliveries", () => ({
+  runPreTrainingDocumentDeliveryCron: vi.fn()
 }));
 
 describe("attendance reminders cron route", () => {
@@ -12,6 +17,7 @@ describe("attendance reminders cron route", () => {
   afterEach(() => {
     process.env.CRON_SECRET = originalCronSecret;
     vi.mocked(sendAutomaticAttendanceReminders).mockReset();
+    vi.mocked(runPreTrainingDocumentDeliveryCron).mockReset();
   });
 
   it("refuses requests without CRON_SECRET authorization", async () => {
@@ -27,6 +33,7 @@ describe("attendance reminders cron route", () => {
 
     expect(response.status).toBe(401);
     expect(sendAutomaticAttendanceReminders).not.toHaveBeenCalled();
+    expect(runPreTrainingDocumentDeliveryCron).not.toHaveBeenCalled();
   });
 
   it("accepts requests with the configured bearer token", async () => {
@@ -36,6 +43,7 @@ describe("attendance reminders cron route", () => {
       sentCount: 0,
       failedCount: 0
     });
+    vi.mocked(runPreTrainingDocumentDeliveryCron).mockResolvedValue({ documentsSent: 0, remindersSent: 0, skipped: 0, errors: 0 });
 
     const response = await GET(
       new Request("https://example.test/api/cron/attendance-reminders", {
@@ -49,5 +57,6 @@ describe("attendance reminders cron route", () => {
     expect(sendAutomaticAttendanceReminders).toHaveBeenCalledWith({
       minimumHoursSinceLastSend: 4
     });
+    expect(runPreTrainingDocumentDeliveryCron).toHaveBeenCalledOnce();
   });
 });
