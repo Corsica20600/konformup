@@ -390,8 +390,11 @@ function buildTrainingAgreementSnapshot(data: TrainingAgreementPdfData): Json {
 }
 
 export async function buildTrainingAgreementPdfData(quoteId: string, agreementRef?: string): Promise<TrainingAgreementPdfData> {
-  const [quote, organizationSettings, needsAnalysis] = await Promise.all([getQuoteById(quoteId), getOrganizationSettings(), getLatestTrainingNeedsAnalysisForQuote(quoteId)]);
-  const sessionContext = await getSessionAgreementContext(quote);
+  const [quote, organizationSettings] = await Promise.all([getQuoteById(quoteId), getOrganizationSettings()]);
+  const [sessionContext, needsAnalysis] = await Promise.all([
+    getSessionAgreementContext(quote),
+    quote.training_type === "ai" ? Promise.resolve(null) : getLatestTrainingNeedsAnalysisForQuote(quoteId)
+  ]);
   const organizationEmail =
     safeTrim(organizationSettings.contact_email) ||
     safeTrim(process.env.ORGANIZATION_EMAIL) ||
@@ -418,7 +421,7 @@ export async function buildTrainingAgreementPdfData(quoteId: string, agreementRe
   const prerequisites = safeTrim(sessionContext.prerequisites) || trainingDefaults.prerequisites;
   const accessibilityDetails = safeTrim(sessionContext.accessibilityDetails) || trainingDefaults.accessibility;
   const durationHours = sessionContext.durationHours ?? quote.duration_hours ?? trainingDefaults.durationHours;
-  const needsSummary = needsAnalysis?.status === "completed"
+  const needsSummary = quote.training_type !== "ai" && needsAnalysis?.status === "completed"
     ? textValue(needsAnalysis.answers.contractSummary) || buildNeedsSummaryFromAnswers(needsAnalysis.answers as unknown as Record<string, unknown>, needsAnalysis.training_type)
     : null;
   const missingFields = buildMissingFields({
