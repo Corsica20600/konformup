@@ -99,19 +99,22 @@ const DEFAULT_PROGRAMS: Record<TrainingType, TrainingProgramDefaults> = {
   },
   ai: {
     family: "ai",
-    durationHours: 7,
-    prerequisites: "Aucun prérequis particulier, sauf mention spécifique au devis.",
+    durationHours: 2,
+    prerequisites: "Aucun prérequis technique. Savoir utiliser les outils numériques courants est recommandé.",
     objectives: [
-      "Comprendre les usages utiles et responsables de l'intelligence artificielle.",
-      "Identifier des cas d'usage concrets adaptés à l'activité de l'entreprise.",
-      "Pratiquer avec des assistants IA et des méthodes d'automatisation simples."
+      "Définir l'IA générative et citer des usages professionnels utiles.",
+      "Structurer une demande avec la méthode Objectif, Contexte, Résultat attendu, Limites.",
+      "Améliorer une réponse par le dialogue et vérifier ses informations.",
+      "Distinguer une conversation ChatGPT, un travail sur fichier et une intervention Codex dans un projet.",
+      "Adopter des réflexes de confidentialité, de contrôle et d'usage responsable."
     ],
     programmeLines: [
-      "Panorama des outils et des usages de l'intelligence artificielle.",
-      "Bonnes pratiques de confidentialité, de vérification et d'usage responsable.",
-      "Ateliers pratiques à partir de situations métiers.",
-      "Méthodes pour structurer des demandes efficaces aux assistants IA.",
-      "Plan d'action adapté aux besoins de l'entreprise."
+      "Diagnostic des représentations et découverte de l'IA générative.",
+      "Prise en main de ChatGPT et méthode O-C-R-L pour formuler une demande.",
+      "Deux exercices pratiques à partir de situations professionnelles fictives.",
+      "Différences entre conversation, fichier et projet de code avec Codex.",
+      "Vérification, confidentialité, hallucinations et usages responsables.",
+      "Quiz final corrigé et aide-mémoire des cinq réflexes."
     ],
     accessibility:
       "Formation accessible sous réserve d'une analyse préalable des besoins d'adaptation du participant.",
@@ -154,7 +157,7 @@ export function getProgrammeValidationHeading(value: unknown) {
 }
 
 export function getProgrammePracticalMethod(value: unknown) {
-  return normalizeTrainingType(value) === "hygiene"
+  return normalizeTrainingType(value) === "hygiene" || normalizeTrainingType(value) === "ai"
     ? "Mises en situation concretes, demonstrations et exercices adaptes au contexte professionnel."
     : "Mises en situation concretes, demonstrations et exercices pratiques sur materiel de secours.";
 }

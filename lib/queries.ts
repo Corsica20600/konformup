@@ -1348,7 +1348,7 @@ async function selectCandidateEvaluationsBySessionId(sessionId: string) {
   return (data ?? []) as CandidateEvaluation[];
 }
 
-async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
+async function selectSessionModulesBySessionIdWithFallback(sessionId: string, trainingType: string) {
   const supabase = await createClient();
   const primary = await supabase
     .from("session_module_progress")
@@ -1371,12 +1371,13 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string) {
       )
     `)
     .eq("session_id", sessionId)
+    .eq("training_modules.training_type", trainingType)
     .eq("training_modules.is_active", true);
 
   logSupabaseQueryError({
     file: "lib/queries.ts",
     table: "session_module_progress -> training_modules",
-    query: 'select("is_completed, completed_at, training_modules!inner(id, title, summary, module_order, estimated_minutes, content_text, video_url, pdf_url, trainer_guidance, parent_module_id, module_type, is_active)").eq("session_id", sessionId).eq("training_modules.is_active", true)',
+    query: 'select("is_completed, completed_at, training_modules!inner(...)").eq("session_id", sessionId).eq("training_modules.training_type", trainingType).eq("training_modules.is_active", true)',
     error: primary.error
   });
 
@@ -1480,7 +1481,7 @@ export async function getSessionById(sessionId: string) {
   }
   if (!session) throw new SessionNotFoundError(sessionId);
 
-  await initializeSessionModuleProgress(sessionId);
+  await initializeSessionModuleProgress(sessionId, session.training_type);
 
   const { data: candidates, error: candidatesError } = await selectCandidatesBySessionIdWithFallback(sessionId);
 
@@ -1529,7 +1530,7 @@ export async function getSessionById(sessionId: string) {
     evaluations: evaluationsByCandidateId.get(candidate.id) ?? []
   })) as SessionCandidate[];
 
-  const { data: moduleRows, error: modulesError } = await selectSessionModulesBySessionIdWithFallback(sessionId);
+  const { data: moduleRows, error: modulesError } = await selectSessionModulesBySessionIdWithFallback(sessionId, session.training_type);
 
   if (modulesError) throw modulesError;
 

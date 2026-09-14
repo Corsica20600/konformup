@@ -222,7 +222,7 @@ export async function createSessionAction(_: ActionState, formData: FormData): P
   }
 
   try {
-    await initializeSessionModuleProgress(session.id);
+    await initializeSessionModuleProgress(session.id, parsed.data.trainingType);
   } catch {
     return { error: "Session créée, mais la progression des modules n'a pas pu être initialisée." };
   }

@@ -1110,7 +1110,7 @@ export async function createSessionFromQuote(quoteId: string, trainerUserId: str
   }
 
   try {
-    await initializeSessionModuleProgress(session.id);
+    await initializeSessionModuleProgress(session.id, quote.training_type);
   } catch {
     throw new QuoteError("Session creee, mais la progression des modules n'a pas pu etre initialisee.");
   }

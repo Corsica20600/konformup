@@ -1,0 +1,169 @@
+export type TrainingModuleTemplate = {
+  key: string;
+  order: number;
+  title: string;
+  description: string;
+  estimatedMinutes: number | null;
+  textContent: string;
+  trainerGuidance: string;
+  videoUrl: string | null;
+  pdfUrl: string | null;
+};
+
+export type TrainingQuizTemplate = {
+  moduleKey: string;
+  question: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer: "A" | "B" | "C" | "D";
+  explanation: string;
+};
+
+export const AI_MODULES: TrainingModuleTemplate[] = [
+  {
+    key: "ai-01-welcome",
+    order: 1,
+    title: "Accueil et objectifs",
+    description: "Poser le cadre, les objectifs et le déroulé des deux heures.",
+    estimatedMinutes: 5,
+    textContent: "Bienvenue dans l’initiation à l’intelligence artificielle.\n\nObjectifs : comprendre ce qu’est une IA générative, repérer des usages professionnels utiles, structurer une demande avec O-C-R-L, vérifier un résultat et protéger les informations de l’entreprise.\n\nRègle de la séance : les exemples et exercices utilisent uniquement des données fictives.",
+    trainerGuidance: "Présenter le déroulé en 120 minutes. Demander les attentes concrètes du groupe, sans recueillir de donnée personnelle ou confidentielle.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-02-diagnostic",
+    order: 2,
+    title: "Diagnostic initial",
+    description: "Faire émerger les représentations et les bons réflexes avant l’apport.",
+    estimatedMinutes: 7,
+    textContent: "Quiz diagnostic non noté : répondre collectivement puis commenter les réponses.\n\nÀ retenir : une IA générative ne cherche pas automatiquement sur Internet ; une réponse bien écrite n’est pas forcément exacte ; on peut toujours demander une correction ; les données client ne vont pas dans un outil non autorisé ; Codex sert à travailler dans un projet de code ; le contexte, la vérification et le dialogue sont plus utiles qu’un « prompt magique ».",
+    trainerGuidance: "Ne pas noter ce quiz. Faire verbaliser les intuitions, puis annoncer que les réponses seront reprises au fil de la séance.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-03-generative-ai",
+    order: 3,
+    title: "Comprendre l’IA générative",
+    description: "Définir l’IA générative et distinguer ses usages de la recherche et de l’expertise humaine.",
+    estimatedMinutes: 13,
+    textContent: "Une IA générative produit du texte, des images, du code ou des synthèses à partir d’une demande et du contexte fourni. Elle peut aider à préparer, reformuler, résumer, organiser ou proposer des pistes.\n\nElle ne remplace ni la connaissance du métier, ni la vérification, ni la décision humaine. Pour une information actuelle, demander une recherche adaptée puis contrôler directement les sources.\n\nExemples utiles : préparer une trame d’e-mail, classer des idées, créer un plan, résumer des notes fictives ou préparer une première version à relire.",
+    trainerGuidance: "Limiter l’exposé. Demander au groupe trois usages possibles dans son activité, puis distinguer l’aide à la préparation de la décision finale.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-04-two-prompts",
+    order: 4,
+    title: "Même tâche, deux demandes",
+    description: "Comparer une demande vague et une demande structurée.",
+    estimatedMinutes: 7,
+    textContent: "Démonstration ou vidéo de trois minutes à préparer : « Une même tâche, deux prompts ».\n\nComparer :\n- « Fais un compte rendu professionnel. »\n- « À partir de ces notes fictives, rédige un compte rendu de 150 mots ; commence par les décisions, puis les actions avec responsable et échéance ; signale les informations manquantes. »\n\nLe résultat dépend de la clarté du contexte, du format demandé et des limites données. Média à ajouter : aucune vidéo externe n’est intégrée automatiquement.",
+    trainerGuidance: "Si la vidéo interne n’est pas disponible, faire la comparaison en direct. Ne pas utiliser de lien fictif. La ressource OpenAI « Vidéos ChatGPT et Codex » peut compléter la préparation du formateur.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-05-chatgpt",
+    order: 5,
+    title: "Découvrir ChatGPT",
+    description: "Utiliser une conversation pour préparer, préciser et améliorer un livrable.",
+    estimatedMinutes: 15,
+    textContent: "Dans une conversation, on peut poser une première demande, ajouter du contexte, demander un format, corriger le ton ou réduire la longueur.\n\nDémonstration : poser une question simple, ajouter le contexte et le format, demander une correction ciblée, puis demander de distinguer les faits, les incertitudes et les informations manquantes.\n\nPhrase à retenir : « La qualité vient du contexte, mais la confiance vient de la vérification. »",
+    trainerGuidance: "Utiliser uniquement un compte et des contenus autorisés. Montrer volontairement une réponse imparfaite puis sa correction : une démonstration trop parfaite donne une fausse image de l’outil.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-06-ocrl",
+    order: 6,
+    title: "Structurer une demande avec O-C-R-L",
+    description: "Transformer une demande floue en demande exploitable et vérifiable.",
+    estimatedMinutes: 20,
+    textContent: "Méthode O-C-R-L :\n- Objectif : ce que je veux obtenir.\n- Contexte : les éléments utiles, la cible et la source.\n- Résultat attendu : format, longueur, ton, structure.\n- Limites : ce qui ne doit pas être inventé, les points à signaler et les vérifications attendues.\n\nExercice 1 : améliorer « Fais-moi un e-mail pour nos clients ». La version corrigée doit préciser le public, le sujet, le ton, la longueur, les données autorisées et ce qui doit être validé avant envoi.",
+    trainerGuidance: "Faire travailler en binômes. Insister : « Tu es expert » peut orienter le ton, mais ne rend pas une information vraie. Faire comparer deux propositions et identifier les éléments manquants.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-07-atlas",
+    order: 7,
+    title: "Exercice pratique : Projet Atlas",
+    description: "Obtenir puis vérifier une synthèse à partir de notes fictives.",
+    estimatedMinutes: 15,
+    textContent: "Exercice 2 — Projet Atlas (données fictives).\n\nÀ partir de notes de réunion volontairement incomplètes, demander : une synthèse courte, les décisions, les actions, les responsables, les dates et une rubrique « à confirmer ».\n\nPuis demander : « Compare ton compte rendu aux notes originales. Liste toute information ajoutée, modifiée ou incertaine, puis fournis une version corrigée. Conserve mot pour mot les montants et les dates présents dans la source. »\n\nLe bon réflexe est de comparer le résultat à sa source et de corriger la trajectoire.",
+    trainerGuidance: "Distribuer ou afficher des notes fictives. Relever avec le groupe les informations inventées, les contradictions et les données manquantes avant de montrer une relance de correction.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-08-chatgpt-codex",
+    order: 8,
+    title: "ChatGPT, fichiers et Codex",
+    description: "Distinguer la conversation, le travail sur fichier et le travail dans un projet de code.",
+    estimatedMinutes: 12,
+    textContent: "ChatGPT aide principalement dans une conversation et, selon les fonctions autorisées, sur des fichiers. Codex travaille dans un projet : il peut lire des fichiers, proposer ou réaliser des modifications, lancer des contrôles et résumer ce qui a changé.\n\nExemple de démonstration Codex dans un projet fictif : demander d’ajouter un encadré « Les 5 réflexes pour utiliser l’IA », sans modifier les autres pages, puis de lancer les contrôles et de résumer les fichiers modifiés.\n\nUne autorisation d’agir ne vaut jamais autorisation illimitée : le périmètre et la validation humaine restent nécessaires.",
+    trainerGuidance: "Ne faire la démonstration Codex que dans un projet de démonstration. Montrer la lecture du projet, le contrôle des modifications et la relecture finale ; ne jamais présenter l’outil comme responsable juridiquement à la place de l’utilisateur.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-09-responsible-use",
+    order: 9,
+    title: "Risques et usage responsable",
+    description: "Protéger les données, vérifier les résultats et garder la décision humaine.",
+    estimatedMinutes: 13,
+    textContent: "Les cinq réflexes :\n1. Décrire clairement le résultat attendu.\n2. Protéger les données et respecter les règles de l’organisation.\n3. Vérifier faits, chiffres, sources, dates et citations.\n4. Corriger par le dialogue au lieu d’accepter la première réponse.\n5. Décider humainement avant d’envoyer, publier ou agir.\n\nMini-jeu : classer les cas en usage courant (vert), vigilance (orange) ou interdit sans cadre autorisé (rouge). Une liste nominative de clients, un dossier médical, un secret ou un mot de passe ne sont jamais à saisir dans un outil non autorisé. Une hallucination est une information fausse ou non fondée produite avec assurance : il faut la recouper.",
+    trainerGuidance: "Faire classer les cas avant d’afficher la correction. Rappeler que les outils autorisés, les droits d’accès et les règles internes de l’entreprise priment toujours.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-10-final-quiz",
+    order: 10,
+    title: "Quiz final et correction",
+    description: "Vérifier les acquis : objectif conseillé de 8 réponses justes sur 10.",
+    estimatedMinutes: 9,
+    textContent: "Quiz final de 10 questions. Objectif pédagogique : 8/10.\n\nEn cas de résultat inférieur, reprendre les explications puis proposer une seconde tentative. Le but est de comprendre les réflexes de travail, non de réciter un outil.\n\nBarème : 0 à 5, reprise guidée recommandée ; 6 à 7, bases en cours d’acquisition ; 8 à 9, objectifs atteints ; 10, très bonne maîtrise des fondamentaux.",
+    trainerGuidance: "Présenter les réponses une fois les choix faits. Pour une évaluation formelle, conserver le meilleur score et le nombre de tentatives dans le dispositif d’évaluation dédié ; le mode formation sert ici de support d’animation.",
+    videoUrl: null,
+    pdfUrl: null
+  },
+  {
+    key: "ai-11-wrap-up",
+    order: 11,
+    title: "Bilan et aide-mémoire",
+    description: "Conclure par les cinq réflexes réutilisables dès demain.",
+    estimatedMinutes: 4,
+    textContent: "Aide-mémoire :\nAvant : ai-je le droit d’utiliser ces données ? quel résultat concret est attendu ?\nPendant : Objectif, Contexte, Résultat attendu, Limites et vérifications.\nAprès : vérifier faits, dates, chiffres, liens et citations ; signaler les incertitudes ; faire valider si nécessaire ; ne rien envoyer, publier ou exécuter sans accord explicite.\n\nRessources à revoir chaque année : documentation ChatGPT et prompting d’OpenAI, Commission européenne sur la culture IA, guide de sécurité des données personnelles de la CNIL.",
+    trainerGuidance: "Faire formuler à chacun un usage concret et prudent à tester. Rappeler où retrouver les consignes internes de l’entreprise avant la mise en pratique.",
+    videoUrl: null,
+    pdfUrl: null
+  }
+];
+
+export const AI_QUIZZES: TrainingQuizTemplate[] = [
+  { moduleKey: "ai-02-diagnostic", question: "Une IA générative cherche-t-elle toujours sa réponse sur Internet ?", optionA: "Oui", optionB: "Non", optionC: "Seulement le lundi", optionD: "Uniquement avec un abonnement", correctAnswer: "B", explanation: "Elle ne recherche sur le Web que si l’outil et la demande le permettent." },
+  { moduleKey: "ai-02-diagnostic", question: "Une réponse très bien rédigée est-elle forcément exacte ?", optionA: "Oui", optionB: "Non", optionC: "Seulement si elle est longue", optionD: "Seulement pour les e-mails", correctAnswer: "B", explanation: "La qualité de rédaction n’est pas une preuve : les faits importants doivent être contrôlés." },
+  { moduleKey: "ai-02-diagnostic", question: "Peut-on demander à ChatGPT de reformuler sa réponse ?", optionA: "Oui", optionB: "Non", optionC: "Une seule fois", optionD: "Seulement à l’oral", correctAnswer: "A", explanation: "Le dialogue et l’itération font partie de l’usage normal." },
+  { moduleKey: "ai-02-diagnostic", question: "Est-il prudent de coller une liste de clients dans un outil non autorisé ?", optionA: "Oui", optionB: "Non", optionC: "Uniquement le vendredi", optionD: "Oui si la liste est courte", correctAnswer: "B", explanation: "Il faut respecter le cadre de l’organisation et la protection des données." },
+  { moduleKey: "ai-02-diagnostic", question: "Codex sert principalement à :", optionA: "Modifier et vérifier du code", optionB: "Réserver un billet d’avion", optionC: "Remplacer tous les développeurs", optionD: "Envoyer des e-mails sans contrôle", correctAnswer: "A", explanation: "Codex peut travailler dans les fichiers d’un projet et lancer des contrôles, sous supervision." },
+  { moduleKey: "ai-02-diagnostic", question: "Quel comportement est le plus utile ?", optionA: "Chercher le prompt magique", optionB: "Donner le contexte puis vérifier et corriger", optionC: "Accepter la première réponse", optionD: "Ne jamais relancer l’outil", correctAnswer: "B", explanation: "Le contexte, la vérification et le dialogue permettent d’améliorer le résultat." },
+  { moduleKey: "ai-10-final-quiz", question: "Une IA générative :", optionA: "retrouve toujours une réponse exacte dans une base certifiée", optionB: "produit du contenu à partir d’une demande et de son contexte", optionC: "ne peut produire que du texte", optionD: "remplace automatiquement l’expertise humaine", correctAnswer: "B", explanation: "Elle produit du contenu ; l’expertise et la vérification humaines restent nécessaires." },
+  { moduleKey: "ai-10-final-quiz", question: "Quel prompt est le plus exploitable ?", optionA: "Fais un compte rendu.", optionB: "Fais quelque chose de professionnel.", optionC: "À partir de ces notes, produis un compte rendu de 200 mots, décisions d’abord, puis actions avec responsables et dates ; signale les informations manquantes.", optionD: "Tu es la meilleure IA du monde, devine ce que je veux.", correctAnswer: "C", explanation: "Il fournit la source, le format, les priorités et la limite à respecter." },
+  { moduleKey: "ai-10-final-quiz", question: "Dans O-C-R-L, le L correspond à :", optionA: "Langage", optionB: "Limites", optionC: "Logiciel", optionD: "Lecture", correctAnswer: "B", explanation: "Les limites précisent ce qui doit être vérifié, signalé ou exclu." },
+  { moduleKey: "ai-10-final-quiz", question: "Une réponse cite un rapport et donne un lien. Que faire si l’information est importante ?", optionA: "Considérer le lien comme une preuve suffisante", optionB: "Vérifier que la source existe et confirme réellement l’affirmation", optionC: "Supprimer le lien", optionD: "Demander une réponse plus longue", correctAnswer: "B", explanation: "Il faut ouvrir et contrôler la source, pas seulement son apparence." },
+  { moduleKey: "ai-10-final-quiz", question: "Quelle donnée ne doit pas être saisie dans un outil non autorisé ?", optionA: "Le thème public d’une brochure", optionB: "Une idée de slogan fictive", optionC: "Une liste nominative de clients avec coordonnées", optionD: "Une phrase inventée pour un exercice", correctAnswer: "C", explanation: "Les données personnelles nécessitent un cadre et un outil autorisé." },
+  { moduleKey: "ai-10-final-quiz", question: "Pour une information susceptible d’avoir changé récemment, la bonne pratique est de :", optionA: "demander une recherche actuelle et contrôler les sources", optionB: "faire confiance à la mémoire supposée du modèle", optionC: "choisir la réponse la plus longue", optionD: "reposer exactement la même question dix fois", correctAnswer: "A", explanation: "Une source actuelle et contrôlée est nécessaire." },
+  { moduleKey: "ai-10-final-quiz", question: "Que faire si le document source contient deux montants contradictoires ?", optionA: "Choisir le montant le plus élevé", optionB: "Calculer une moyenne", optionC: "Signaler la contradiction et demander confirmation", optionD: "Supprimer les deux montants sans le dire", correctAnswer: "C", explanation: "Une contradiction doit être signalée, pas devinée." },
+  { moduleKey: "ai-10-final-quiz", question: "Codex se distingue d’une simple conversation parce qu’il peut notamment :", optionA: "garantir qu’aucune erreur n’existera", optionB: "lire et modifier les fichiers d’un projet puis lancer des contrôles", optionC: "publier toute modification sans validation", optionD: "prendre la responsabilité juridique du logiciel", correctAnswer: "B", explanation: "Il travaille sur un projet, mais la relecture et la validation humaine restent indispensables." },
+  { moduleKey: "ai-10-final-quiz", question: "Avant d’envoyer un e-mail préparé par une IA, il faut :", optionA: "le relire, vérifier ses faits, ses destinataires et son ton", optionB: "l’envoyer automatiquement puisqu’il est bien écrit", optionC: "enlever toute ponctuation", optionD: "demander au modèle s’il est certain à 100 %", correctAnswer: "A", explanation: "La personne qui envoie conserve la responsabilité du message." },
+  { moduleKey: "ai-10-final-quiz", question: "L’objectif principal d’une initiation à l’IA en entreprise est de :", optionA: "mémoriser tous les noms de modèles", optionB: "savoir tout automatiser immédiatement", optionC: "utiliser l’IA de manière utile, critique et responsable dans son contexte", optionD: "remplacer les procédures de l’organisation", correctAnswer: "C", explanation: "L’enjeu est de développer des pratiques utiles, critiques et responsables." }
+];
+
+export function getAiModuleTotalMinutes() {
+  return AI_MODULES.reduce((total, module) => total + (module.estimatedMinutes ?? 0), 0);
+}

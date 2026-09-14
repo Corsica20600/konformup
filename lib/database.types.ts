@@ -1820,6 +1820,7 @@ export type Database = {
           estimated_minutes: number | null
           id: string
           is_active: boolean
+          module_key: string | null
           module_order: number
           module_type: string
           parent_module_id: string | null
@@ -1827,6 +1828,7 @@ export type Database = {
           summary: string | null
           title: string
           trainer_guidance: string | null
+          training_type: string
           video_url: string | null
         }
         Insert: {
@@ -1835,6 +1837,7 @@ export type Database = {
           estimated_minutes?: number | null
           id?: string
           is_active?: boolean
+          module_key?: string | null
           module_order: number
           module_type?: string
           parent_module_id?: string | null
@@ -1842,6 +1845,7 @@ export type Database = {
           summary?: string | null
           title: string
           trainer_guidance?: string | null
+          training_type?: string
           video_url?: string | null
         }
         Update: {
@@ -1850,6 +1854,7 @@ export type Database = {
           estimated_minutes?: number | null
           id?: string
           is_active?: boolean
+          module_key?: string | null
           module_order?: number
           module_type?: string
           parent_module_id?: string | null
@@ -1857,6 +1862,7 @@ export type Database = {
           summary?: string | null
           title?: string
           trainer_guidance?: string | null
+          training_type?: string
           video_url?: string | null
         }
         Relationships: [

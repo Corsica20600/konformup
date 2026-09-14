@@ -25,6 +25,7 @@ export function FormationModuleContent({
             </p>
             <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">{module.title}</h1>
             {module.summary ? <p className="mt-5 text-xl leading-8 text-ink/70">{module.summary}</p> : null}
+            {module.estimated_minutes ? <p className="mt-4 text-sm font-semibold text-pine">Durée indicative : {module.estimated_minutes} min</p> : null}
           </div>
           <form action={toggleSessionModuleAction}>
             <input type="hidden" name="sessionId" value={sessionId} />
@@ -41,6 +42,13 @@ export function FormationModuleContent({
           <p className="text-lg text-ink/55">Aucun contenu texte n'est renseigné pour cette étape.</p>
         )}
       </section>
+
+      {module.trainer_guidance ? (
+        <section className="rounded-[8px] border border-pine/20 bg-pine/5 p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pine">Notes formateur</p>
+          <p className="mt-3 max-w-5xl whitespace-pre-line text-lg leading-8 text-ink/80">{module.trainer_guidance}</p>
+        </section>
+      ) : null}
 
       {module.video_url ? (
         <section className="grid gap-4">
