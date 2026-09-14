@@ -5,9 +5,13 @@ export const PRE_TRAINING_DOCUMENT_TYPES = ["convocation", "welcome_pack", "aide
 export type PreTrainingDocumentType = (typeof PRE_TRAINING_DOCUMENT_TYPES)[number];
 
 export function getRequiredPreTrainingDocumentTypes(trainingType: TrainingType): PreTrainingDocumentType[] {
-  return trainingType === "hygiene"
-    ? ["convocation", "welcome_pack"]
-    : ["convocation", "welcome_pack", "aide_memoire"];
+  const baseDocuments: PreTrainingDocumentType[] = ["convocation", "welcome_pack"];
+
+  // The SST aide-memoire is only relevant to SST initial and MAC SST courses.
+  // It must never be prepared or sent for hygiene or AI training.
+  return trainingType === "sst_initial" || trainingType === "mac_sst"
+    ? [...baseDocuments, "aide_memoire"]
+    : baseDocuments;
 }
 
 export function isPreTrainingDocumentType(type: string): type is PreTrainingDocumentType {

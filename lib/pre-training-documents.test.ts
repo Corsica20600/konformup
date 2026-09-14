@@ -18,6 +18,7 @@ describe("documents avant formation", () => {
       "aide_memoire"
     ]);
     expect(getRequiredPreTrainingDocumentTypes("hygiene")).toEqual(["convocation", "welcome_pack"]);
+    expect(getRequiredPreTrainingDocumentTypes("ai")).toEqual(["convocation", "welcome_pack"]);
   });
 
   it("conserve une seule pièce récente par type lors de l'envoi", () => {

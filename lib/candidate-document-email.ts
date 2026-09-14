@@ -93,8 +93,8 @@ export async function sendCandidateDocumentEmail(documentId: string) {
       .eq("id", document.session_id)
       .maybeSingle<{ training_type: TrainingType }>();
 
-    if (session?.training_type === "hygiene") {
-      throw new Error("L'aide memoire SST ne peut pas etre envoye pour une formation Hygiene.");
+    if (session?.training_type !== "sst_initial" && session?.training_type !== "mac_sst") {
+      throw new Error("L'aide memoire SST ne peut etre envoye que pour une formation SST.");
     }
   }
 
