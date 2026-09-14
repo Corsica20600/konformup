@@ -9,6 +9,7 @@ import { getOrganizationBranding } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionCandidate, SessionItem } from "@/lib/types";
 import { ensureWelcomePackDocument } from "@/lib/welcome-pack";
+import { getAttendanceSlotTimes } from "@/lib/attendance-schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,6 +95,17 @@ export async function GET(request: Request, context: { params: Promise<{ candida
     return NextResponse.json({ message: "Session introuvable." }, { status: 404 });
   }
 
+  const { data: attendanceSlots } = await supabase
+    .from("attendance_slots")
+    .select("slot_date, starts_at, ends_at, period")
+    .eq("session_id", session.id)
+    .order("slot_date", { ascending: true })
+    .order("starts_at", { ascending: true });
+  const attendanceSchedule = (attendanceSlots ?? []).map((slot) => {
+    const times = getAttendanceSlotTimes({ startsAt: slot.starts_at, endsAt: slot.ends_at, period: slot.period as "morning" | "afternoon" | "custom" });
+    return { date: slot.slot_date, start: times.start, end: times.end };
+  });
+
   if (!session.trainer_name && session.trainer_id) {
     const { data: trainer } = await supabase
       .from("trainers")
@@ -147,7 +159,8 @@ export async function GET(request: Request, context: { params: Promise<{ candida
     candidateSession,
     organizationSettings,
     welcomePackUrl,
-    trainerSignatureUrl: trainerSignature.signature?.src ?? null
+    trainerSignatureUrl: trainerSignature.signature?.src ?? null,
+    attendanceSchedule
   });
   const buffer = await renderToBuffer(document as never);
 

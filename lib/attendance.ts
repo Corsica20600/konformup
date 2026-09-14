@@ -83,32 +83,46 @@ function enumerateSessionDates(startDate: string, endDate: string) {
   return dates;
 }
 
-function buildDefaultSlotDefinitions(session: SessionItem) {
+function addHours(time: string, hours: number) {
+  const [hour, minute] = time.split(":").map(Number);
+  const totalMinutes = hour * 60 + minute + Math.round(hours * 60);
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+}
+
+/** Builds an attendance schedule whose signed teaching time equals the contracted duration. */
+export function buildDefaultSlotDefinitions(session: SessionItem) {
   const dates = enumerateSessionDates(session.start_date, session.end_date);
+  const totalHours = session.duration_hours && session.duration_hours > 0 ? session.duration_hours : dates.length * 7;
+  let remainingHours = totalHours;
 
   return dates.flatMap((slotDate, index) => {
     const dayNumber = index + 1;
+    const daysRemaining = dates.length - index;
+    const dayHours = Math.round((remainingHours / daysRemaining) * 2) / 2;
+    remainingHours = Math.max(0, remainingHours - dayHours);
+    const morningHours = Math.min(3, dayHours);
+    const afternoonHours = Math.max(0, dayHours - morningHours);
 
-    return [
-      {
+    const slots = [];
+    if (morningHours > 0) slots.push({
         session_id: session.id,
         slot_label: `Jour ${dayNumber} - matin`,
         slot_date: slotDate,
         period: "morning" as const,
         starts_at: buildParisDateTimeIso(slotDate, "09:00"),
-        ends_at: buildParisDateTimeIso(slotDate, "12:00"),
+        ends_at: buildParisDateTimeIso(slotDate, addHours("09:00", morningHours)),
         status: "draft" as const
-      },
-      {
+      });
+    if (afternoonHours > 0) slots.push({
         session_id: session.id,
         slot_label: `Jour ${dayNumber} - apres-midi`,
         slot_date: slotDate,
         period: "afternoon" as const,
         starts_at: buildParisDateTimeIso(slotDate, "13:00"),
-        ends_at: buildParisDateTimeIso(slotDate, "17:00"),
+        ends_at: buildParisDateTimeIso(slotDate, addHours("13:00", afternoonHours)),
         status: "draft" as const
-      }
-    ];
+      });
+    return slots;
   });
 }
 

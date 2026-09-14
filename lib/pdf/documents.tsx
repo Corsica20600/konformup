@@ -1870,13 +1870,15 @@ export function ConvocationDocument({
   candidateSession,
   organizationSettings,
   welcomePackUrl,
-  trainerSignatureUrl = null
+  trainerSignatureUrl = null,
+  attendanceSchedule = []
 }: {
   session: SessionItem;
   candidateSession: SessionCandidate;
   organizationSettings: OrganizationBranding;
   welcomePackUrl?: string | null;
   trainerSignatureUrl?: string | null;
+  attendanceSchedule?: Array<{ date: string; start: string; end: string }>;
 }) {
   const candidateFullName = `${candidateSession.candidate.first_name} ${candidateSession.candidate.last_name}`;
   const addressLine = [session.location, session.start_date ? formatDateRange(session.start_date, session.end_date) : null]
@@ -1888,6 +1890,10 @@ export function ConvocationDocument({
   const convocationAuthorTitle = organizationSettings.certificate_signatory_title || "Organisme de formation";
   const trainingTitle = getSessionTrainingTitle(session);
   const shouldAppendSstProgramme = session.training_type === "sst_initial";
+  const scheduleLabel = attendanceSchedule.length
+    ? attendanceSchedule.map((slot) => `${formatDate(slot.date)} : ${slot.start}–${slot.end}`).join(" • ")
+    : null;
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(session.location)}`;
 
   return (
     <Document>
@@ -1913,6 +1919,7 @@ export function ConvocationDocument({
 
           <View style={certificateStyles.detailsCard}>
             <DetailRow label="Dates de session" value={formatDateRange(session.start_date, session.end_date)} />
+            {scheduleLabel ? <DetailRow label="Horaires" value={scheduleLabel} /> : null}
             <DetailRow label="Lieu" value={session.location} />
             <DetailRow label="Duree" value={formatDurationHours(session.duration_hours)} />
             <DetailRow label="Formateur" value={session.trainer_name || "Non renseigne"} isLast />
@@ -1927,6 +1934,12 @@ export function ConvocationDocument({
             </Text>
             <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
               Accessibilite : {session.accessibility_details || "besoin d'adaptation a signaler avant la formation."}
+            </Text>
+            <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
+              Plan d&apos;acces : {" "}
+              <PdfLink src={mapUrl} style={{ color: "#285943", textDecoration: "none" }}>
+                ouvrir Google Maps
+              </PdfLink>
             </Text>
             {welcomePackUrl ? (
               <Text style={[certificateStyles.validationDate, { marginTop: 8 }]}>
