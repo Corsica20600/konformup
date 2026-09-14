@@ -379,8 +379,11 @@ export async function createCandidateAction(_: ActionState, formData: FormData):
       address: existingCandidate?.address ?? (parsed.data.address || null),
       postal_code: existingCandidate?.postal_code ?? (parsed.data.postalCode || null),
       city: existingCandidate?.city ?? (parsed.data.city || null),
-      validation_status: existingCandidate?.validation_status ?? parsed.data.validationStatus,
-      validated_at: (existingCandidate?.validation_status ?? parsed.data.validationStatus) === "validated" ? new Date().toISOString() : null,
+      // A new registration must always start with its own validation state.  An
+      // earlier training's admission cannot validate the participant for this
+      // session.
+      validation_status: parsed.data.validationStatus,
+      validated_at: parsed.data.validationStatus === "validated" ? new Date().toISOString() : null,
       mac_identity_id: existingCandidate?.mac_identity_id ?? null
     })
     .select("id, session_id")
@@ -1466,8 +1469,10 @@ export async function prefillSessionCandidatesFromQuoteAction(_: ActionState, fo
       address: candidate.address,
       postal_code: candidate.postal_code,
       city: candidate.city,
-      validation_status: candidate.validation_status,
-      validated_at: candidate.validation_status === "validated" ? new Date().toISOString() : null
+      // The company pre-fill creates new session registrations, not copies of
+      // the prior training outcome.
+      validation_status: "pending",
+      validated_at: null
     }));
 
   if (!candidatesToInsert.length) {
