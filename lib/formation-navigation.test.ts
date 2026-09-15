@@ -5,6 +5,7 @@ import type { SessionModule } from "@/lib/types";
 function moduleItem(overrides: Partial<SessionModule>): SessionModule {
   return {
     id: "module",
+    module_key: null,
     title: "Module",
     summary: null,
     module_order: 1,

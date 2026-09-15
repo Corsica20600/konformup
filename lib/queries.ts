@@ -32,6 +32,7 @@ type SessionModuleRow = {
   training_modules:
     | {
         id: string;
+        module_key: string | null;
         title: string;
         summary: string | null;
         module_order: number;
@@ -46,6 +47,7 @@ type SessionModuleRow = {
       }
     | {
         id: string;
+        module_key: string | null;
         title: string;
         summary: string | null;
         module_order: number;
@@ -1357,6 +1359,7 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string, tr
       completed_at,
       training_modules!inner (
         id,
+        module_key,
         title,
         summary,
         module_order,
@@ -1392,6 +1395,7 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string, tr
       completed_at,
       training_modules (
         id,
+        module_key,
         title,
         summary,
         module_order,
@@ -1419,6 +1423,7 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string, tr
       training_modules: Array.isArray(row.training_modules)
           ? row.training_modules.map((module) => ({
               ...module,
+              module_key: "module_key" in module ? module.module_key : null,
               trainer_guidance: null,
               parent_module_id: "parent_module_id" in module ? module.parent_module_id : null,
               module_type: "module_type" in module && module.module_type === "parent" ? "parent" : "child",
@@ -1427,6 +1432,10 @@ async function selectSessionModulesBySessionIdWithFallback(sessionId: string, tr
         : row.training_modules
           ? {
               ...(row.training_modules as Record<string, unknown>),
+              module_key:
+                "module_key" in (row.training_modules as Record<string, unknown>)
+                  ? ((row.training_modules as Record<string, unknown>).module_key as string | null)
+                  : null,
               trainer_guidance: null,
               parent_module_id:
                 "parent_module_id" in (row.training_modules as Record<string, unknown>)
@@ -1546,6 +1555,7 @@ export async function getSessionById(sessionId: string) {
 
       return {
         id: trainingModule.id,
+        module_key: trainingModule.module_key,
         title: trainingModule.title,
         summary: trainingModule.summary,
         module_order: trainingModule.module_order,

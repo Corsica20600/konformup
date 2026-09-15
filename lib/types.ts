@@ -163,6 +163,7 @@ export type OrganizationBranding = OrganizationSettings & {
 
 export type SessionModule = {
   id: string;
+  module_key: string | null;
   title: string;
   summary: string | null;
   module_order: number;

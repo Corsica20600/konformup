@@ -8,6 +8,7 @@ export type TrainingModuleTemplate = {
   trainerGuidance: string;
   videoUrl: string | null;
   pdfUrl: string | null;
+  media?: { expectedFileName: string; title: string; durationSeconds: number; transcript: string; videoPath?: string };
 };
 
 export type TrainingQuizTemplate = {
@@ -51,18 +52,19 @@ export const AI_MODULES: TrainingModuleTemplate[] = [
     description: "Définir l’IA générative et distinguer ses usages de la recherche et de l’expertise humaine.",
     estimatedMinutes: 13,
     textContent: "Une IA générative produit du texte, des images, du code ou des synthèses à partir d’une demande et du contexte fourni. Elle peut aider à préparer, reformuler, résumer, organiser ou proposer des pistes.\n\nElle ne remplace ni la connaissance du métier, ni la vérification, ni la décision humaine. Pour une information actuelle, demander une recherche adaptée puis contrôler directement les sources.\n\nExemples utiles : préparer une trame d’e-mail, classer des idées, créer un plan, résumer des notes fictives ou préparer une première version à relire.",
-    trainerGuidance: "Limiter l’exposé. Demander au groupe trois usages possibles dans son activité, puis distinguer l’aide à la préparation de la décision finale.",
+    trainerGuidance: "Objectif : expliquer comment une IA générative produit une réponse plausible.\n\nDéroulé : question d’ouverture, capsule 1, débrief, comparaison moteur de recherche / ChatGPT / Codex.\n\nQuestion : « Quelle partie reste sous la responsabilité humaine ? »\n\nMessage clé : une réponse bien rédigée peut être fausse.\n\nSolution de secours : utiliser la transcription si la vidéo n’est pas disponible.",
     videoUrl: null,
-    pdfUrl: null
+    pdfUrl: null,
+    media: { expectedFileName: "01_De_l_idee_au_resultat.mp4", title: "De l’idée au résultat avec ChatGPT et Codex", durationSeconds: 60, transcript: "Quand on parle d’IA, on imagine parfois qu’il faut être informaticien. Je pars d’un besoin métier simple. Avec ChatGPT, je précise mon objectif, le contexte, le résultat attendu et les limites. Je relis ensuite le résultat et demande une correction ciblée. Avec Codex, je peux travailler dans un projet logiciel : lire les fichiers, proposer une modification et lancer des contrôles. L’IA accélère le travail, mais l’humain vérifie, corrige et garde la décision finale.", videoPath: "/training-media/01_De_l_idee_au_resultat.mp4" }
   },
   {
     key: "ai-04-two-prompts",
     order: 4,
-    title: "Même tâche, deux demandes",
-    description: "Comparer une demande vague et une demande structurée.",
+    title: "Possibilités et limites",
+    description: "Identifier des usages professionnels utiles et les contrôles associés.",
     estimatedMinutes: 7,
-    textContent: "Démonstration ou vidéo de trois minutes à préparer : « Une même tâche, deux prompts ».\n\nComparer :\n- « Fais un compte rendu professionnel. »\n- « À partir de ces notes fictives, rédige un compte rendu de 150 mots ; commence par les décisions, puis les actions avec responsable et échéance ; signale les informations manquantes. »\n\nLe résultat dépend de la clarté du contexte, du format demandé et des limites données. Média à ajouter : aucune vidéo externe n’est intégrée automatiquement.",
-    trainerGuidance: "Si la vidéo interne n’est pas disponible, faire la comparaison en direct. Ne pas utiliser de lien fictif. La ressource OpenAI « Vidéos ChatGPT et Codex » peut compléter la préparation du formateur.",
+    textContent: "Tracer deux colonnes : « Utile » et « À contrôler ».\n\nÀ partir des idées du groupe, identifier deux ou trois tâches adaptées : résumé de réunion, préparation d’e-mail, comparaison de documents, création d’un plan ou extraction d’actions.\n\nPour chaque usage, demander ce qui peut mal se passer et qui doit relire le résultat. Partir d’une tâche et d’un résultat attendu, pas d’un outil à utiliser à tout prix.",
+    trainerGuidance: "Objectif : faire émerger des usages professionnels réalistes.\n\nQuestion : « Quelle tâche répétitive, pénible ou longue aimeriez-vous lui confier demain ? »\n\nMessage clé : utile ne signifie pas autonome ; une personne contrôle le résultat.",
     videoUrl: null,
     pdfUrl: null
   },
@@ -84,9 +86,10 @@ export const AI_MODULES: TrainingModuleTemplate[] = [
     description: "Transformer une demande floue en demande exploitable et vérifiable.",
     estimatedMinutes: 20,
     textContent: "Méthode O-C-R-L :\n- Objectif : ce que je veux obtenir.\n- Contexte : les éléments utiles, la cible et la source.\n- Résultat attendu : format, longueur, ton, structure.\n- Limites : ce qui ne doit pas être inventé, les points à signaler et les vérifications attendues.\n\nExercice 1 : améliorer « Fais-moi un e-mail pour nos clients ». La version corrigée doit préciser le public, le sujet, le ton, la longueur, les données autorisées et ce qui doit être validé avant envoi.",
-    trainerGuidance: "Faire travailler en binômes. Insister : « Tu es expert » peut orienter le ton, mais ne rend pas une information vraie. Faire comparer deux propositions et identifier les éléments manquants.",
+    trainerGuidance: "Objectif : utiliser O-C-R-L comme liste de contrôle.\n\nDéroulé : capsule 2, répétition collective, exemple avant/après, exercice 1 et correction.\n\nVigilance : « Tu es expert » peut orienter le ton, mais ne rend pas une information vraie.\n\nSolution de secours : lire la transcription puis réaliser l’exercice oralement.",
     videoUrl: null,
-    pdfUrl: null
+    pdfUrl: null,
+    media: { expectedFileName: "02_Bon_prompt_OCRL.mp4", title: "Construire un bon prompt avec O-C-R-L", durationSeconds: 60, transcript: "Pour une tâche importante, retenez quatre repères : Objectif, Contexte, Résultat et Limites. Une demande vague oblige l’IA à deviner. Précisez le public, la source, le format, ce qui doit être conservé et ce qui doit être signalé. Vous n’avez pas besoin de réussir du premier coup : relisez, dites ce qui ne convient pas et demandez une correction ciblée. Un bon prompt donne une direction ; la vérification donne confiance.", videoPath: "/training-media/02_Bon_prompt_OCRL.mp4" }
   },
   {
     key: "ai-07-atlas",
@@ -117,9 +120,10 @@ export const AI_MODULES: TrainingModuleTemplate[] = [
     description: "Protéger les données, vérifier les résultats et garder la décision humaine.",
     estimatedMinutes: 13,
     textContent: "Les cinq réflexes :\n1. Décrire clairement le résultat attendu.\n2. Protéger les données et respecter les règles de l’organisation.\n3. Vérifier faits, chiffres, sources, dates et citations.\n4. Corriger par le dialogue au lieu d’accepter la première réponse.\n5. Décider humainement avant d’envoyer, publier ou agir.\n\nMini-jeu : classer les cas en usage courant (vert), vigilance (orange) ou interdit sans cadre autorisé (rouge). Une liste nominative de clients, un dossier médical, un secret ou un mot de passe ne sont jamais à saisir dans un outil non autorisé. Une hallucination est une information fausse ou non fondée produite avec assurance : il faut la recouper.",
-    trainerGuidance: "Faire classer les cas avant d’afficher la correction. Rappeler que les outils autorisés, les droits d’accès et les règles internes de l’entreprise priment toujours.",
+    trainerGuidance: "Objectif : repérer une hallucination et protéger les données.\n\nDéroulé : capsule 3, débrief, intervention « Protéger les données et garder la décision », mini-jeu vert/orange/rouge, synthèse.\n\nQuestion : « Quel détail rend une hallucination dangereuse ? » Réponse attendue : son apparence crédible.\n\nVigilance : orange signifie vérifier le cadre et les autorisations ; ce n’est pas automatiquement interdit.",
     videoUrl: null,
-    pdfUrl: null
+    pdfUrl: null,
+    media: { expectedFileName: "03_Hallucinations_verifier.mp4", title: "Une réponse convaincante peut être fausse", durationSeconds: 60, transcript: "Une IA peut produire une réponse claire, précise et pourtant fausse : c’est une hallucination. Elle peut inventer un chiffre, une date, une référence ou un lien. Pour un sujet important, donnez une source fiable, demandez de distinguer les faits des incertitudes, puis ouvrez réellement les liens. Une phrase élégante n’est pas une preuve : la confiance vient de la vérification.", videoPath: "/training-media/03_Hallucinations_verifier.mp4" }
   },
   {
     key: "ai-10-final-quiz",

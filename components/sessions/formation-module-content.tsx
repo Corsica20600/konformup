@@ -1,6 +1,7 @@
 import { toggleSessionModuleAction } from "@/app/(dashboard)/sessions/actions";
 import { ProjectionQuiz } from "@/components/sessions/projection-quiz";
 import { Button } from "@/components/ui/button";
+import { AI_MODULES } from "@/lib/constants/ai-modules";
 import { getVideoEmbedUrl } from "@/lib/formation-media";
 import type { SessionModule, TrainingQuiz } from "@/lib/types";
 
@@ -15,6 +16,8 @@ export function FormationModuleContent({
   quizzes: TrainingQuiz[];
   quizError?: string | null;
 }) {
+  const media = AI_MODULES.find((aiModule) => aiModule.key === module.module_key)?.media;
+
   return (
     <div className="grid gap-10">
       <section className="grid gap-6 border-b border-ink/10 pb-10">
@@ -44,9 +47,27 @@ export function FormationModuleContent({
       </section>
 
       {module.trainer_guidance ? (
-        <section className="rounded-[8px] border border-pine/20 bg-pine/5 p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pine">Notes formateur</p>
+        <details className="rounded-[8px] border border-pine/20 bg-pine/5 p-6" open>
+          <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-pine">Notes formateur</summary>
           <p className="mt-3 max-w-5xl whitespace-pre-line text-lg leading-8 text-ink/80">{module.trainer_guidance}</p>
+        </details>
+      ) : null}
+
+      {media ? (
+        <section className="rounded-[8px] border border-pine/20 bg-pine/5 p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pine">Capsule vidéo</p>
+          <h2 className="mt-2 text-2xl font-bold">{media.title}</h2>
+          <p className="mt-2 text-ink/70">Fichier attendu : <span className="font-semibold">{media.expectedFileName}</span> · durée : {media.durationSeconds} s</p>
+          {media.videoPath ? (
+            <video className="mt-5 aspect-video w-full rounded-[8px] bg-ink" controls preload="metadata" title={media.title}>
+              <source src={media.videoPath} type="video/mp4" />
+              Votre navigateur ne permet pas la lecture de cette vidéo.
+            </video>
+          ) : <p className="mt-4 rounded-[8px] bg-accent/10 p-4 font-semibold text-accent">Média à ajouter par le formateur.</p>}
+          <details className="mt-4 rounded-[8px] bg-white/70 p-4">
+            <summary className="cursor-pointer font-semibold">Lire la transcription</summary>
+            <p className="mt-3 whitespace-pre-line leading-7 text-ink/80">{media.transcript}</p>
+          </details>
         </section>
       ) : null}
 
