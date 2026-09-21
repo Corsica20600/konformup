@@ -46,7 +46,9 @@ export default async function AttendanceRespondPage({
   }
 
   const effectiveStatus = attendance.trainer_override_status ?? attendance.response_status;
-  const isSubmitted = submitted === "1" || attendance.responded_at !== null;
+  // A trainer's manual "present" decision is a valid completion for the
+  // satisfaction flow even when the attendance link was never dispatched.
+  const isSubmitted = submitted === "1" || attendance.responded_at !== null || effectiveStatus === "present";
   const satisfaction = isSubmitted ? await getCandidateSatisfactionContext(trimmedToken) : { is_final_slot: false, submitted: false };
 
   return (

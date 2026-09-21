@@ -269,6 +269,9 @@ create table if not exists public.attendance_responses (
   delivery_channel text not null default 'email',
   delivery_sent_at timestamptz,
   delivery_status text not null default 'pending',
+  satisfaction_delivery_status text not null default 'pending',
+  satisfaction_delivery_sent_at timestamptz,
+  satisfaction_delivery_error_at timestamptz,
   responded_at timestamptz,
   response_status text not null default 'pending',
   trainer_override_status text,
@@ -280,6 +283,7 @@ create table if not exists public.attendance_responses (
   updated_at timestamptz not null default timezone('utc', now()),
   constraint attendance_responses_delivery_channel_allowed check (delivery_channel in ('email', 'sms')),
   constraint attendance_responses_delivery_status_allowed check (delivery_status in ('pending', 'sent', 'failed')),
+  constraint attendance_responses_satisfaction_delivery_status_allowed check (satisfaction_delivery_status in ('pending', 'sent', 'failed')),
   constraint attendance_responses_response_status_allowed check (response_status in ('pending', 'present', 'absent', 'issue')),
   constraint attendance_responses_trainer_override_status_allowed check (
     trainer_override_status is null or trainer_override_status in ('pending', 'present', 'absent', 'issue')

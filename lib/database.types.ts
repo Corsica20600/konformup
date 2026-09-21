@@ -27,6 +27,9 @@ export type Database = {
           responded_at: string | null
           response_status: string
           response_token: string
+          satisfaction_delivery_error_at: string | null
+          satisfaction_delivery_sent_at: string | null
+          satisfaction_delivery_status: string
           trainer_overridden_at: string | null
           trainer_override_note: string | null
           trainer_override_status: string | null
@@ -45,6 +48,9 @@ export type Database = {
           responded_at?: string | null
           response_status?: string
           response_token: string
+          satisfaction_delivery_error_at?: string | null
+          satisfaction_delivery_sent_at?: string | null
+          satisfaction_delivery_status?: string
           trainer_overridden_at?: string | null
           trainer_override_note?: string | null
           trainer_override_status?: string | null
@@ -63,6 +69,9 @@ export type Database = {
           responded_at?: string | null
           response_status?: string
           response_token?: string
+          satisfaction_delivery_error_at?: string | null
+          satisfaction_delivery_sent_at?: string | null
+          satisfaction_delivery_status?: string
           trainer_overridden_at?: string | null
           trainer_override_note?: string | null
           trainer_override_status?: string | null

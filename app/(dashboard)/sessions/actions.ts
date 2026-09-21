@@ -9,7 +9,7 @@ import {
   regenerateGeneratedDocument,
   type SupportedGeneratedDocumentType
 } from "@/lib/generated-documents";
-import { closeAttendanceSlot, sendAttendanceSlotRequests } from "@/lib/attendance";
+import { closeAttendanceSlot, sendAttendanceSlotRequests, sendCandidateSatisfactionSurveyForManualPresence } from "@/lib/attendance";
 import { buildParisDateTimeIso, isValidAttendanceTimeRange } from "@/lib/attendance-schedule";
 import { sendCandidateDocumentEmail, sendCandidateSessionDocumentsEmail } from "@/lib/candidate-document-email";
 import { sendTrainingAgreementEmail } from "@/lib/training-agreement-email";
@@ -1076,6 +1076,19 @@ export async function setAttendanceResponseOverrideFormAction(formData: FormData
       message: error.message
     });
     redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=manual`);
+  }
+
+  if (overrideStatus === "present") {
+    try {
+      await sendCandidateSatisfactionSurveyForManualPresence(responseId);
+    } catch (error) {
+      console.error("[attendance] satisfaction delivery failed", {
+        responseId,
+        sessionId,
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+      redirect(`/sessions/${sessionId}?attendanceError=1&attendanceSlot=satisfaction`);
+    }
   }
 
   revalidatePath(`/sessions/${sessionId}`);

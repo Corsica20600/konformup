@@ -353,6 +353,7 @@ export type AttendanceCandidateResponse = {
   candidate_name: string;
   candidate_email: string | null;
   delivery_status: AttendanceDeliveryStatus;
+  satisfaction_delivery_status: AttendanceDeliveryStatus;
   responded_at: string | null;
   response_status: AttendanceResponseStatus;
   trainer_override_status: AttendanceResponseStatus | null;

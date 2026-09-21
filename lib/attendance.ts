@@ -39,6 +39,7 @@ type AttendanceResponseRow = {
   candidate_id: string;
   response_token: string;
   delivery_status: "pending" | "sent" | "failed";
+  satisfaction_delivery_status: "pending" | "sent" | "failed";
   responded_at: string | null;
   response_status: "pending" | "present" | "absent" | "issue";
   trainer_override_status: "pending" | "present" | "absent" | "issue" | null;
@@ -240,7 +241,7 @@ export async function getAttendanceOverviewForSession(
   const { data: responseRows, error } = await supabase
     .from("attendance_responses")
     .select(
-      "id, attendance_slot_id, candidate_id, response_token, delivery_status, responded_at, response_status, trainer_override_status, trainer_override_note, candidates(first_name, last_name, email)"
+      "id, attendance_slot_id, candidate_id, response_token, delivery_status, satisfaction_delivery_status, responded_at, response_status, trainer_override_status, trainer_override_note, candidates(first_name, last_name, email)"
     )
     .in("attendance_slot_id", slotIds)
     .order("created_at", { ascending: true });
@@ -274,6 +275,7 @@ export async function getAttendanceOverviewForSession(
         candidate_name: `${candidateRecord?.first_name ?? ""} ${candidateRecord?.last_name ?? ""}`.trim() || "Candidat",
         candidate_email: candidateRecord?.email ?? null,
         delivery_status: response.delivery_status,
+        satisfaction_delivery_status: response.satisfaction_delivery_status,
         responded_at: response.responded_at,
         response_status: response.response_status,
         trainer_override_status: response.trainer_override_status,
@@ -319,6 +321,120 @@ export function buildAttendanceResponseUrl(token: string) {
   const url = buildPrivateAppUrl("/attendance/respond");
   url.searchParams.set("token", token);
   return url.toString();
+}
+
+/**
+ * Delivers the end-of-training survey without altering the attendance delivery
+ * state. This is used when a trainer records the final attendance manually.
+ */
+export async function sendCandidateSatisfactionSurveyForManualPresence(responseId: string) {
+  const supabase = await createClient();
+  const { data: response, error: responseError } = await supabase
+    .from("attendance_responses")
+    .select("id, attendance_slot_id, candidate_id, response_token, trainer_override_status, response_status, satisfaction_delivery_status, candidates(first_name, last_name, email)")
+    .eq("id", responseId)
+    .maybeSingle();
+
+  if (responseError || !response) {
+    throw new Error("Réponse d’émargement introuvable pour l’envoi du questionnaire.");
+  }
+
+  if ((response.trainer_override_status ?? response.response_status) !== "present") {
+    return { sent: false, skipped: true, failed: false };
+  }
+
+  if (response.satisfaction_delivery_status === "sent") {
+    return { sent: false, skipped: true, failed: false };
+  }
+
+  const { data: slot, error: slotError } = await supabase
+    .from("attendance_slots")
+    .select("id, session_id")
+    .eq("id", response.attendance_slot_id)
+    .maybeSingle();
+
+  if (slotError || !slot) {
+    throw new Error("Créneau d’émargement introuvable pour l’envoi du questionnaire.");
+  }
+
+  const { data: finalSlot, error: finalSlotError } = await supabase
+    .from("attendance_slots")
+    .select("id")
+    .eq("session_id", slot.session_id)
+    .order("slot_date", { ascending: false })
+    .order("ends_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (finalSlotError || finalSlot?.id !== slot.id) {
+    return { sent: false, skipped: true, failed: false };
+  }
+
+  const candidate = Array.isArray(response.candidates) ? response.candidates[0] : response.candidates;
+  const email = candidate?.email?.trim();
+  const now = new Date().toISOString();
+  if (!email) {
+    await supabase
+      .from("attendance_responses")
+      .update({ satisfaction_delivery_status: "failed", satisfaction_delivery_error_at: now, updated_at: now })
+      .eq("id", response.id);
+    return { sent: false, skipped: false, failed: true };
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from("training_sessions")
+    .select("title")
+    .eq("id", slot.session_id)
+    .maybeSingle();
+
+  if (sessionError || !session) {
+    throw new Error("Session introuvable pour l’envoi du questionnaire.");
+  }
+
+  const candidateName = `${candidate.first_name} ${candidate.last_name}`.trim() || email;
+  const surveyUrl = buildAttendanceResponseUrl(response.response_token);
+  const emailContext = await getTransactionalEmailContext();
+
+  try {
+    await sendBrevoTransactionalEmail({
+      context: emailContext,
+      to: [{ email, name: candidateName }],
+      subject: `Questionnaire de satisfaction — ${session.title}`,
+      textContent: [
+        `Bonjour ${candidateName},`,
+        "",
+        `Merci pour votre participation à ${session.title}.`,
+        "",
+        "Votre avis nous aide à améliorer nos formations. Le questionnaire est facultatif et dure moins d’une minute :",
+        surveyUrl,
+        "",
+        ...emailContext.signatureLines
+      ].join("\n"),
+      errorLabel: "l’envoi du questionnaire de satisfaction"
+    });
+  } catch (error) {
+    await supabase
+      .from("attendance_responses")
+      .update({ satisfaction_delivery_status: "failed", satisfaction_delivery_error_at: now, updated_at: now })
+      .eq("id", response.id);
+    throw error;
+  }
+
+  const { error: updateError } = await supabase
+    .from("attendance_responses")
+    .update({
+      satisfaction_delivery_status: "sent",
+      satisfaction_delivery_sent_at: now,
+      satisfaction_delivery_error_at: null,
+      updated_at: now
+    })
+    .eq("id", response.id);
+
+  if (updateError) {
+    throw new Error("Le questionnaire a été envoyé, mais sa traçabilité n’a pas pu être enregistrée.");
+  }
+
+  return { sent: true, skipped: false, failed: false };
 }
 
 function buildAttendanceEmailBody({
