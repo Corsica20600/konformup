@@ -4,7 +4,8 @@ import {
   getFinalDocumentSet,
   getRequiredFinalDocumentTypes,
   getForprevStatusForCandidate,
-  getSessionClosureReadiness
+  getSessionClosureReadiness,
+  getSstCertificateNotice
 } from "@/lib/session-closure";
 import { getGeneratedDocumentLabel } from "@/lib/document-labels";
 import type { SessionCandidate } from "@/lib/types";
@@ -68,6 +69,13 @@ describe("session closure", () => {
   it("keeps FORPREV non applicable for Hygiene", () => {
     expect(getForprevStatusForCandidate("hygiene", buildCandidate({}))).toBe("non_applicable");
     expect(getFinalDocumentSet("hygiene").join(" ")).not.toMatch(/SST|FORPREV/i);
+  });
+
+  it("shows the SST certificate notice only for SST training", () => {
+    expect(getSstCertificateNotice("sst_initial")).toMatch(/FORPREV/);
+    expect(getSstCertificateNotice("mac_sst")).toMatch(/FORPREV/);
+    expect(getSstCertificateNotice("hygiene")).not.toMatch(/SST|FORPREV/i);
+    expect(getSstCertificateNotice("ai")).not.toMatch(/SST|FORPREV/i);
   });
 
   it("lists only the retained final documents", () => {

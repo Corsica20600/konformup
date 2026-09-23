@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/database.types";
-import { getRequiredFinalDocumentTypes } from "@/lib/session-closure";
+import { getRequiredFinalDocumentTypes, hasClearGlobalEvaluation } from "@/lib/session-closure";
 
 const ARCHIVE_BUCKET = "session-archives";
 const MANIFEST_VERSION = "1";
@@ -55,11 +55,7 @@ export async function getSessionArchiveBlockers(sessionId: string): Promise<Arch
   const pendingAttendance = (responses ?? []).filter((response) => (response.trainer_override_status ?? response.response_status) === "pending").length;
   const incompleteEvaluations = candidateIds.filter((candidateId) => {
     const entries = (evaluations ?? []).filter((entry) => entry.candidate_id === candidateId);
-    const latest = (type: string) => entries.filter((entry) => entry.evaluation_type === type).sort((a, b) => (b.evaluated_at ?? "").localeCompare(a.evaluated_at ?? ""))[0];
-    const global = latest("globale");
-    if (!global || !["admis", "non_admis", "absent", "partiel"].includes(global.result)) return true;
-    if (global.result === "absent") return false;
-    return ["theorique", "pratique"].some((type) => !latest(type) || latest(type)?.status === "non_evalue");
+    return !hasClearGlobalEvaluation(entries);
   }).length;
   const documentRows = documents ?? [];
   const missingDocuments: string[] = [];

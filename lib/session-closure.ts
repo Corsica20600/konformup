@@ -16,6 +16,20 @@ export type SessionClosureReadiness = {
 
 const CLEAR_GLOBAL_RESULTS = new Set(["admis", "non_admis", "absent", "partiel"]);
 
+export function hasClearGlobalEvaluation(
+  evaluations: Array<{ evaluation_type: string; result: string; evaluated_at: string | null }> = []
+) {
+  const evaluation = [...evaluations]
+    .filter((evaluation) => evaluation.evaluation_type === "globale")
+    .sort((left, right) => {
+      const leftDate = left.evaluated_at ? new Date(left.evaluated_at).getTime() : 0;
+      const rightDate = right.evaluated_at ? new Date(right.evaluated_at).getTime() : 0;
+      return rightDate - leftDate;
+    })[0] ?? null;
+
+  return Boolean(evaluation && CLEAR_GLOBAL_RESULTS.has(evaluation.result));
+}
+
 function getExplicitGlobalEvaluation(candidate: SessionCandidate) {
   return [...(candidate.evaluations ?? [])]
     .filter((evaluation) => evaluation.evaluation_type === "globale")
@@ -28,8 +42,7 @@ function getExplicitGlobalEvaluation(candidate: SessionCandidate) {
 
 export function getSessionClosureReadiness(candidates: SessionCandidate[]): SessionClosureReadiness {
   const missingGlobalEvaluationCount = candidates.filter((candidate) => {
-    const evaluation = getExplicitGlobalEvaluation(candidate);
-    return !evaluation || !CLEAR_GLOBAL_RESULTS.has(evaluation.result);
+    return !hasClearGlobalEvaluation(candidate.evaluations);
   }).length;
 
   return {
@@ -97,12 +110,16 @@ export function getRequiredFinalDocumentTypes(trainingType: TrainingType) {
 
 export function getSstCertificateNotice(trainingType: TrainingType) {
   if (trainingType === "hygiene") {
-    return "Aucune reference de certificat professionnel complementaire n'est requise pour cette formation.";
+    return "Aucun certificat professionnel complémentaire n’est requis pour cette formation.";
   }
 
   if (trainingType === "mac_sst") {
     return "Certificat SST / MAC SST a renseigner dans le registre FORPREV lorsque la validation est acquise.";
   }
 
-  return "Certificat SST a renseigner dans le registre FORPREV lorsque la validation est acquise.";
+  if (trainingType === "sst_initial") {
+    return "Certificat SST à renseigner dans le registre FORPREV lorsque la validation est acquise.";
+  }
+
+  return "Aucun certificat complémentaire n’est à renseigner pour cette formation.";
 }
