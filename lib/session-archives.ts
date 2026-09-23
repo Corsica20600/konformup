@@ -2,8 +2,8 @@ import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/lib/database.types";
-import { getRequiredFinalDocumentTypes, hasClearGlobalEvaluation } from "@/lib/session-closure";
+import type { Json, TrainingType } from "@/lib/database.types";
+import { getRequiredFinalDocumentTypes, hasCompleteSessionEvaluation } from "@/lib/session-closure";
 
 const ARCHIVE_BUCKET = "session-archives";
 const MANIFEST_VERSION = "1";
@@ -48,6 +48,7 @@ export async function getSessionArchiveBlockers(sessionId: string): Promise<Arch
     ? await supabase.from("attendance_responses").select("response_status, trainer_override_status").in("attendance_slot_id", slotIds)
     : { data: [] as Array<{ response_status: string; trainer_override_status: string | null }> };
   const candidateIds = (candidates ?? []).map((candidate) => candidate.id);
+  const trainingType = (session?.training_type ?? "sst_initial") as TrainingType;
   const { data: evaluations } = candidateIds.length
     ? await supabase.from("candidate_evaluations").select("candidate_id, evaluation_type, status, result, evaluated_at").eq("session_id", sessionId).in("candidate_id", candidateIds)
     : { data: [] as Array<{ candidate_id: string; evaluation_type: string; status: string; result: string; evaluated_at: string | null }> };
@@ -55,7 +56,7 @@ export async function getSessionArchiveBlockers(sessionId: string): Promise<Arch
   const pendingAttendance = (responses ?? []).filter((response) => (response.trainer_override_status ?? response.response_status) === "pending").length;
   const incompleteEvaluations = candidateIds.filter((candidateId) => {
     const entries = (evaluations ?? []).filter((entry) => entry.candidate_id === candidateId);
-    return !hasClearGlobalEvaluation(entries);
+    return !hasCompleteSessionEvaluation(trainingType, entries);
   }).length;
   const documentRows = documents ?? [];
   const missingDocuments: string[] = [];

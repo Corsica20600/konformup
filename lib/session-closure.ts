@@ -30,6 +30,21 @@ export function hasClearGlobalEvaluation(
   return Boolean(evaluation && CLEAR_GLOBAL_RESULTS.has(evaluation.result));
 }
 
+export function hasCompleteSessionEvaluation(
+  trainingType: TrainingType,
+  evaluations: Array<{ evaluation_type: string; result: string; status: string; evaluated_at: string | null }> = []
+) {
+  if (!hasClearGlobalEvaluation(evaluations)) return false;
+  if (trainingType === "ai") return true;
+
+  const latest = (type: string) => [...evaluations]
+    .filter((evaluation) => evaluation.evaluation_type === type)
+    .sort((left, right) => (right.evaluated_at ?? "").localeCompare(left.evaluated_at ?? ""))[0];
+  const global = latest("globale");
+  if (global?.result === "absent") return true;
+  return !["theorique", "pratique"].some((type) => !latest(type) || latest(type)?.status === "non_evalue");
+}
+
 function getExplicitGlobalEvaluation(candidate: SessionCandidate) {
   return [...(candidate.evaluations ?? [])]
     .filter((evaluation) => evaluation.evaluation_type === "globale")
