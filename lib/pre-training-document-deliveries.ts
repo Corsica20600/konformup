@@ -45,6 +45,7 @@ function formatDate(value: string) {
 
 function attachmentName(document: StoredDocument) {
   if (document.document_type === "welcome_pack") return "livret_accueil_reglement_interieur.pdf";
+  if (document.document_type === "livret_ia") return "livret-participant-ia.pdf";
   return `convocation-${document.document_ref}.pdf`;
 }
 
@@ -174,7 +175,7 @@ export async function runPreTrainingDocumentDeliveryCron(today = new Date().toIS
               context,
               to: [{ email, name: candidateName }],
               subject: `Vos documents de formation – ${session.title}`,
-              textContent: [`Bonjour ${candidateName},`, "", `Votre formation « ${session.title} » débute le ${formatDate(session.start_date)}.`, "Veuillez trouver ci-joint votre convocation et votre livret d'accueil.", "", "Cordialement,", ...context.signatureLines].join("\n"),
+              textContent: [`Bonjour ${candidateName},`, "", `Votre formation « ${session.title} » débute le ${formatDate(session.start_date)}.`, "Veuillez trouver ci-joint vos documents de formation :", ...documents.map((document) => `- ${getGeneratedDocumentLabel(document.document_type)}`), "", "Cordialement,", ...context.signatureLines].join("\n"),
               attachment: attachments,
               errorLabel: "l'envoi automatique des documents avant formation"
             });
@@ -183,11 +184,12 @@ export async function runPreTrainingDocumentDeliveryCron(today = new Date().toIS
             initialCompleted = true;
             documentsSent += 1;
           } else {
+            const documentLabels = getRequiredPreTrainingDocumentTypes(session.training_type).map(getGeneratedDocumentLabel);
             await sendBrevoTransactionalEmail({
               context,
               to: [{ email, name: candidateName }],
               subject: `Rappel : votre formation débute dans 48 heures – ${session.title}`,
-              textContent: [`Bonjour ${candidateName},`, "", `Rappel : votre formation « ${session.title} » débute le ${formatDate(session.start_date)}.`, "Votre convocation et votre livret d'accueil vous ont été transmis. Pensez à les conserver.", "", "Cordialement,", ...context.signatureLines].join("\n"),
+              textContent: [`Bonjour ${candidateName},`, "", `Rappel : votre formation « ${session.title} » débute le ${formatDate(session.start_date)}.`, `Les documents transmis sont : ${documentLabels.join(", ")}. Pensez à les conserver.`, "", "Cordialement,", ...context.signatureLines].join("\n"),
               errorLabel: "le rappel automatique avant formation"
             });
             await setDeliveryStatus(supabase, delivery.id, "sent");

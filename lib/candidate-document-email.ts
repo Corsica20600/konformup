@@ -20,6 +20,8 @@ function buildAttachmentName(type: string, ref: string) {
     return "livret_reglement.pdf";
   }
 
+  if (type === "livret_ia") return "livret-participant-ia.pdf";
+
   return `${type}-${ref}.pdf`;
 }
 

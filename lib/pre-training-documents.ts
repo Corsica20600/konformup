@@ -1,11 +1,16 @@
 import type { TrainingType } from "@/lib/database.types";
+import { getParticipantGuidePolicy } from "@/lib/training-programs";
 
-export const PRE_TRAINING_DOCUMENT_TYPES = ["convocation", "welcome_pack", "aide_memoire"] as const;
+export const PRE_TRAINING_DOCUMENT_TYPES = ["convocation", "welcome_pack", "aide_memoire", "livret_ia"] as const;
 
 export type PreTrainingDocumentType = (typeof PRE_TRAINING_DOCUMENT_TYPES)[number];
 
 export function getRequiredPreTrainingDocumentTypes(trainingType: TrainingType): PreTrainingDocumentType[] {
   const baseDocuments: PreTrainingDocumentType[] = ["convocation", "welcome_pack"];
+  const guidePolicy = getParticipantGuidePolicy(trainingType);
+  if (guidePolicy.enabled && guidePolicy.attachToConvocation && guidePolicy.documentType) {
+    baseDocuments.push(guidePolicy.documentType);
+  }
 
   // The SST aide-memoire is only relevant to SST initial and MAC SST courses.
   // It must never be prepared or sent for hygiene or AI training.

@@ -15,6 +15,9 @@ import { getTrainingTypeLabel } from "@/lib/training-programs";
 import { getRequiredPreTrainingDocumentTypes } from "@/lib/pre-training-documents";
 import type { SessionCandidate } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { randomUUID } from "node:crypto";
+import { AIParticipantGuidePanel } from "@/components/sessions/ai-participant-guide-panel";
+import { getAIGuideAttendanceStatuses, getAIGuideDeliveryHistory } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Session" };
@@ -54,6 +57,9 @@ export default async function SessionDetailPage({ params, searchParams }: { para
   }
   const { session, candidates, globalProgress, sourceQuote, availableCompanyCandidateCount } = data;
   const [sessionDocuments, companyOptions, candidateDirectory] = await Promise.all([getDocumentsBySessionId(sessionId), activeTab === "candidates" ? getCompanyOptions() : Promise.resolve([]), activeTab === "candidates" ? getCandidateDirectory() : Promise.resolve([])]);
+  const [aiGuideAttendance, aiGuideHistory] = activeTab === "documents" && session.training_type === "ai"
+    ? await Promise.all([getAIGuideAttendanceStatuses(sessionId), getAIGuideDeliveryHistory(sessionId)])
+    : [[], []];
   const groups = groupCandidates(candidates);
   const completedEvaluations = candidates.filter((candidate) => (candidate.evaluations ?? []).some((evaluation) => evaluation.evaluation_type === "globale" && evaluation.result !== "non_renseigne")).length;
   const administrativeProgress = candidates.length ? Math.round((completedEvaluations / candidates.length) * 100) : 0;
@@ -76,6 +82,6 @@ export default async function SessionDetailPage({ params, searchParams }: { para
     {activeTab === "attendance" ? <AttendancePanel session={session} candidates={candidates} documentUrl={attendanceDocumentUrl} feedback={{ success: query.attendanceSuccess ? "Demandes d’émargement traitées." : query.attendanceScheduleUpdated ? "Horaires enregistrés." : query.attendanceClosed ? "Créneau clôturé." : null, error: query.attendanceScheduleError ? "Les horaires n’ont pas pu être enregistrés." : query.attendanceError ? "L’action d’émargement a échoué." : null }} /> : null}
     {activeTab === "evaluations" ? <section className="grid gap-4">{candidates.length ? candidates.map((candidate) => <SessionCandidateBanner key={candidate.id} candidateSession={candidate} trainingType={session.training_type} documents={sessionDocuments.filter((document) => document.candidate_id === candidate.candidate.id)} />) : <Card>Aucun candidat à évaluer.</Card>}</section> : null}
     {activeTab === "completion" ? <Card><SessionClosurePanel session={session} candidates={candidates} /></Card> : null}
-    {activeTab === "documents" ? <section className="grid gap-4"><Card><DocumentList title="Documents de la session" documents={sessionDocuments} emptyMessage="Aucun document n’est encore enregistré pour cette session." /></Card></section> : null}
+    {activeTab === "documents" ? <section className="grid gap-4">{session.training_type === "ai" ? <Card><AIParticipantGuidePanel sessionId={session.id} sessionTitle={session.title} requestId={randomUUID()} history={aiGuideHistory} recipients={candidates.map((item) => ({ id: item.candidate.id, name: `${item.candidate.first_name} ${item.candidate.last_name}`.trim(), email: item.candidate.email, attendance: aiGuideAttendance.find((entry) => entry.candidateId === item.candidate.id)?.status ?? "unknown", document: sessionDocuments.filter((document) => document.candidate_id === item.candidate.id && document.document_type === "livret_ia").sort((left, right) => right.created_at.localeCompare(left.created_at))[0] ?? null }))} /></Card> : null}<Card><DocumentList title="Documents de la session" documents={sessionDocuments} emptyMessage="Aucun document n’est encore enregistré pour cette session." /></Card></section> : null}
   </main>;
 }

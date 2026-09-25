@@ -5,6 +5,7 @@ export function getGeneratedDocumentLabel(type: string) {
   if (type === "programme") return "Programme";
   if (type === "aide_memoire") return "Aide memoire sauveteur secouriste du travail";
   if (type === "welcome_pack") return "Livret d'accueil + reglement interieur";
+  if (type === "livret_ia") return "Livret participant IA";
   if (type === "attestation" || type === "certificat") return "Attestation interne de fin de formation";
   if (type === "bilan_session") return "Bilan session";
   if (type === "convocation") return "Convocation";
@@ -22,7 +23,7 @@ export const DOCUMENT_PHASE_LABELS: Record<DocumentPhase, string> = {
 };
 
 export function getDocumentPhase(type: string): DocumentPhase {
-  if (["quote", "programme", "training_agreement", "convocation", "welcome_pack", "aide_memoire"].includes(type)) {
+  if (["quote", "programme", "training_agreement", "convocation", "welcome_pack", "aide_memoire", "livret_ia"].includes(type)) {
     return "before";
   }
 

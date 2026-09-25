@@ -30,7 +30,7 @@ import {
   getSessionClosureReadiness
 } from "@/lib/session-closure";
 import { initializeSessionModuleProgress } from "@/lib/session-modules";
-import { getSessionById } from "@/lib/queries";
+import { getAIGuideAttendanceStatuses, getSessionById } from "@/lib/queries";
 import { createOrGetSessionArchive } from "@/lib/session-archives";
 import { getTrainingDocumentTitle } from "@/lib/training-programs";
 import {
@@ -47,6 +47,8 @@ import {
   ensureCandidatePreTrainingDocuments
 } from "@/lib/candidate-pre-training-documents";
 import { linkTrainingNeedsAnalysisToQuote } from "@/lib/training-needs/internal";
+import { ensureAIParticipantGuideDocument } from "@/lib/ai-participant-guide";
+import { isAIGuideRecipientEligible } from "@/lib/ai-participant-guide-content";
 
 export type ActionState = {
   error?: string;
@@ -103,6 +105,94 @@ export async function sendMissingSessionDocumentsAction(_: ActionState, formData
     return { success: `${sent} envoi(s) effectué(s), ${skipped} ignoré(s) et ${failures} erreur(s).` };
   } catch {
     return { error: "Impossible de préparer l’envoi des documents avant formation." };
+  }
+}
+
+export async function prepareAIParticipantGuidesAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  if (!sessionId) return { error: "Session manquante." };
+  try {
+    const sessionData = await getSessionById(sessionId);
+    if (sessionData.session.training_type !== "ai") return { error: "Cette action est réservée aux formations IA." };
+    let failures = 0;
+    for (const candidate of sessionData.candidates) {
+      try {
+        await ensureAIParticipantGuideDocument(sessionId, candidate.candidate.id);
+      } catch (error) {
+        failures += 1;
+        console.error("[prepare-ai-participant-guide] failed", { sessionId, candidateId: candidate.candidate.id, message: error instanceof Error ? error.message : "Unknown error" });
+      }
+    }
+    revalidatePath(`/sessions/${sessionId}`);
+    return { success: failures ? `Livret préparé pour les candidats accessibles, avec ${failures} erreur(s).` : "Les livrets participants IA sont prêts." };
+  } catch {
+    return { error: "Impossible de préparer les livrets de cette session." };
+  }
+}
+
+export async function sendAIParticipantGuidesAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const sessionId = formData.get("sessionId")?.toString().trim();
+  const requestId = formData.get("requestId")?.toString().trim();
+  const confirmed = formData.get("confirmed")?.toString() === "true";
+  const selectedIds = [...new Set(formData.getAll("candidateId").map((value) => value.toString()))];
+  if (!sessionId || !confirmed || !requestId || !/^[0-9a-f-]{36}$/i.test(requestId) || !selectedIds.length) {
+    return { error: "Sélectionnez au moins un candidat et confirmez explicitement l’envoi." };
+  }
+  try {
+    const sessionData = await getSessionById(sessionId);
+    if (sessionData.session.training_type !== "ai") return { error: "Cette action est réservée aux formations IA." };
+    const statuses = new Map((await getAIGuideAttendanceStatuses(sessionId)).map((item) => [item.candidateId, item.status]));
+    const candidates = sessionData.candidates.filter((item) => selectedIds.includes(item.candidate.id));
+    if (candidates.length !== selectedIds.length) return { error: "Un candidat sélectionné n’appartient pas à cette session." };
+    const supabase = await createClient();
+    let sent = 0;
+    let skipped = 0;
+    let failures = 0;
+    for (const item of candidates) {
+      const candidate = item.candidate;
+      if (!isAIGuideRecipientEligible({ email: candidate.email, attendance: statuses.get(candidate.id) ?? "unknown", hasDocument: true })) { skipped += 1; continue; }
+      const { data: document, error: documentError } = await supabase
+        .from("generated_documents")
+        .select("id, file_url")
+        .eq("session_id", sessionId)
+        .eq("candidate_id", candidate.id)
+        .eq("document_type", "livret_ia")
+        .not("file_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (documentError || !document?.file_url) { skipped += 1; continue; }
+
+      const { data: deliveryId, error: claimError } = await supabase.rpc("claim_ai_participant_guide_delivery", {
+        p_session_id: sessionId,
+        p_candidate_id: candidate.id,
+        p_recipient_email: candidate.email,
+        p_request_id: requestId
+      });
+      if (claimError) {
+        console.error("[send-ai-participant-guide] claim failed", { sessionId, candidateId: candidate.id, message: claimError.message });
+        failures += 1;
+        continue;
+      }
+      if (!deliveryId) { skipped += 1; continue; }
+      try {
+        await sendCandidateDocumentEmail(document.id);
+        const { error: finishError } = await supabase.rpc("finish_ai_participant_guide_delivery", { p_delivery_id: deliveryId, p_success: true, p_technical_error: null });
+        if (finishError) throw new Error("Email envoyé, mais la trace d’envoi n’a pas pu être finalisée.");
+        sent += 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Échec d’envoi";
+        await supabase.rpc("finish_ai_participant_guide_delivery", { p_delivery_id: deliveryId, p_success: false, p_technical_error: message });
+        console.error("[send-ai-participant-guide] delivery failed", { sessionId, candidateId: candidate.id, message });
+        failures += 1;
+      }
+    }
+    revalidatePath(`/sessions/${sessionId}`);
+    return { success: `${sent} livret(s) envoyé(s), ${skipped} ignoré(s) (absence, email ou document manquant), ${failures} erreur(s).` };
+  } catch {
+    return { error: "Impossible de traiter l’envoi des livrets participants IA." };
   }
 }
 

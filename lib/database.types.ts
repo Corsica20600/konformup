@@ -1193,6 +1193,61 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_training_document_deliveries: {
+        Row: {
+          attempt_count: number
+          candidate_id: string
+          created_at: string
+          delivery_kind: string
+          id: string
+          idempotency_key: string
+          last_attempt_at: string | null
+          recipient_email: string
+          requested_by: string | null
+          sent_at: string | null
+          session_id: string
+          status: string
+          technical_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          candidate_id: string
+          created_at?: string
+          delivery_kind: string
+          id?: string
+          idempotency_key: string
+          last_attempt_at?: string | null
+          recipient_email: string
+          requested_by?: string | null
+          sent_at?: string | null
+          session_id: string
+          status?: string
+          technical_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          candidate_id?: string
+          created_at?: string
+          delivery_kind?: string
+          id?: string
+          idempotency_key?: string
+          last_attempt_at?: string | null
+          recipient_email?: string
+          requested_by?: string | null
+          sent_at?: string | null
+          session_id?: string
+          status?: string
+          technical_error?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "pre_training_document_deliveries_candidate_id_fkey"; columns: ["candidate_id"]; isOneToOne: false; referencedRelation: "candidates"; referencedColumns: ["id"] },
+          { foreignKeyName: "pre_training_document_deliveries_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "pre_training_document_deliveries_session_id_fkey"; columns: ["session_id"]; isOneToOne: false; referencedRelation: "training_sessions"; referencedColumns: ["id"] }
+        ]
+      }
       quotes: {
         Row: {
           accessibility_details: string | null
@@ -2196,6 +2251,10 @@ export type Database = {
         Args: { p_path: string }
         Returns: boolean
       }
+      claim_ai_participant_guide_delivery: {
+        Args: { p_candidate_id: string; p_recipient_email: string; p_request_id: string; p_session_id: string }
+        Returns: string
+      }
       claim_mac_sst_reminder: { Args: { p_id: string }; Returns: boolean }
       confirm_attendance_response: {
         Args: {
@@ -2277,6 +2336,10 @@ export type Database = {
         }[]
       }
       is_operational_manager: { Args: never; Returns: boolean }
+      finish_ai_participant_guide_delivery: {
+        Args: { p_delivery_id: string; p_success: boolean; p_technical_error?: string | null }
+        Returns: boolean
+      }
       link_candidate_mac_identity: {
         Args: {
           p_candidate_id: string

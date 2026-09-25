@@ -1910,6 +1910,70 @@ export async function getDocumentsBySessionId(sessionId: string) {
   return selectGeneratedDocumentsByForeignKey("session_id", sessionId);
 }
 
+export type AIGuideAttendanceStatus = "present" | "absent" | "partial" | "issue" | "pending" | "unknown";
+export type AIGuideDeliveryHistoryItem = {
+  id: string;
+  candidate_id: string;
+  recipient_email: string;
+  requested_by: string | null;
+  status: string;
+  sent_at: string | null;
+  created_at: string;
+  attempt_count: number;
+  technical_error: string | null;
+};
+
+export async function getAIGuideAttendanceStatuses(sessionId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendance_slots")
+    .select("id, attendance_responses(candidate_id, response_status, trainer_override_status)")
+    .eq("session_id", sessionId);
+
+  logSupabaseQueryError({ file: "lib/queries.ts", table: "attendance_slots -> attendance_responses", query: 'select("id, attendance_responses(candidate_id, response_status, trainer_override_status)").eq("session_id", sessionId)', error });
+  if (error) throw error;
+
+  const slots = (data ?? []) as Array<{ id: string; attendance_responses: Array<{ candidate_id: string; response_status: string; trainer_override_status: string | null }> }>;
+  const statusesByCandidate = new Map<string, string[]>();
+  for (const slot of slots) {
+    for (const response of slot.attendance_responses ?? []) {
+      const statuses = statusesByCandidate.get(response.candidate_id) ?? [];
+      statuses.push(response.trainer_override_status ?? response.response_status);
+      statusesByCandidate.set(response.candidate_id, statuses);
+    }
+  }
+
+  const candidateIds = [...new Set(slots.flatMap((slot) => (slot.attendance_responses ?? []).map((response) => response.candidate_id)))];
+  return candidateIds.map((candidateId) => {
+    const statuses = statusesByCandidate.get(candidateId) ?? [];
+    const status: AIGuideAttendanceStatus = !slots.length || statuses.length !== slots.length
+      ? "unknown"
+      : statuses.every((value) => value === "present")
+        ? "present"
+        : statuses.every((value) => value === "absent")
+          ? "absent"
+          : statuses.some((value) => value === "present")
+            ? "partial"
+            : statuses.some((value) => value === "issue")
+              ? "issue"
+              : "pending";
+    return { candidateId, status };
+  });
+}
+
+export async function getAIGuideDeliveryHistory(sessionId: string): Promise<AIGuideDeliveryHistoryItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pre_training_document_deliveries")
+    .select("id, candidate_id, recipient_email, requested_by, status, sent_at, created_at, attempt_count, technical_error")
+    .eq("session_id", sessionId)
+    .eq("delivery_kind", "livret_ia_manual")
+    .order("created_at", { ascending: false });
+  logSupabaseQueryError({ file: "lib/queries.ts", table: "pre_training_document_deliveries", query: 'select("livret IA manual delivery history").eq("session_id", sessionId)', error });
+  if (error) throw error;
+  return (data ?? []) as AIGuideDeliveryHistoryItem[];
+}
+
 export async function getCandidateDirectory() {
   const supabase = await createClient();
   const { data, error } = await supabase

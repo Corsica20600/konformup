@@ -19,6 +19,7 @@ export type SupportedGeneratedDocumentType =
   | "convocation"
   | "feuille_presence"
   | "invoice"
+  | "livret_ia"
   | "training_agreement"
   | "programme"
   | "quote"
@@ -100,6 +101,11 @@ const DOCUMENT_CONFIG: Record<
     storageBucket: "generated-documents",
     buildStoragePath: ({ sessionId, candidateId }) =>
       candidateId ? `sessions/${sessionId}/candidates/${candidateId}/welcome-pack/livret-reglement.pdf` : null,
+    requiresCandidate: true
+  },
+  livret_ia: {
+    prefix: "LIVRETIA",
+    buildPath: ({ candidateId }) => `/api/pdf/ai-participant-guide/${candidateId}`,
     requiresCandidate: true
   }
 };

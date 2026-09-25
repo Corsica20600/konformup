@@ -2,6 +2,24 @@ import type { TrainingType } from "@/lib/database.types";
 
 export const TRAINING_TYPE_OPTIONS = ["sst_initial", "mac_sst", "hygiene", "ai"] as const;
 
+export type ParticipantGuidePolicy = {
+  enabled: boolean;
+  documentType: "livret_ia" | null;
+  attachToConvocation: boolean;
+  availableAfterTraining: boolean;
+};
+
+export const TRAINING_DOCUMENT_POLICIES: Record<TrainingType, { participantGuide: ParticipantGuidePolicy }> = {
+  sst_initial: { participantGuide: { enabled: false, documentType: null, attachToConvocation: false, availableAfterTraining: false } },
+  mac_sst: { participantGuide: { enabled: false, documentType: null, attachToConvocation: false, availableAfterTraining: false } },
+  hygiene: { participantGuide: { enabled: false, documentType: null, attachToConvocation: false, availableAfterTraining: false } },
+  ai: { participantGuide: { enabled: true, documentType: "livret_ia", attachToConvocation: true, availableAfterTraining: true } }
+};
+
+export function getParticipantGuidePolicy(trainingType: TrainingType) {
+  return TRAINING_DOCUMENT_POLICIES[trainingType].participantGuide;
+}
+
 export function isMacSstTraining(trainingType: TrainingType) {
   return trainingType === "mac_sst";
 }
