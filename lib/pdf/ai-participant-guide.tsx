@@ -41,11 +41,12 @@ function Section({ title, paragraphs = [], bullets = [], warning = false }: { ti
 
 export function AIParticipantGuideDocument({ session, participantName, organizationSettings }: { session: SessionItem; participantName: string; organizationSettings: OrganizationBranding }) {
   const focus = getAiGuideSessionFocus(session);
+  const contactLine = [organizationSettings.contact_email, PUBLIC_SITE_ORIGIN].filter(Boolean).join(" · ");
   return <Document title={`Livret participant – ${focus.title}`} author={organizationSettings.organization_name}>
     <Page size="A4" style={styles.page} wrap>
-      <View style={styles.header} fixed>
+      <View style={styles.header}>
         {organizationSettings.resolved_logo_url ? <Image src={organizationSettings.resolved_logo_url} style={styles.logo} /> : <Text style={styles.sectionTitle}>{organizationSettings.organization_name}</Text>}
-        <Text style={styles.headerText}>{organizationSettings.contact_email} · {PUBLIC_SITE_ORIGIN}</Text>
+        <Text style={styles.headerText}>{contactLine}</Text>
       </View>
       <View style={styles.hero}>
         <Text style={styles.kicker}>Konform’up · Ressource participant</Text>
@@ -91,7 +92,7 @@ export function AIParticipantGuideDocument({ session, participantName, organizat
         <Text style={styles.paragraph}>Ressources : consultez les consignes de votre organisation, la documentation actuelle des outils utilisés et les recommandations de la CNIL sur la protection des données.</Text>
       </View>
       <View style={styles.footer} fixed>
-        <Text style={styles.footerText}>{organizationSettings.organization_name} · {organizationSettings.contact_email}{organizationSettings.contact_phone ? ` · ${organizationSettings.contact_phone}` : ""} · {PUBLIC_SITE_ORIGIN}</Text>
+        <Text style={styles.footerText}>{[organizationSettings.organization_name, organizationSettings.contact_email, organizationSettings.contact_phone, PUBLIC_SITE_ORIGIN].filter(Boolean).join(" · ")}</Text>
         <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
       </View>
     </Page>
